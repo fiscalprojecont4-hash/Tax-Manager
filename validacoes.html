@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Validações — Tax Manager Projecont</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/validacoes.css" />
+</head>
+<body>
+  <nav class="topnav">
+    <a href="dashboard.html" class="topnav-brand">
+      <img src="assets/hero-login.jpg" alt="" />
+      <span>Tax Manager</span>
+    </a>
+
+    <div class="topnav-tabs">
+      <a href="dashboard.html">Painel</a>
+
+      <div class="nav-dropdown" id="modulosDropdown">
+        <button type="button" class="nav-dropdown-trigger active" id="modulosTrigger">
+          Módulos
+          <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="nav-dropdown-panel" role="menu">
+          <a class="nav-dropdown-item" href="tarefas.html" role="menuitem">
+            <h4>Tarefas</h4>
+            <p>Tarefas pontuais, recorrentes e a fila de trabalho do dia.</p>
+          </a>
+          <a class="nav-dropdown-item active" href="validacoes.html" role="menuitem">
+            <h4>Validações</h4>
+            <p>Checklists por empresa, achados, revisão e aprovação.</p>
+          </a>
+          <a class="nav-dropdown-item" href="#" role="menuitem">
+            <h4>Conhecimento</h4>
+            <p>Histórico, padrões aprovados, incidentes e playbooks.</p>
+          </a>
+          <a class="nav-dropdown-item" href="#" role="menuitem">
+            <h4>Administração</h4>
+            <p>Usuários, equipes, permissões e configurações.</p>
+          </a>
+        </div>
+      </div>
+
+      <a href="calendar.html">Calendário</a>
+      <a href="#">Projetos</a>
+    </div>
+
+    <div class="topnav-right">
+      <span class="user-email" id="userEmail">…</span>
+      <button id="logoutBtn">Sair</button>
+    </div>
+  </nav>
+
+  <main class="wrap-fluid">
+    <div class="data-note">
+      ⚠ Dados de exemplo — o modelo de dados (Supabase/PostgreSQL) ainda não existe, então
+      estas validações são mock para validar o layout e a interação. O checklist, os achados
+      e o fluxo de aprovação serão substituídos por dados reais assim que o schema estiver pronto.
+    </div>
+
+    <div class="vd-toolbar">
+      <div class="segmented" id="statusFilter">
+        <button type="button" class="segmented-btn active" data-filter="pendentes">Pendentes</button>
+        <button type="button" class="segmented-btn" data-filter="aprovadas">Aprovadas</button>
+        <button type="button" class="segmented-btn" data-filter="todas">Todas</button>
+      </div>
+    </div>
+
+    <div class="list-card" id="empresaList"></div>
+  </main>
+
+  <!-- Painel lateral: checklist de validação da empresa -->
+  <div class="side-panel-backdrop" id="panelBackdrop"></div>
+  <aside class="side-panel" id="vdPanel">
+    <div class="side-panel-header">
+      <div>
+        <h3 id="panelTitle">Empresa</h3>
+        <p id="panelSubtitle">Atividade</p>
+      </div>
+      <button type="button" class="side-panel-close" id="panelClose" aria-label="Fechar">✕</button>
+    </div>
+    <div class="side-panel-body">
+      <div class="form-row">
+        <label for="fStatus">Status da validação</label>
+        <select id="fStatus">
+          <option value="pendente">Pendente</option>
+          <option value="revisao">Em revisão</option>
+          <option value="aprovado">Aprovado</option>
+          <option value="reprovado">Reprovado</option>
+        </select>
+      </div>
+
+      <div class="panel-section-title">Checklist</div>
+      <div class="vd-checklist" id="checklistBody"></div>
+
+      <div class="panel-section-title">Achados</div>
+      <div class="vd-achados-list" id="achadosList"></div>
+      <div class="vd-achado-add">
+        <textarea id="novoAchado" placeholder="Registrar um achado desta validação..."></textarea>
+        <button type="button" id="addAchadoBtn">Adicionar</button>
+      </div>
+    </div>
+    <div class="side-panel-footer">
+      <button type="button" class="btn-fill" id="panelSave">Salvar</button>
+    </div>
+  </aside>
+
+  <script type="module">
+    import { createSupabaseClient } from './js/supabase-client.js';
+
+    const supabase = createSupabaseClient(true);
+    const emailEl = document.getElementById('userEmail');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      window.location.href = 'index.html';
+    } else {
+      emailEl.textContent = session.user.email;
+    }
+
+    logoutBtn.addEventListener('click', async () => {
+      await supabase.auth.signOut();
+      window.location.href = 'index.html';
+    });
+
+    // --- Dropdown "Módulos": mesma lógica das outras páginas ---
+    const dropdown = document.getElementById('modulosDropdown');
+    const trigger = document.getElementById('modulosTrigger');
+    const panel = dropdown.querySelector('.nav-dropdown-panel');
+
+    function positionPanel() {
+      const rect = trigger.getBoundingClientRect();
+      panel.style.top = `${rect.bottom + 12}px`;
+      panel.style.left = `${rect.left + rect.width / 2}px`;
+    }
+    function openDropdown() { positionPanel(); dropdown.classList.add('open'); }
+    function closeDropdown() { dropdown.classList.remove('open'); }
+
+    dropdown.addEventListener('mouseenter', openDropdown);
+    dropdown.addEventListener('mouseleave', closeDropdown);
+    trigger.addEventListener('click', (e) => { e.stopPropagation(); dropdown.classList.toggle('open'); });
+    document.addEventListener('click', (e) => { if (!dropdown.contains(e.target)) closeDropdown(); });
+
+    // ======================================================================
+    // Validações — dados mock (pendente: persistência real via Supabase/RLS;
+    // o checklist hoje é fixo no código, na Fase 1+ vira versionado no banco
+    // com fluxo de aprovação/revisão, por empresa e por competência)
+    // ======================================================================
+
+    const CHECKLIST_PADRAO = [
+      'Notas fiscais do período conferidas',
+      'Apuração de ICMS revisada',
+      'Guias de recolhimento conferidas',
+      'Obrigações acessórias enviadas (SPED, DCTF...)',
+      'Pendências do mês anterior resolvidas',
+    ];
+
+    function makeChecklist(doneIdx) {
+      return CHECKLIST_PADRAO.map((label, i) => ({ id: `c${i}`, label, done: doneIdx.includes(i) }));
+    }
+
+    function addDays(n) {
+      const d = new Date();
+      d.setDate(d.getDate() + n);
+      return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+    }
+
+    let achadoSeq = 1;
+
+    let empresas = [
+      { id: 'e1', nome: 'Rembraz', atividade: 'Indústria — Zona Franca', status: 'pendente', checklist: makeChecklist([]), atualizadoEm: addDays(-6), achados: [] },
+      { id: 'e2', nome: 'Disbral', atividade: 'Comércio atacadista', status: 'pendente', checklist: makeChecklist([0]), atualizadoEm: addDays(-4), achados: [
+        { id: `a${achadoSeq++}`, data: addDays(-4), texto: 'Nota fiscal nº 4521 com CFOP divergente da operação declarada.' },
+      ] },
+      { id: 'e3', nome: 'Tecnoradio', atividade: 'Indústria — Zona Franca', status: 'revisao', checklist: makeChecklist([0, 1, 2]), atualizadoEm: addDays(-2), achados: [] },
+      { id: 'e4', nome: 'Lusitano', atividade: 'Comércio varejista', status: 'revisao', checklist: makeChecklist([0, 1]), atualizadoEm: addDays(-1), achados: [
+        { id: `a${achadoSeq++}`, data: addDays(-1), texto: 'Guia de ICMS de setembro recolhida com um dia de atraso — verificar multa.' },
+      ] },
+      { id: 'e5', nome: 'Empresa Alfa', atividade: 'Prestação de serviços', status: 'reprovado', checklist: makeChecklist([0, 2]), atualizadoEm: addDays(-3), achados: [
+        { id: `a${achadoSeq++}`, data: addDays(-3), texto: 'SPED Fiscal do período anterior não localizado — solicitar reenvio à empresa.' },
+      ] },
+      { id: 'e6', nome: 'Empresa Beta', atividade: 'Comércio atacadista', status: 'aprovado', checklist: makeChecklist([0, 1, 2, 3, 4]), atualizadoEm: addDays(-8), achados: [] },
+      { id: 'e7', nome: 'Nortec', atividade: 'Indústria — Zona Franca', status: 'aprovado', checklist: makeChecklist([0, 1, 2, 3, 4]), atualizadoEm: addDays(-10), achados: [] },
+    ];
+
+    let currentFilter = 'pendentes';
+    let activeId = null;
+
+    const STATUS_LABEL = { pendente: 'Pendente', revisao: 'Em revisão', aprovado: 'Aprovado', reprovado: 'Reprovado' };
+    const STATUS_BADGE = { pendente: 'badge-neutral', revisao: 'badge-warning', aprovado: 'badge-success', reprovado: 'badge-danger' };
+
+    function checklistProgress(e) {
+      const done = e.checklist.filter(c => c.done).length;
+      return { done, total: e.checklist.length, pct: Math.round((done / e.checklist.length) * 100) };
+    }
+
+    function renderRow(e) {
+      const row = document.createElement('div');
+      row.className = 'vd-row';
+      row.dataset.id = e.id;
+      const prog = checklistProgress(e);
+      const fillClass = e.status === 'reprovado' ? 'danger' : (e.status === 'aprovado' ? 'success' : '');
+
+      row.innerHTML = `
+        <div class="vd-row-main">
+          <p class="vd-row-name">${e.nome}</p>
+          <p class="vd-row-activity">${e.atividade}</p>
+        </div>
+        <div class="vd-row-progress">
+          <div class="progress-track"><div class="progress-fill ${fillClass}" style="width:${prog.pct}%"></div></div>
+          <span class="count">${prog.done}/${prog.total}</span>
+        </div>
+        <div class="vd-row-side">
+          <span class="badge ${STATUS_BADGE[e.status]}">${STATUS_LABEL[e.status]}</span>
+          <span class="vd-row-updated">${e.atualizadoEm}</span>
+        </div>
+      `;
+      row.addEventListener('click', () => openPanel(e.id));
+      return row;
+    }
+
+    function render() {
+      const container = document.getElementById('empresaList');
+      container.innerHTML = '';
+
+      const filtered = empresas.filter(e => {
+        if (currentFilter === 'pendentes') return e.status === 'pendente' || e.status === 'revisao' || e.status === 'reprovado';
+        if (currentFilter === 'aprovadas') return e.status === 'aprovado';
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty-state">Nenhuma empresa nesta visão.</div>';
+        return;
+      }
+
+      filtered
+        .slice()
+        .sort((a, b) => a.nome.localeCompare(b.nome))
+        .forEach(e => container.appendChild(renderRow(e)));
+    }
+
+    document.getElementById('statusFilter').addEventListener('click', (e) => {
+      const btn = e.target.closest('.segmented-btn');
+      if (!btn) return;
+      document.querySelectorAll('#statusFilter .segmented-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilter = btn.dataset.filter;
+      render();
+    });
+
+    // ---------- Painel lateral ----------
+
+    const vdPanel = document.getElementById('vdPanel');
+    const panelBackdrop = document.getElementById('panelBackdrop');
+    const panelTitle = document.getElementById('panelTitle');
+    const panelSubtitle = document.getElementById('panelSubtitle');
+    const fStatus = document.getElementById('fStatus');
+    const checklistBody = document.getElementById('checklistBody');
+    const achadosList = document.getElementById('achadosList');
+    const novoAchado = document.getElementById('novoAchado');
+
+    function renderChecklist(e) {
+      checklistBody.innerHTML = '';
+      e.checklist.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'vd-check-item' + (item.done ? ' done' : '');
+        row.innerHTML = `
+          <span class="list-row-check${item.done ? ' checked' : ''}">
+            ${item.done ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
+          </span>
+          <span class="label">${item.label}</span>
+        `;
+        row.addEventListener('click', () => {
+          item.done = !item.done;
+          renderChecklist(e);
+        });
+        checklistBody.appendChild(row);
+      });
+    }
+
+    function renderAchados(e) {
+      achadosList.innerHTML = '';
+      if (e.achados.length === 0) {
+        achadosList.innerHTML = '<p class="vd-achado-empty">Nenhum achado registrado ainda.</p>';
+        return;
+      }
+      e.achados.slice().reverse().forEach(a => {
+        const div = document.createElement('div');
+        div.className = 'vd-achado';
+        div.innerHTML = `<div class="data">${a.data}</div><div class="texto">${a.texto}</div>`;
+        achadosList.appendChild(div);
+      });
+    }
+
+    function openPanel(id) {
+      activeId = id;
+      const e = empresas.find(x => x.id === id);
+      panelTitle.textContent = e.nome;
+      panelSubtitle.textContent = e.atividade;
+      fStatus.value = e.status;
+      renderChecklist(e);
+      renderAchados(e);
+      novoAchado.value = '';
+      vdPanel.classList.add('open');
+      panelBackdrop.classList.add('open');
+    }
+
+    function closePanel() {
+      vdPanel.classList.remove('open');
+      panelBackdrop.classList.remove('open');
+    }
+
+    document.getElementById('panelClose').addEventListener('click', closePanel);
+    panelBackdrop.addEventListener('click', closePanel);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closePanel(); closeDropdown(); } });
+
+    document.getElementById('addAchadoBtn').addEventListener('click', () => {
+      const texto = novoAchado.value.trim();
+      if (!texto || !activeId) return;
+      const e = empresas.find(x => x.id === activeId);
+      e.achados.push({ id: `a${achadoSeq++}`, data: 'Hoje', texto });
+      novoAchado.value = '';
+      renderAchados(e);
+    });
+
+    document.getElementById('panelSave').addEventListener('click', () => {
+      if (!activeId) return;
+      const e = empresas.find(x => x.id === activeId);
+      e.status = fStatus.value;
+      e.atualizadoEm = 'Hoje';
+      closePanel();
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>

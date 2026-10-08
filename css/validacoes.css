@@ -1,0 +1,203 @@
+@import url('dashboard.css');
+
+html, body {
+  overflow-x: hidden;
+}
+
+.data-note { margin-bottom: 1.25rem; }
+
+/* ---------- Toolbar ---------- */
+
+.vd-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+/* ---------- Linha de empresa ---------- */
+
+.vd-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.vd-row:last-child { border-bottom: none; }
+.vd-row:hover { background: var(--surface); }
+
+.vd-row-main {
+  flex: 0 0 240px;
+  min-width: 0;
+}
+
+.vd-row-name {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 0.2rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vd-row-activity {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.vd-row-progress {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.vd-row-progress .progress-track { flex: 1; }
+
+.vd-row-progress .count {
+  font-size: 0.76rem;
+  color: var(--muted);
+  flex-shrink: 0;
+  width: 42px;
+  text-align: right;
+}
+
+.vd-row-side {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.vd-row-updated {
+  font-size: 0.76rem;
+  color: var(--muted);
+  width: 70px;
+  text-align: right;
+}
+
+@media (max-width: 760px) {
+  .vd-row {
+    flex-wrap: wrap;
+  }
+  .vd-row-main { flex: 1 1 100%; }
+  .vd-row-progress { flex: 1 1 auto; order: 3; width: 100%; }
+  .vd-row-side { order: 2; margin-left: auto; }
+  .vd-row-updated { display: none; }
+}
+
+/* ---------- Checklist no painel ---------- */
+
+.vd-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.vd-check-item {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.6rem 0.1rem;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.vd-check-item:last-child { border-bottom: none; }
+
+.vd-check-item span.label {
+  font-size: 0.86rem;
+  color: var(--text);
+  flex: 1;
+}
+
+.vd-check-item.done span.label {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.panel-section-title {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 1.5rem 0 0.6rem;
+}
+
+.panel-section-title:first-child { margin-top: 0; }
+
+/* ---------- Achados ---------- */
+
+.vd-achados-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 0.8rem;
+}
+
+.vd-achado {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.6rem 0.75rem;
+}
+
+.vd-achado .data {
+  font-size: 0.7rem;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+}
+
+.vd-achado .texto {
+  font-size: 0.84rem;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.vd-achado-empty {
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-bottom: 0.8rem;
+}
+
+.vd-achado-add {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.vd-achado-add textarea {
+  flex: 1;
+  min-height: 42px;
+  resize: vertical;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 0.84rem;
+  padding: 0.55rem 0.7rem;
+  font-family: inherit;
+}
+
+.vd-achado-add button {
+  background: var(--accent);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  padding: 0 0.9rem;
+  font-weight: 600;
+  font-size: 0.82rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease;
+}
+
+.vd-achado-add button:hover { background: var(--accent-hover); }

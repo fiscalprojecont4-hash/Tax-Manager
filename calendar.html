@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Calendário — Tax Manager Projecont</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/calendar.css" />
+</head>
+<body>
+  <nav class="topnav">
+    <div class="topnav-left">
+      <a href="dashboard.html" class="topnav-brand">
+        <img src="assets/hero-login.jpg" alt="" />
+        <span>Tax Manager</span>
+      </a>
+      <div class="topnav-tabs">
+        <a href="dashboard.html">Painel</a>
+
+        <div class="nav-dropdown" id="modulosDropdown">
+          <button type="button" class="nav-dropdown-trigger" id="modulosTrigger">
+            Módulos
+            <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="nav-dropdown-panel" role="menu">
+            <a class="nav-dropdown-item" href="#" role="menuitem">
+              <h4>Tarefas</h4>
+              <p>Tarefas pontuais, recorrentes e a fila de trabalho do dia.</p>
+            </a>
+            <a class="nav-dropdown-item" href="#" role="menuitem">
+              <h4>Validações</h4>
+              <p>Checklists por empresa, achados, revisão e aprovação.</p>
+            </a>
+            <a class="nav-dropdown-item" href="#" role="menuitem">
+              <h4>Conhecimento</h4>
+              <p>Histórico, padrões aprovados, incidentes e playbooks.</p>
+            </a>
+            <a class="nav-dropdown-item" href="#" role="menuitem">
+              <h4>Administração</h4>
+              <p>Usuários, equipes, permissões e configurações.</p>
+            </a>
+          </div>
+        </div>
+
+        <a href="calendar.html" class="active">Calendário</a>
+        <a href="#">Projetos</a>
+      </div>
+    </div>
+    <div class="topnav-right">
+      <span class="user-email" id="userEmail">…</span>
+      <button id="logoutBtn">Sair</button>
+    </div>
+  </nav>
+
+  <main class="cal-wrap">
+    <div class="data-note">
+      ⚠ Dados de exemplo — o preenchimento automático com o calendário oficial
+      da SEFAZ-AM e da Receita Federal depende de uma rotina de backend
+      (Fase 3 do plano) ainda não implementada. Os eventos abaixo são mock
+      para validar o layout e a interação.
+    </div>
+
+    <div class="cal-toolbar">
+      <div class="cal-toolbar-left">
+        <button type="button" class="cal-btn" id="todayBtn">Hoje</button>
+        <button type="button" class="cal-icon-btn" id="prevBtn" aria-label="Mês anterior">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button type="button" class="cal-icon-btn" id="nextBtn" aria-label="Próximo mês">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <h1 class="cal-title" id="calTitle">—</h1>
+      </div>
+      <div class="cal-toolbar-right">
+        <button type="button" class="cal-view-btn active" id="viewMesBtn">Mês</button>
+        <button type="button" class="cal-view-btn" id="viewProgBtn">Programação</button>
+      </div>
+    </div>
+
+    <!-- Visão Mês -->
+    <section id="monthView" class="cal-month">
+      <div class="cal-weekdays">
+        <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+    </section>
+
+    <!-- Visão Programação -->
+    <section id="scheduleView" class="cal-schedule" style="display:none"></section>
+  </main>
+
+  <!-- Painel de detalhe do dia -->
+  <div class="day-panel-backdrop" id="dayPanelBackdrop"></div>
+  <aside class="day-panel" id="dayPanel">
+    <div class="day-panel-header">
+      <h3 id="dayPanelTitle">—</h3>
+      <button type="button" class="day-panel-close" id="dayPanelClose" aria-label="Fechar">✕</button>
+    </div>
+    <div class="day-panel-body" id="dayPanelBody"></div>
+    <div class="day-panel-footer">
+      <input type="time" id="newTaskTime" value="09:00" />
+      <input type="text" id="newTaskTitle" placeholder="Adicionar tarefa neste dia…" />
+      <button type="button" id="newTaskAdd">Adicionar</button>
+    </div>
+  </aside>
+
+  <script type="module">
+    import { createSupabaseClient } from './js/supabase-client.js';
+
+    const supabase = createSupabaseClient(true);
+    const emailEl = document.getElementById('userEmail');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      window.location.href = 'index.html';
+    } else {
+      emailEl.textContent = session.user.email;
+    }
+
+    logoutBtn.addEventListener('click', async () => {
+      await supabase.auth.signOut();
+      window.location.href = 'index.html';
+    });
+
+    // --- Dropdown "Módulos": mesma lógica do dashboard ---
+    const dropdown = document.getElementById('modulosDropdown');
+    const trigger = document.getElementById('modulosTrigger');
+    const panel = dropdown.querySelector('.nav-dropdown-panel');
+
+    function positionPanel() {
+      const rect = trigger.getBoundingClientRect();
+      panel.style.top = `${rect.bottom + 12}px`;
+      panel.style.left = `${rect.left + rect.width / 2}px`;
+    }
+    function openDropdown() { positionPanel(); dropdown.classList.add('open'); }
+    function closeDropdown() { dropdown.classList.remove('open'); }
+
+    dropdown.addEventListener('mouseenter', openDropdown);
+    dropdown.addEventListener('mouseleave', closeDropdown);
+    trigger.addEventListener('click', (e) => { e.stopPropagation(); dropdown.classList.toggle('open'); });
+    document.addEventListener('click', (e) => { if (!dropdown.contains(e.target)) closeDropdown(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeDropdown(); closeDayPanel(); } });
+
+    // ======================================================================
+    // Calendário — dados mock (pendente: integração com SEFAZ-AM / Receita
+    // Federal via Supabase Edge Function agendada, Fase 3 do plano, e
+    // persistência real de tarefas via Postgres/RLS, Fase 1-2).
+    // ======================================================================
+
+    const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    const DOW = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+    function iso(y, m, d) {
+      return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    }
+
+    const today = new Date();
+    const todayIso = iso(today.getFullYear(), today.getMonth(), today.getDate());
+
+    // eventos: chave = data ISO, valor = lista de { title, type: 'oficial'|'tarefa', time? }
+    // 'time' omitido = evento de dia inteiro (feriados/obrigações sem horário fixo)
+    const events = {};
+
+    function addEvent(y, m, d, ev) {
+      const key = iso(y, m, d);
+      if (!events[key]) events[key] = [];
+      events[key].push(ev);
+    }
+
+    (function seedMockData() {
+      const y = today.getFullYear();
+      const m = today.getMonth();
+
+      // Feriados/datas oficiais (estilo do exemplo anexado)
+      addEvent(y, m, 5, { title: 'Nossa Senhora de Aparecida', type: 'oficial' });
+      addEvent(y, m, 15, { title: 'Dia do Professor', type: 'oficial' });
+      addEvent(y, m, 28, { title: 'Dia do Servidor Público', type: 'oficial' });
+
+      // Obrigações fiscais (mock — viriam do calendário oficial SEFAZ-AM / RFB)
+      addEvent(y, m, 10, { title: 'DCTF — vencimento', type: 'oficial', time: '23:59' });
+      addEvent(y, m, 20, { title: 'ICMS/AM — apuração mensal', type: 'oficial', time: '18:00' });
+      addEvent(y, m, 22, { title: 'DAS — Simples Nacional', type: 'oficial', time: '23:59' });
+
+      // Tarefas internas (mock)
+      addEvent(y, m, 8, { title: 'Validar notas — Empresa Alfa', type: 'tarefa', time: '09:00' });
+      addEvent(y, m, 8, { title: 'Reunião com Wendel', type: 'tarefa', time: '14:30' });
+      addEvent(y, m, 12, { title: 'Revisão checklist — Empresa Beta', type: 'tarefa', time: '10:00' });
+      addEvent(y, m, 20, { title: 'Conferência de guias recolhidas', type: 'tarefa', time: '11:00' });
+      addEvent(y, m, 25, { title: 'Fechamento parcial do mês', type: 'tarefa', time: '16:00' });
+    })();
+
+    let viewYear = today.getFullYear();
+    let viewMonth = today.getMonth();
+    let mode = 'mes'; // 'mes' | 'programacao'
+
+    const calTitle = document.getElementById('calTitle');
+    const calGrid = document.getElementById('calGrid');
+    const monthView = document.getElementById('monthView');
+    const scheduleView = document.getElementById('scheduleView');
+    const viewMesBtn = document.getElementById('viewMesBtn');
+    const viewProgBtn = document.getElementById('viewProgBtn');
+
+    function setMode(next) {
+      mode = next;
+      viewMesBtn.classList.toggle('active', mode === 'mes');
+      viewProgBtn.classList.toggle('active', mode === 'programacao');
+      monthView.style.display = mode === 'mes' ? '' : 'none';
+      scheduleView.style.display = mode === 'programacao' ? '' : 'none';
+      render();
+    }
+
+    viewMesBtn.addEventListener('click', () => setMode('mes'));
+    viewProgBtn.addEventListener('click', () => setMode('programacao'));
+
+    document.getElementById('prevBtn').addEventListener('click', () => {
+      viewMonth--;
+      if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+      render();
+    });
+    document.getElementById('nextBtn').addEventListener('click', () => {
+      viewMonth++;
+      if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+      render();
+    });
+    document.getElementById('todayBtn').addEventListener('click', () => {
+      viewYear = today.getFullYear();
+      viewMonth = today.getMonth();
+      render();
+    });
+
+    function render() {
+      calTitle.textContent = `${MESES[viewMonth]} de ${viewYear}`;
+      if (mode === 'mes') renderMonthGrid();
+      else renderSchedule();
+    }
+
+    function renderMonthGrid() {
+      calGrid.innerHTML = '';
+      const firstDow = new Date(viewYear, viewMonth, 1).getDay();
+      const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+      const daysInPrevMonth = new Date(viewYear, viewMonth, 0).getDate();
+
+      const cells = [];
+
+      // dias do mês anterior para preencher a primeira semana
+      for (let i = 0; i < firstDow; i++) {
+        const d = daysInPrevMonth - firstDow + 1 + i;
+        const m = viewMonth === 0 ? 11 : viewMonth - 1;
+        const y = viewMonth === 0 ? viewYear - 1 : viewYear;
+        cells.push({ y, m, d, otherMonth: true });
+      }
+      // dias do mês atual
+      for (let d = 1; d <= daysInMonth; d++) {
+        cells.push({ y: viewYear, m: viewMonth, d, otherMonth: false });
+      }
+      // completa até múltiplo de 7
+      let next = 1;
+      while (cells.length % 7 !== 0) {
+        const m = viewMonth === 11 ? 0 : viewMonth + 1;
+        const y = viewMonth === 11 ? viewYear + 1 : viewYear;
+        cells.push({ y, m, d: next++, otherMonth: true });
+      }
+
+      cells.forEach(cell => {
+        const key = iso(cell.y, cell.m, cell.d);
+        const dayEl = document.createElement('div');
+        dayEl.className = 'cal-day';
+        if (cell.otherMonth) dayEl.classList.add('other-month');
+        if (key === todayIso) dayEl.classList.add('is-today');
+
+        const num = document.createElement('span');
+        num.className = 'cal-day-num';
+        num.textContent = cell.d;
+        dayEl.appendChild(num);
+
+        const dayEvents = events[key] || [];
+        const visible = dayEvents.slice(0, 3);
+        visible.forEach(ev => {
+          const pill = document.createElement('span');
+          pill.className = `cal-pill ${ev.type}`;
+          pill.textContent = ev.title;
+          dayEl.appendChild(pill);
+        });
+        if (dayEvents.length > visible.length) {
+          const more = document.createElement('span');
+          more.className = 'cal-pill-more';
+          more.textContent = `+${dayEvents.length - visible.length} mais`;
+          dayEl.appendChild(more);
+        }
+
+        dayEl.addEventListener('click', () => openDayPanel(cell.y, cell.m, cell.d));
+        calGrid.appendChild(dayEl);
+      });
+    }
+
+    function renderSchedule() {
+      scheduleView.innerHTML = '';
+      const keys = Object.keys(events)
+        .filter(k => {
+          const [y, m] = k.split('-').map(Number);
+          return y === viewYear && (m - 1) === viewMonth;
+        })
+        .sort();
+
+      if (keys.length === 0) {
+        scheduleView.innerHTML = '<div class="cal-empty">Nenhum evento marcado ou entrega fiscal neste mês.</div>';
+        return;
+      }
+
+      keys.forEach(key => {
+        const [y, m, d] = key.split('-').map(Number);
+        const dateObj = new Date(y, m - 1, d);
+        const row = document.createElement('div');
+        row.className = 'cal-schedule-day';
+        row.innerHTML = `
+          <div class="cal-schedule-date">
+            <div class="num">${d}</div>
+            <div class="dow">${DOW[dateObj.getDay()]}</div>
+          </div>
+          <div class="cal-schedule-events"></div>
+        `;
+        const list = row.querySelector('.cal-schedule-events');
+        const dayEvents = [...events[key]].sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+        dayEvents.forEach(ev => {
+          const item = document.createElement('div');
+          item.className = 'cal-schedule-event';
+          item.innerHTML = `
+            <span class="cal-dot ${ev.type}"></span>
+            <span class="when">${ev.time || 'Dia inteiro'}</span>
+            <span class="title">${ev.title}</span>
+          `;
+          list.appendChild(item);
+        });
+        row.addEventListener('click', () => openDayPanel(y, m - 1, d));
+        scheduleView.appendChild(row);
+      });
+    }
+
+    // ---------- Painel de detalhe do dia ----------
+
+    const dayPanel = document.getElementById('dayPanel');
+    const dayPanelBackdrop = document.getElementById('dayPanelBackdrop');
+    const dayPanelTitle = document.getElementById('dayPanelTitle');
+    const dayPanelBody = document.getElementById('dayPanelBody');
+    const dayPanelClose = document.getElementById('dayPanelClose');
+    const newTaskTitle = document.getElementById('newTaskTitle');
+    const newTaskTime = document.getElementById('newTaskTime');
+    const newTaskAdd = document.getElementById('newTaskAdd');
+
+    let activeDayKey = null;
+
+    function openDayPanel(y, m, d) {
+      activeDayKey = iso(y, m, d);
+      const dateObj = new Date(y, m, d);
+      dayPanelTitle.textContent = `${d} de ${MESES[m]}, ${DOW[dateObj.getDay()]}`;
+      renderDayPanelBody();
+      dayPanel.classList.add('open');
+      dayPanelBackdrop.classList.add('open');
+    }
+
+    function closeDayPanel() {
+      dayPanel.classList.remove('open');
+      dayPanelBackdrop.classList.remove('open');
+      activeDayKey = null;
+    }
+
+    dayPanelClose.addEventListener('click', closeDayPanel);
+    dayPanelBackdrop.addEventListener('click', closeDayPanel);
+
+    function renderDayPanelBody() {
+      dayPanelBody.innerHTML = '';
+      const dayEvents = events[activeDayKey] || [];
+
+      // eventos sem horário (dia inteiro) no topo
+      const allDay = dayEvents.filter(ev => !ev.time);
+      if (allDay.length) {
+        const row = document.createElement('div');
+        row.className = 'day-hour-row';
+        row.innerHTML = `<span class="day-hour-label">Dia todo</span>`;
+        const content = document.createElement('div');
+        content.className = 'day-hour-content';
+        allDay.forEach(ev => {
+          const chip = document.createElement('span');
+          chip.className = `day-event-chip ${ev.type}`;
+          chip.textContent = ev.title;
+          content.appendChild(chip);
+        });
+        row.appendChild(content);
+        dayPanelBody.appendChild(row);
+      }
+
+      // timeline hora a hora (06h–20h cobre o horário comercial)
+      for (let h = 6; h <= 20; h++) {
+        const label = `${String(h).padStart(2, '0')}:00`;
+        const row = document.createElement('div');
+        row.className = 'day-hour-row';
+
+        const hourEvents = dayEvents.filter(ev => ev.time && ev.time.startsWith(String(h).padStart(2, '0')));
+
+        row.innerHTML = `<span class="day-hour-label">${label}</span>`;
+        const content = document.createElement('div');
+        content.className = 'day-hour-content';
+        hourEvents.forEach(ev => {
+          const chip = document.createElement('span');
+          chip.className = `day-event-chip ${ev.type}`;
+          chip.textContent = `${ev.time} · ${ev.title}`;
+          content.appendChild(chip);
+        });
+        row.appendChild(content);
+        dayPanelBody.appendChild(row);
+      }
+    }
+
+    newTaskAdd.addEventListener('click', () => {
+      const title = newTaskTitle.value.trim();
+      if (!title || !activeDayKey) return;
+      const [y, m, d] = activeDayKey.split('-').map(Number);
+      addEvent(y, m - 1, d, { title, type: 'tarefa', time: newTaskTime.value || undefined });
+      newTaskTitle.value = '';
+      renderDayPanelBody();
+      render();
+    });
+
+    newTaskTitle.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') newTaskAdd.click();
+    });
+
+    render();
+  </script>
+</body>
+</html>

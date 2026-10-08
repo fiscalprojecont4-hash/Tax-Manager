@@ -8,9 +8,9 @@ html, body {
 }
 
 .cal-wrap {
-  max-width: 1200px;
+  width: 100%;
   margin: 0 auto;
-  padding: 1.25rem 1.5rem 3rem;
+  padding: 1.25rem clamp(1.5rem, 3vw, 3rem) 3rem;
 }
 
 .data-note { margin-bottom: 1.25rem; }

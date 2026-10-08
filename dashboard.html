@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard — Tax Manager Projecont</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/login.css" />
+  <style>
+    .shell {
+      max-width: 640px;
+      margin: 4rem auto;
+      padding: 0 1.5rem;
+    }
+    .card {
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: var(--radius);
+      padding: 2rem;
+    }
+    .badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: var(--accent-soft);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      padding: 0.25rem 0.6rem;
+      border-radius: 999px;
+      margin-bottom: 1rem;
+    }
+    .user-email {
+      color: var(--text);
+      font-weight: 600;
+    }
+    ul.roadmap {
+      margin: 1.25rem 0 0;
+      padding-left: 1.1rem;
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.7;
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="card">
+      <span class="badge">Fase 0 · Protótipo de autenticação</span>
+      <h1 class="login-title" style="font-size:1.6rem">Login confirmado</h1>
+      <p class="login-subtitle" style="margin-bottom:1.5rem">
+        Sessão ativa para <span class="user-email" id="userEmail">…</span>.
+      </p>
+
+      <p style="color:var(--muted); font-size:0.9rem; line-height:1.6;">
+        Esta página é só a confirmação de que autenticação + sessão do Supabase estão
+        funcionando ponta a ponta. A plataforma de verdade (Dashboard, Requests, Validações,
+        Calendário, Projetos, Conhecimento, Administração — ver navegação corrigida na Fase 0)
+        ainda depende do modelo de dados.
+      </p>
+
+      <ul class="roadmap">
+        <li>✅ Tela de login (HTML/CSS/JS + Supabase Auth)</li>
+        <li>✅ Autenticação e sessão funcionando</li>
+        <li>⏳ Schema PostgreSQL com Row-Level Security</li>
+        <li>⏳ Telas operacionais (Requests, Validações, Calendário…)</li>
+      </ul>
+
+      <button class="btn-secondary" id="logoutBtn" style="margin-top:1.75rem">Sair</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createSupabaseClient } from './js/supabase-client.js';
+
+    const supabase = createSupabaseClient(true);
+    const emailEl = document.getElementById('userEmail');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+      window.location.href = 'index.html';
+    } else {
+      emailEl.textContent = session.user.email;
+    }
+
+    logoutBtn.addEventListener('click', async () => {
+      await supabase.auth.signOut();
+      window.location.href = 'index.html';
+    });
+  </script>
+</body>
+</html>

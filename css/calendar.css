@@ -45,7 +45,7 @@ html, body {
   gap: 0.3rem;
 }
 
-.cal-btn:hover { background: rgba(255,255,255,0.04); }
+.cal-btn:hover { background: var(--surface); }
 
 .cal-icon-btn {
   background: none;
@@ -60,7 +60,7 @@ html, body {
   cursor: pointer;
 }
 
-.cal-icon-btn:hover { background: rgba(255,255,255,0.04); }
+.cal-icon-btn:hover { background: var(--surface); }
 
 .cal-title {
   font-size: 1.25rem;
@@ -74,7 +74,7 @@ html, body {
   margin-left: auto;
   display: flex;
   gap: 0.4rem;
-  background: rgba(255,255,255,0.03);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 0.25rem;
@@ -92,9 +92,10 @@ html, body {
 }
 
 .cal-view-btn.active {
-  background: var(--accent-soft);
+  background: #ffffff;
   color: var(--accent);
-  border: 1px solid rgba(56,189,248,0.25);
+  border: 1px solid #c3d7fa;
+  box-shadow: 0 1px 3px rgba(22, 35, 58, 0.08);
 }
 
 /* ---------- Month grid ---------- */
@@ -109,7 +110,7 @@ html, body {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   border-bottom: 1px solid var(--border);
-  background: rgba(255,255,255,0.02);
+  background: var(--surface);
 }
 
 .cal-weekdays span {
@@ -147,7 +148,7 @@ html, body {
   .cal-title { font-size: 1.05rem; min-width: 0; }
 }
 
-.cal-day:hover { background: rgba(255,255,255,0.025); }
+.cal-day:hover { background: var(--surface); }
 .cal-grid .cal-day:nth-child(7n) { border-right: none; }
 
 .cal-day.other-month { opacity: 0.35; }
@@ -166,7 +167,7 @@ html, body {
 
 .cal-day.is-today .cal-day-num {
   background: var(--accent);
-  color: #042029;
+  color: #ffffff;
 }
 
 .cal-pill {
@@ -181,9 +182,9 @@ html, body {
 }
 
 .cal-pill.oficial {
-  background: rgba(74, 222, 128, 0.12);
-  color: #86efac;
-  border-left-color: #4ade80;
+  background: var(--success-soft);
+  color: var(--success);
+  border-left-color: var(--success);
 }
 
 .cal-pill.tarefa {
@@ -218,7 +219,7 @@ html, body {
   padding: 1.1rem 0.5rem;
   text-align: center;
   border-right: 1px solid var(--border);
-  background: rgba(255,255,255,0.015);
+  background: var(--surface);
 }
 
 .cal-schedule-date .num {
@@ -247,7 +248,7 @@ html, body {
   padding: 0.5rem 1rem;
 }
 
-.cal-schedule-event:hover { background: rgba(255,255,255,0.025); }
+.cal-schedule-event:hover { background: var(--surface); }
 
 .cal-dot {
   width: 8px;
@@ -256,7 +257,7 @@ html, body {
   flex-shrink: 0;
 }
 
-.cal-dot.oficial { background: #4ade80; }
+.cal-dot.oficial { background: var(--success); }
 .cal-dot.tarefa { background: var(--accent); }
 
 .cal-schedule-event .when {
@@ -280,7 +281,7 @@ html, body {
 .day-panel-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.5);
+  background: rgba(16, 30, 54, 0.4);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.18s ease;
@@ -297,6 +298,7 @@ html, body {
   width: min(420px, 100vw);
   background: var(--panel);
   border-left: 1px solid var(--border);
+  box-shadow: -16px 0 40px rgba(22, 35, 58, 0.1);
   transform: translateX(100%);
   transition: transform 0.22s ease;
   z-index: 41;
@@ -365,7 +367,7 @@ html, body {
   border-radius: 8px;
 }
 
-.day-event-chip.oficial { background: rgba(74,222,128,0.12); color: #86efac; }
+.day-event-chip.oficial { background: var(--success-soft); color: var(--success); }
 .day-event-chip.tarefa { background: var(--accent-soft); color: var(--accent); }
 
 .day-panel-footer {
@@ -377,7 +379,7 @@ html, body {
 
 .day-panel-footer input[type="text"],
 .day-panel-footer input[type="time"] {
-  background: rgba(255,255,255,0.04);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
   color: var(--text);
@@ -391,7 +393,7 @@ html, body {
 
 .day-panel-footer button {
   background: var(--accent);
-  color: #042029;
+  color: #ffffff;
   border: none;
   border-radius: 10px;
   padding: 0.55rem 0.9rem;
@@ -399,7 +401,10 @@ html, body {
   font-size: 0.85rem;
   cursor: pointer;
   flex-shrink: 0;
+  transition: background 0.15s ease;
 }
+
+.day-panel-footer button:hover { background: var(--accent-hover); }
 
 @media (max-width: 480px) {
   .day-panel-footer {

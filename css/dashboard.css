@@ -18,7 +18,7 @@ body {
   justify-content: space-between;
   padding: 0.9rem 1.5rem;
   border-bottom: 1px solid var(--border);
-  background: rgba(11, 18, 32, 0.85);
+  background: rgba(255, 255, 255, 0.86);
   backdrop-filter: blur(10px);
 }
 
@@ -62,12 +62,12 @@ body {
   transition: background 0.15s ease, color 0.15s ease;
 }
 
-.topnav-tabs a:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+.topnav-tabs a:hover { color: var(--text); background: var(--surface); }
 
 .topnav-tabs a.active {
-  color: var(--text);
+  color: var(--accent);
   background: var(--accent-soft);
-  border: 1px solid rgba(56, 189, 248, 0.25);
+  border: 1px solid #c3d7fa;
 }
 
 /* ---------- Módulos: dropdown de hover ---------- */
@@ -96,7 +96,7 @@ body {
 .nav-dropdown-trigger:hover,
 .nav-dropdown.open .nav-dropdown-trigger {
   color: var(--text);
-  background: rgba(255,255,255,0.04);
+  background: var(--surface);
 }
 
 .nav-dropdown-trigger .chevron {
@@ -118,7 +118,7 @@ body {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 16px;
-  box-shadow: 0 20px 45px rgba(0,0,0,0.45);
+  box-shadow: 0 20px 45px rgba(22, 35, 58, 0.12);
   padding: 0.5rem;
   opacity: 0;
   pointer-events: none;
@@ -140,7 +140,7 @@ body {
   transition: background 0.12s ease;
 }
 
-.nav-dropdown-item:hover { background: rgba(255,255,255,0.05); }
+.nav-dropdown-item:hover { background: var(--surface); }
 
 .nav-dropdown-item h4 {
   margin: 0 0 0.2rem;
@@ -168,7 +168,7 @@ body {
 }
 
 .topnav-right button {
-  background: none;
+  background: #ffffff;
   border: 1px solid var(--border);
   color: var(--muted);
   border-radius: 10px;
@@ -177,7 +177,7 @@ body {
   cursor: pointer;
 }
 
-.topnav-right button:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+.topnav-right button:hover { color: var(--text); background: var(--surface); }
 
 /* ---------- Bento ---------- */
 
@@ -190,8 +190,8 @@ body {
 .data-note {
   font-size: 0.78rem;
   color: var(--muted);
-  background: rgba(255,255,255,0.03);
-  border: 1px dashed var(--border);
+  background: var(--surface);
+  border: 1px dashed #c3d7fa;
   border-radius: 10px;
   padding: 0.55rem 0.9rem;
   margin-bottom: 1.5rem;
@@ -219,24 +219,30 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  background: linear-gradient(160deg, #0d2b3a 0%, #0b1220 70%);
-  border: 1px solid rgba(56, 189, 248, 0.18);
+  background: linear-gradient(160deg, #ffffff 0%, #eef5fd 65%, #e6f0fb 100%);
+  border: 1px solid var(--border);
 }
 
 @media (min-width: 860px) {
   .bento-primary { grid-column: span 3; grid-row: span 2; }
 }
 
+/* Mancha suave de luz azulada no canto — o toque assinatura do card
+   principal, no lugar da textura escura usada na versão anterior. */
 .bento-primary::before {
   content: '';
   position: absolute;
-  inset: 0;
-  background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.4) 0px, rgba(255,255,255,0.4) 1px, transparent 1px, transparent 10px);
-  opacity: 0.04;
+  top: -70px;
+  right: -70px;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(29, 78, 216, 0.14) 0%, rgba(29, 78, 216, 0) 70%);
   pointer-events: none;
 }
 
 .bento-tag {
+  position: relative;
   display: inline-block;
   width: fit-content;
   padding: 0.3rem 0.7rem;
@@ -246,20 +252,23 @@ body {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--accent);
-  background: rgba(56, 189, 248, 0.1);
-  border: 1px solid rgba(56, 189, 248, 0.25);
+  background: var(--accent-soft);
+  border: 1px solid #c3d7fa;
   margin-bottom: 1.1rem;
 }
 
 .bento-value {
+  position: relative;
   font-size: 3.4rem;
   font-weight: 650;
   letter-spacing: -0.03em;
   line-height: 1;
   margin: 0;
+  color: var(--text);
 }
 
 .bento-desc {
+  position: relative;
   color: var(--muted);
   font-size: 0.88rem;
   max-width: 26rem;
@@ -268,6 +277,7 @@ body {
 }
 
 .bento-dots {
+  position: relative;
   display: flex;
   gap: 0.4rem;
   margin-top: 1.4rem;
@@ -277,7 +287,7 @@ body {
   width: 18px;
   height: 3px;
   border-radius: 2px;
-  background: rgba(255,255,255,0.14);
+  background: #d7e4f5;
   transition: background 0.2s ease;
 }
 
@@ -295,7 +305,7 @@ body {
 .bento-card {
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  background: rgba(255,255,255,0.03);
+  background: #ffffff;
   padding: 1.4rem;
 }
 
@@ -325,6 +335,7 @@ body {
   font-size: 1.7rem;
   font-weight: 600;
   margin: 0;
+  color: var(--text);
 }
 
 .bento-card.center {
@@ -352,7 +363,8 @@ body {
   width: 38px;
   height: 38px;
   border-radius: 999px;
-  background: rgba(255,255,255,0.05);
+  background: var(--accent-soft);
+  color: var(--accent);
   display: flex;
   align-items: center;
   justify-content: center;

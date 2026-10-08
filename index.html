@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Entrar — Tax Manager Projecont</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/login.css" />
+</head>
+<body>
+  <div class="login-layout">
+    <section class="login-form-section">
+      <div class="login-form-wrap">
+        <div class="brand animate-in" style="animation-delay: .05s">
+          <img src="assets/hero-login.jpg" alt="" />
+          <span>Tax Manager · Projecont</span>
+        </div>
+
+        <h1 class="login-title animate-in" style="animation-delay: .1s">Bem-vindo de volta</h1>
+        <p class="login-subtitle animate-in" style="animation-delay: .15s">
+          Acesse a plataforma de operações fiscais da Projecont.
+        </p>
+
+        <div id="formMessage" class="form-message"></div>
+
+        <form id="loginForm" novalidate>
+          <div class="field animate-in" style="animation-delay: .2s">
+            <label for="email">E-mail</label>
+            <div class="input-glass">
+              <input id="email" name="email" type="email" placeholder="seuusuario@projecont.com.br" autocomplete="username" required />
+            </div>
+          </div>
+
+          <div class="field animate-in" style="animation-delay: .25s">
+            <label for="password">Senha</label>
+            <div class="input-glass has-toggle">
+              <input id="password" name="password" type="password" placeholder="Digite sua senha" autocomplete="current-password" required />
+              <button type="button" class="toggle-visibility" id="togglePassword" aria-label="Mostrar senha">
+                <svg id="eyeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="row-between animate-in" style="animation-delay: .3s">
+            <label class="remember-me">
+              <input type="checkbox" id="rememberMe" checked />
+              Manter conectado
+            </label>
+            <a href="#" class="link" id="resetPasswordLink">Esqueci minha senha</a>
+          </div>
+
+          <button type="submit" class="btn-primary animate-in" id="submitBtn" style="animation-delay: .35s">
+            Entrar
+          </button>
+        </form>
+
+        <div class="divider animate-in" style="animation-delay: .4s">ou continue com</div>
+
+        <button class="btn-secondary animate-in" id="googleSignIn" style="animation-delay: .45s">
+          <svg width="18" height="18" viewBox="0 0 48 48">
+            <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-2.641-.21-5.236-.611-7.743z"/>
+            <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/>
+            <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/>
+            <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C42.022 35.026 44 30.038 44 24c0-2.641-.21-5.236-.611-7.743z"/>
+          </svg>
+          Continuar com Google
+        </button>
+
+        <p class="footnote animate-in" style="animation-delay: .5s">
+          Acesso restrito a usuários cadastrados pela Projecont.<br />
+          Precisa de uma conta? Fale com o administrador do sistema.
+        </p>
+      </div>
+    </section>
+
+    <section class="login-hero-section">
+      <div class="login-hero-image" style="background-image: url('assets/hero-login.jpg')"></div>
+      <div class="hero-caption">
+        <div class="kicker">Projecont · Gestão Fiscal</div>
+        <h2>Prazos, validações e conhecimento fiscal em um só lugar — com segurança e histórico de verdade.</h2>
+      </div>
+    </section>
+  </div>
+
+  <script type="module" src="js/login.js"></script>
+</body>
+</html>

@@ -10,9 +10,8 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
 export const SUPABASE_URL = 'https://debwbmbhmtimozhkeyql.supabase.co';
 
-// TODO: substituir pela anon key real (Project Settings → API → anon public,
-// no painel do Supabase). Até lá, login não funciona.
-export const SUPABASE_ANON_KEY = 'COLE_AQUI_A_ANON_KEY';
+export const SUPABASE_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlYndibWJobXRpbW96aGtleXFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0ODM0NTAsImV4cCI6MjEwNzA1OTQ1MH0.FiZcVEijOvpNYBngOO1amvrSpd44P0N4ixi8P1d_k4U';
 
 /**
  * Cria o client do Supabase com o storage de sessão escolhido pelo usuário:

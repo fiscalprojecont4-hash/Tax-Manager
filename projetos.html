@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Projetos — Tax Manager Projecont</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/projetos.css" />
+</head>
+<body>
+  <nav class="topnav">
+    <a href="dashboard.html" class="topnav-brand">
+      <img src="assets/hero-login.jpg" alt="" />
+      <span>Tax Manager</span>
+    </a>
+
+    <div class="topnav-tabs">
+      <a href="dashboard.html">Painel</a>
+
+      <div class="nav-dropdown" id="modulosDropdown">
+        <button type="button" class="nav-dropdown-trigger" id="modulosTrigger">
+          Módulos
+          <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="nav-dropdown-panel" role="menu">
+          <a class="nav-dropdown-item" href="tarefas.html" role="menuitem">
+            <h4>Tarefas</h4>
+            <p>Tarefas pontuais, recorrentes e a fila de trabalho do dia.</p>
+          </a>
+          <a class="nav-dropdown-item" href="validacoes.html" role="menuitem">
+            <h4>Validações</h4>
+            <p>Checklists por empresa, achados, revisão e aprovação.</p>
+          </a>
+          <a class="nav-dropdown-item" href="#" role="menuitem">
+            <h4>Conhecimento</h4>
+            <p>Histórico, padrões aprovados, incidentes e playbooks.</p>
+          </a>
+          <a class="nav-dropdown-item" href="#" role="menuitem">
+            <h4>Administração</h4>
+            <p>Usuários, equipes, permissões e configurações.</p>
+          </a>
+        </div>
+      </div>
+
+      <a href="calendar.html">Calendário</a>
+      <a href="projetos.html" class="active">Projetos</a>
+    </div>
+
+    <div class="topnav-right">
+      <span class="user-email" id="userEmail">…</span>
+      <button id="logoutBtn">Sair</button>
+    </div>
+  </nav>
+
+  <main class="wrap-fluid">
+    <div class="data-note">
+      ⚠ Dados de exemplo — o modelo de dados (Supabase/PostgreSQL) ainda não existe, então
+      estes projetos são mock para validar o layout e a interação. Etapas e histórico serão
+      substituídos por dados reais, com sincronização entre usuários, assim que o schema
+      estiver pronto.
+    </div>
+
+    <div class="pj-toolbar">
+      <div class="segmented" id="statusFilter">
+        <button type="button" class="segmented-btn active" data-filter="todos">Todos</button>
+        <button type="button" class="segmented-btn" data-filter="andamento">Em andamento</button>
+        <button type="button" class="segmented-btn" data-filter="atrasados">Atrasados</button>
+        <button type="button" class="segmented-btn" data-filter="concluidos">Concluídos</button>
+      </div>
+      <div class="pj-toolbar-right">
+        <button type="button" class="btn-new" id="newProjectBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Novo projeto
+        </button>
+      </div>
+    </div>
+
+    <div class="pj-grid" id="projectGrid"></div>
+  </main>
+
+  <!-- Painel lateral: detalhe / edição do projeto -->
+  <div class="side-panel-backdrop" id="panelBackdrop"></div>
+  <aside class="side-panel" id="pjPanel">
+    <div class="side-panel-header">
+      <div>
+        <h3 id="panelTitle">Novo projeto</h3>
+        <p id="panelSubtitle">Preencha os campos e salve.</p>
+      </div>
+      <button type="button" class="side-panel-close" id="panelClose" aria-label="Fechar">✕</button>
+    </div>
+    <div class="side-panel-body">
+      <div class="form-row">
+        <label for="fTitulo">Título do projeto</label>
+        <input type="text" id="fTitulo" placeholder="Ex.: Regularização cadastral — Empresa Alfa" />
+      </div>
+      <div class="form-row">
+        <label for="fCliente">Cliente</label>
+        <input type="text" id="fCliente" placeholder="Nome da empresa" />
+      </div>
+      <div class="form-row form-row-split">
+        <div>
+          <label for="fResponsavel">Responsável geral</label>
+          <input type="text" id="fResponsavel" placeholder="Nome" />
+        </div>
+        <div>
+          <label for="fPrazo">Prazo final</label>
+          <input type="date" id="fPrazo" />
+        </div>
+      </div>
+
+      <div id="progressSummaryWrap" style="display:none">
+        <div class="panel-section-title">Progresso</div>
+        <div class="pj-progress-summary">
+          <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+          <span class="label" id="progressLabel">0/0 etapas</span>
+          <span class="badge" id="statusBadge"></span>
+        </div>
+      </div>
+
+      <div id="etapasWrap" style="display:none">
+        <div class="panel-section-title">Etapas</div>
+        <div class="pj-etapas" id="etapasList"></div>
+        <div class="pj-etapa-add">
+          <input type="text" id="novaEtapaNome" placeholder="Nome da etapa" />
+          <input type="text" id="novaEtapaResp" placeholder="Responsável" />
+          <input type="date" id="novaEtapaPrazo" />
+          <button type="button" id="addEtapaBtn">Adicionar</button>
+        </div>
+      </div>
+
+      <div id="historicoWrap" style="display:none">
+        <div class="panel-section-title">Histórico</div>
+        <div class="pj-historico-list" id="historicoList"></div>
+        <div class="pj-historico-add">
+          <textarea id="novoHistorico" placeholder="Registrar uma atualização no histórico..."></textarea>
+          <button type="button" id="addHistoricoBtn">Adicionar</button>
+        </div>
+      </div>
+    </div>
+    <div class="side-panel-footer">
+      <button type="button" class="btn-ghost" id="panelDelete" style="display:none">Excluir projeto</button>
+      <button type="button" class="btn-fill" id="panelSave">Salvar</button>
+    </div>
+  </aside>
+
+  <script type="module">
+    import { createSupabaseClient } from './js/supabase-client.js';
+
+    const supabase = createSupabaseClient(true);
+    const emailEl = document.getElementById('userEmail');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      window.location.href = 'index.html';
+    } else {
+      emailEl.textContent = session.user.email;
+    }
+
+    logoutBtn.addEventListener('click', async () => {
+      await supabase.auth.signOut();
+      window.location.href = 'index.html';
+    });
+
+    // --- Dropdown "Módulos": mesma lógica das outras páginas ---
+    const dropdown = document.getElementById('modulosDropdown');
+    const trigger = document.getElementById('modulosTrigger');
+    const panel = dropdown.querySelector('.nav-dropdown-panel');
+
+    function positionPanel() {
+      const rect = trigger.getBoundingClientRect();
+      panel.style.top = `${rect.bottom + 12}px`;
+      panel.style.left = `${rect.left + rect.width / 2}px`;
+    }
+    function openDropdown() { positionPanel(); dropdown.classList.add('open'); }
+    function closeDropdown() { dropdown.classList.remove('open'); }
+
+    dropdown.addEventListener('mouseenter', openDropdown);
+    dropdown.addEventListener('mouseleave', closeDropdown);
+    trigger.addEventListener('click', (e) => { e.stopPropagation(); dropdown.classList.toggle('open'); });
+    document.addEventListener('click', (e) => { if (!dropdown.contains(e.target)) closeDropdown(); });
+
+    // ======================================================================
+    // Projetos — dados mock (pendente: persistência real via Supabase/RLS;
+    // histórico hoje é texto livre, igual ao protótipo — Fase 1+ pede um log
+    // estruturado ator/ação/entidade/valor-antes/valor-depois)
+    // ======================================================================
+
+    function isoToday() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+    function addDays(iso, n) {
+      const d = new Date(iso + 'T00:00:00');
+      d.setDate(d.getDate() + n);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+    function formatDue(iso) {
+      const [y, m, d] = iso.split('-');
+      return `${d}/${m}`;
+    }
+
+    const today = isoToday();
+    let seq = 1;
+    let etapaSeq = 1;
+    let historicoSeq = 1;
+    function nextId() { return `p${seq++}`; }
+    function nextEtapaId() { return `et${etapaSeq++}`; }
+
+    function etapa(nome, responsavel, prazoOffset, status) {
+      return { id: nextEtapaId(), nome, responsavel, prazo: addDays(today, prazoOffset), status };
+    }
+
+    let projetos = [
+      {
+        id: nextId(),
+        titulo: 'Regularização cadastral — Rembraz',
+        cliente: 'Rembraz',
+        responsavel: 'Wendel',
+        prazo: addDays(today, 12),
+        historico: [
+          { id: `h${historicoSeq++}`, data: addDays(today, -10), texto: 'Projeto iniciado a pedido do cliente após notificação da SEFAZ-AM.' },
+          { id: `h${historicoSeq++}`, data: addDays(today, -4), texto: 'Levantamento de pendências cadastrais concluído.' },
+        ],
+        etapas: [
+          etapa('Levantamento de pendências cadastrais', 'Wendel', -5, 'concluida'),
+          etapa('Protocolo de atualização na Receita Federal', 'Equipe Fiscal', -1, 'concluida'),
+          etapa('Atualização de inscrição estadual (SEFAZ-AM)', 'Wendel', 3, 'andamento'),
+          etapa('Conferência final e envio ao cliente', 'Wendel', 12, 'pendente'),
+        ],
+      },
+      {
+        id: nextId(),
+        titulo: 'Planejamento tributário 2027',
+        cliente: 'Tecnoradio',
+        responsavel: 'Wendel',
+        prazo: addDays(today, 30),
+        historico: [
+          { id: `h${historicoSeq++}`, data: addDays(today, -2), texto: 'Reunião inicial com o cliente para alinhar objetivos do planejamento.' },
+        ],
+        etapas: [
+          etapa('Levantamento do regime tributário atual', 'Wendel', -2, 'concluida'),
+          etapa('Simulação comparativa de regimes', 'Equipe Fiscal', 7, 'andamento'),
+          etapa('Apresentação de recomendações ao cliente', 'Wendel', 20, 'pendente'),
+          etapa('Implementação das mudanças aprovadas', 'Equipe Fiscal', 30, 'pendente'),
+        ],
+      },
+      {
+        id: nextId(),
+        titulo: 'Migração para Tax Manager — dados-base',
+        cliente: '',
+        responsavel: 'Wendel',
+        prazo: addDays(today, -1),
+        historico: [
+          { id: `h${historicoSeq++}`, data: addDays(today, -15), texto: 'Mapeamento do protótipo atual concluído (ver docs/fase-0).' },
+        ],
+        etapas: [
+          etapa('Mapear módulos e regras de negócio do protótipo', 'Wendel', -15, 'concluida'),
+          etapa('Definir perfil fiscal estruturado da empresa', 'Wendel', -1, 'andamento'),
+          etapa('Confirmar escopo de dados a migrar com Wendel', 'Wendel', -1, 'pendente'),
+        ],
+      },
+      {
+        id: nextId(),
+        titulo: 'Due diligence fiscal — abertura de filial',
+        cliente: 'Disbral',
+        responsavel: 'Equipe Fiscal',
+        prazo: addDays(today, -20),
+        historico: [],
+        etapas: [
+          etapa('Levantamento de obrigações no novo município', 'Equipe Fiscal', -25, 'concluida'),
+          etapa('Parecer de viabilidade tributária', 'Wendel', -20, 'concluida'),
+          etapa('Entrega do relatório final ao cliente', 'Equipe Fiscal', -20, 'concluida'),
+        ],
+      },
+    ];
+
+    let currentFilter = 'todos';
+    let activeId = null;
+    let isCreating = false;
+
+    function etapaProgress(p) {
+      const done = p.etapas.filter(e => e.status === 'concluida').length;
+      return { done, total: p.etapas.length, pct: p.etapas.length ? Math.round((done / p.etapas.length) * 100) : 0 };
+    }
+
+    function projectHasOverdueEtapa(p) {
+      return p.etapas.some(e => e.status !== 'concluida' && e.prazo < today);
+    }
+
+    function projectStatus(p) {
+      if (p.etapas.length > 0 && p.etapas.every(e => e.status === 'concluida')) return 'concluido';
+      if (projectHasOverdueEtapa(p) || (p.prazo && p.prazo < today)) return 'atrasado';
+      return 'andamento';
+    }
+
+    const STATUS_LABEL = { andamento: 'Em andamento', atrasado: 'Atrasado', concluido: 'Concluído' };
+    const STATUS_BADGE = { andamento: 'badge-accent', atrasado: 'badge-danger', concluido: 'badge-success' };
+    const ETAPA_LABEL = { pendente: 'Pendente', andamento: 'Em andamento', concluida: 'Concluída' };
+    const ETAPA_BADGE = { pendente: 'badge-neutral', andamento: 'badge-accent', concluida: 'badge-success' };
+    const ETAPA_NEXT = { pendente: 'andamento', andamento: 'concluida', concluida: 'pendente' };
+
+    function renderCard(p) {
+      const card = document.createElement('div');
+      card.className = 'pj-card';
+      card.dataset.id = p.id;
+      const prog = etapaProgress(p);
+      const status = projectStatus(p);
+      const overdue = status === 'atrasado';
+
+      card.innerHTML = `
+        <div class="pj-card-top">
+          <div>
+            <p class="pj-card-title">${p.titulo}</p>
+            <p class="pj-card-client">${p.cliente || 'Interno'}</p>
+          </div>
+          <span class="badge ${STATUS_BADGE[status]}">${STATUS_LABEL[status]}</span>
+        </div>
+        <div class="pj-card-progress">
+          <div class="progress-track"><div class="progress-fill ${status === 'concluido' ? 'success' : ''}" style="width:${prog.pct}%"></div></div>
+          <span class="pct">${prog.pct}%</span>
+        </div>
+        <div class="pj-card-bottom">
+          <span>${prog.done}/${prog.total} etapas</span>
+          <span class="pj-card-due${overdue ? ' overdue' : ''}">${p.prazo ? ('Prazo ' + formatDue(p.prazo)) : 'Sem prazo'}</span>
+        </div>
+      `;
+      card.addEventListener('click', () => openPanel(p.id));
+      return card;
+    }
+
+    function render() {
+      const grid = document.getElementById('projectGrid');
+      grid.innerHTML = '';
+
+      const filtered = projetos.filter(p => {
+        const status = projectStatus(p);
+        if (currentFilter === 'todos') return true;
+        if (currentFilter === 'andamento') return status === 'andamento';
+        if (currentFilter === 'atrasados') return status === 'atrasado';
+        if (currentFilter === 'concluidos') return status === 'concluido';
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        grid.innerHTML = '<div class="empty-state">Nenhum projeto nesta visão.</div>';
+        return;
+      }
+
+      filtered.forEach(p => grid.appendChild(renderCard(p)));
+    }
+
+    document.getElementById('statusFilter').addEventListener('click', (e) => {
+      const btn = e.target.closest('.segmented-btn');
+      if (!btn) return;
+      document.querySelectorAll('#statusFilter .segmented-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilter = btn.dataset.filter;
+      render();
+    });
+
+    // ---------- Painel lateral ----------
+
+    const pjPanel = document.getElementById('pjPanel');
+    const panelBackdrop = document.getElementById('panelBackdrop');
+    const panelTitle = document.getElementById('panelTitle');
+    const panelSubtitle = document.getElementById('panelSubtitle');
+    const panelDelete = document.getElementById('panelDelete');
+
+    const fTitulo = document.getElementById('fTitulo');
+    const fCliente = document.getElementById('fCliente');
+    const fResponsavel = document.getElementById('fResponsavel');
+    const fPrazo = document.getElementById('fPrazo');
+
+    const progressSummaryWrap = document.getElementById('progressSummaryWrap');
+    const progressFill = document.getElementById('progressFill');
+    const progressLabel = document.getElementById('progressLabel');
+    const statusBadge = document.getElementById('statusBadge');
+
+    const etapasWrap = document.getElementById('etapasWrap');
+    const etapasList = document.getElementById('etapasList');
+    const novaEtapaNome = document.getElementById('novaEtapaNome');
+    const novaEtapaResp = document.getElementById('novaEtapaResp');
+    const novaEtapaPrazo = document.getElementById('novaEtapaPrazo');
+
+    const historicoWrap = document.getElementById('historicoWrap');
+    const historicoList = document.getElementById('historicoList');
+    const novoHistorico = document.getElementById('novoHistorico');
+
+    function renderEtapas(p) {
+      etapasList.innerHTML = '';
+      if (p.etapas.length === 0) {
+        etapasList.innerHTML = '<p class="pj-etapa-empty">Nenhuma etapa cadastrada ainda.</p>';
+      }
+      p.etapas.forEach(et => {
+        const overdue = et.status !== 'concluida' && et.prazo < today;
+        const row = document.createElement('div');
+        row.className = 'pj-etapa' + (et.status === 'concluida' ? ' is-done' : '');
+        row.innerHTML = `
+          <div class="pj-etapa-main">
+            <p class="pj-etapa-nome">${et.nome}</p>
+            <p class="pj-etapa-meta">${et.responsavel || 'Sem responsável'} · <span class="${overdue ? 'overdue' : ''}">${overdue ? 'Atrasada · ' : ''}${formatDue(et.prazo)}</span></p>
+          </div>
+          <button type="button" class="badge pj-etapa-status ${ETAPA_BADGE[et.status]}" title="Clique para avançar o status">${ETAPA_LABEL[et.status]}</button>
+          <button type="button" class="pj-etapa-remove" title="Remover etapa">✕</button>
+        `;
+        row.querySelector('.pj-etapa-status').addEventListener('click', () => {
+          et.status = ETAPA_NEXT[et.status];
+          renderEtapas(p);
+          renderProgressSummary(p);
+        });
+        row.querySelector('.pj-etapa-remove').addEventListener('click', () => {
+          p.etapas = p.etapas.filter(x => x.id !== et.id);
+          renderEtapas(p);
+          renderProgressSummary(p);
+        });
+        etapasList.appendChild(row);
+      });
+    }
+
+    function renderProgressSummary(p) {
+      const prog = etapaProgress(p);
+      const status = projectStatus(p);
+      progressFill.style.width = `${prog.pct}%`;
+      progressFill.className = 'progress-fill' + (status === 'concluido' ? ' success' : (status === 'atrasado' ? ' danger' : ''));
+      progressLabel.textContent = `${prog.done}/${prog.total} etapas`;
+      statusBadge.textContent = STATUS_LABEL[status];
+      statusBadge.className = `badge ${STATUS_BADGE[status]}`;
+    }
+
+    function renderHistorico(p) {
+      historicoList.innerHTML = '';
+      if (p.historico.length === 0) {
+        historicoList.innerHTML = '<p class="pj-historico-empty">Nenhum registro ainda.</p>';
+        return;
+      }
+      p.historico.slice().reverse().forEach(h => {
+        const div = document.createElement('div');
+        div.className = 'pj-historico-item';
+        div.innerHTML = `<div class="data">${h.data}</div><div class="texto">${h.texto}</div>`;
+        historicoList.appendChild(div);
+      });
+    }
+
+    function openPanel(id) {
+      isCreating = false;
+      activeId = id;
+      const p = projetos.find(x => x.id === id);
+      panelTitle.textContent = p.titulo;
+      panelSubtitle.textContent = p.cliente || 'Projeto interno';
+      panelDelete.style.display = '';
+
+      fTitulo.value = p.titulo;
+      fCliente.value = p.cliente;
+      fResponsavel.value = p.responsavel;
+      fPrazo.value = p.prazo;
+
+      progressSummaryWrap.style.display = '';
+      etapasWrap.style.display = '';
+      historicoWrap.style.display = '';
+      renderProgressSummary(p);
+      renderEtapas(p);
+      renderHistorico(p);
+      novaEtapaNome.value = '';
+      novaEtapaResp.value = '';
+      novaEtapaPrazo.value = '';
+      novoHistorico.value = '';
+
+      show();
+    }
+
+    function openPanelNew() {
+      isCreating = true;
+      activeId = null;
+      panelTitle.textContent = 'Novo projeto';
+      panelSubtitle.textContent = 'Preencha os campos e salve.';
+      panelDelete.style.display = 'none';
+
+      fTitulo.value = '';
+      fCliente.value = '';
+      fResponsavel.value = '';
+      fPrazo.value = '';
+
+      progressSummaryWrap.style.display = 'none';
+      etapasWrap.style.display = 'none';
+      historicoWrap.style.display = 'none';
+
+      show();
+    }
+
+    function show() {
+      pjPanel.classList.add('open');
+      panelBackdrop.classList.add('open');
+      fTitulo.focus();
+    }
+
+    function closePanel() {
+      pjPanel.classList.remove('open');
+      panelBackdrop.classList.remove('open');
+    }
+
+    document.getElementById('newProjectBtn').addEventListener('click', openPanelNew);
+    document.getElementById('panelClose').addEventListener('click', closePanel);
+    panelBackdrop.addEventListener('click', closePanel);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closePanel(); closeDropdown(); } });
+
+    document.getElementById('panelSave').addEventListener('click', () => {
+      if (!fTitulo.value.trim()) { fTitulo.focus(); return; }
+      const data = {
+        titulo: fTitulo.value.trim(),
+        cliente: fCliente.value.trim(),
+        responsavel: fResponsavel.value.trim() || 'Sem responsável',
+        prazo: fPrazo.value,
+      };
+      if (isCreating) {
+        const novo = { id: nextId(), ...data, etapas: [], historico: [] };
+        projetos.push(novo);
+        render();
+        openPanel(novo.id);
+      } else {
+        const p = projetos.find(x => x.id === activeId);
+        Object.assign(p, data);
+        panelTitle.textContent = p.titulo;
+        panelSubtitle.textContent = p.cliente || 'Projeto interno';
+        render();
+      }
+    });
+
+    panelDelete.addEventListener('click', () => {
+      if (!activeId) return;
+      projetos = projetos.filter(p => p.id !== activeId);
+      closePanel();
+      render();
+    });
+
+    document.getElementById('addEtapaBtn').addEventListener('click', () => {
+      if (!activeId) return;
+      const nome = novaEtapaNome.value.trim();
+      if (!nome) { novaEtapaNome.focus(); return; }
+      const p = projetos.find(x => x.id === activeId);
+      p.etapas.push({
+        id: nextEtapaId(),
+        nome,
+        responsavel: novaEtapaResp.value.trim() || 'Sem responsável',
+        prazo: novaEtapaPrazo.value || p.prazo || today,
+        status: 'pendente',
+      });
+      novaEtapaNome.value = '';
+      novaEtapaResp.value = '';
+      novaEtapaPrazo.value = '';
+      renderEtapas(p);
+      renderProgressSummary(p);
+      render();
+    });
+
+    document.getElementById('addHistoricoBtn').addEventListener('click', () => {
+      if (!activeId) return;
+      const texto = novoHistorico.value.trim();
+      if (!texto) return;
+      const p = projetos.find(x => x.id === activeId);
+      p.historico.push({ id: `h${historicoSeq++}`, data: 'Hoje', texto });
+      novoHistorico.value = '';
+      renderHistorico(p);
+    });
+
+    render();
+  </script>
+</body>
+</html>

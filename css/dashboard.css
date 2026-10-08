@@ -433,6 +433,12 @@ body {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 0.25rem;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.segmented-btn {
+  flex-shrink: 0;
 }
 
 .segmented-btn {
@@ -716,6 +722,26 @@ body {
   grid-template-columns: 1fr 1fr;
   gap: 0.75rem;
 }
+
+/* Botão de ação primária de uma toolbar ("+ Nova tarefa", "+ Novo
+   projeto", ...) — mesmo tratamento visual do btn-fill dos painéis, só
+   que inline e com ícone à esquerda. */
+.btn-new {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--accent);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  padding: 0.55rem 1rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn-new:hover { background: var(--accent-hover); }
 
 .btn-fill {
   background: var(--accent);

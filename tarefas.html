@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tarefas — Tax Manager Projecont</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/tarefas.css" />
+</head>
+<body>
+  <nav class="topnav">
+    <a href="dashboard.html" class="topnav-brand">
+      <img src="assets/hero-login.jpg" alt="" />
+      <span>Tax Manager</span>
+    </a>
+
+    <div class="topnav-tabs">
+      <a href="dashboard.html">Painel</a>
+
+      <div class="nav-dropdown" id="modulosDropdown">
+        <button type="button" class="nav-dropdown-trigger active" id="modulosTrigger">
+          Módulos
+          <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="nav-dropdown-panel" role="menu">
+          <a class="nav-dropdown-item active" href="tarefas.html" role="menuitem">
+            <h4>Tarefas</h4>
+            <p>Tarefas pontuais, recorrentes e a fila de trabalho do dia.</p>
+          </a>
+          <a class="nav-dropdown-item" href="#" role="menuitem">
+            <h4>Validações</h4>
+            <p>Checklists por empresa, achados, revisão e aprovação.</p>
+          </a>
+          <a class="nav-dropdown-item" href="#" role="menuitem">
+            <h4>Conhecimento</h4>
+            <p>Histórico, padrões aprovados, incidentes e playbooks.</p>
+          </a>
+          <a class="nav-dropdown-item" href="#" role="menuitem">
+            <h4>Administração</h4>
+            <p>Usuários, equipes, permissões e configurações.</p>
+          </a>
+        </div>
+      </div>
+
+      <a href="calendar.html">Calendário</a>
+      <a href="#">Projetos</a>
+    </div>
+
+    <div class="topnav-right">
+      <span class="user-email" id="userEmail">…</span>
+      <button id="logoutBtn">Sair</button>
+    </div>
+  </nav>
+
+  <main class="wrap-fluid">
+    <div class="data-note">
+      ⚠ Dados de exemplo — o modelo de dados (Supabase/PostgreSQL) ainda não existe, então
+      estas tarefas são mock para validar o layout e a interação. Serão substituídas por
+      dados reais, com sincronização entre usuários, assim que o schema estiver pronto.
+    </div>
+
+    <div class="tf-toolbar">
+      <div class="segmented" id="statusFilter">
+        <button type="button" class="segmented-btn active" data-filter="abertas">Abertas</button>
+        <button type="button" class="segmented-btn" data-filter="atrasadas">Atrasadas</button>
+        <button type="button" class="segmented-btn" data-filter="concluidas">Concluídas</button>
+        <button type="button" class="segmented-btn" data-filter="todas">Todas</button>
+      </div>
+      <div class="tf-toolbar-right">
+        <button type="button" class="btn-new" id="newTaskBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nova tarefa
+        </button>
+      </div>
+    </div>
+
+    <div id="taskGroups"></div>
+  </main>
+
+  <!-- Painel lateral: detalhe / edição / nova tarefa -->
+  <div class="side-panel-backdrop" id="panelBackdrop"></div>
+  <aside class="side-panel" id="taskPanel">
+    <div class="side-panel-header">
+      <div>
+        <h3 id="panelTitle">Nova tarefa</h3>
+        <p id="panelSubtitle">Preencha os campos e salve.</p>
+      </div>
+      <button type="button" class="side-panel-close" id="panelClose" aria-label="Fechar">✕</button>
+    </div>
+    <div class="side-panel-body">
+      <div class="form-row">
+        <label for="fTitle">Título</label>
+        <input type="text" id="fTitle" placeholder="Ex.: Validar notas fiscais — Empresa Alfa" />
+      </div>
+      <div class="form-row">
+        <label for="fEmpresa">Empresa / cliente</label>
+        <input type="text" id="fEmpresa" placeholder="Opcional" />
+      </div>
+      <div class="form-row form-row-split">
+        <div>
+          <label for="fResponsavel">Responsável</label>
+          <input type="text" id="fResponsavel" placeholder="Nome" />
+        </div>
+        <div>
+          <label for="fPrazo">Prazo</label>
+          <input type="date" id="fPrazo" />
+        </div>
+      </div>
+      <div class="form-row form-row-split">
+        <div>
+          <label for="fPrioridade">Prioridade</label>
+          <select id="fPrioridade">
+            <option value="baixa">Baixa</option>
+            <option value="media" selected>Média</option>
+            <option value="alta">Alta</option>
+          </select>
+        </div>
+        <div>
+          <label for="fStatus">Status</label>
+          <select id="fStatus">
+            <option value="pendente" selected>Pendente</option>
+            <option value="andamento">Em andamento</option>
+            <option value="concluida">Concluída</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <label for="fDescricao">Descrição</label>
+        <textarea id="fDescricao" placeholder="Detalhes, observações, achados..."></textarea>
+      </div>
+    </div>
+    <div class="side-panel-footer">
+      <button type="button" class="btn-ghost" id="panelDelete" style="display:none">Excluir</button>
+      <button type="button" class="btn-fill" id="panelSave">Salvar</button>
+    </div>
+  </aside>
+
+  <script type="module">
+    import { createSupabaseClient } from './js/supabase-client.js';
+
+    const supabase = createSupabaseClient(true);
+    const emailEl = document.getElementById('userEmail');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      window.location.href = 'index.html';
+    } else {
+      emailEl.textContent = session.user.email;
+    }
+
+    logoutBtn.addEventListener('click', async () => {
+      await supabase.auth.signOut();
+      window.location.href = 'index.html';
+    });
+
+    // --- Dropdown "Módulos": mesma lógica das outras páginas ---
+    const dropdown = document.getElementById('modulosDropdown');
+    const trigger = document.getElementById('modulosTrigger');
+    const panel = dropdown.querySelector('.nav-dropdown-panel');
+
+    function positionPanel() {
+      const rect = trigger.getBoundingClientRect();
+      panel.style.top = `${rect.bottom + 12}px`;
+      panel.style.left = `${rect.left + rect.width / 2}px`;
+    }
+    function openDropdown() { positionPanel(); dropdown.classList.add('open'); }
+    function closeDropdown() { dropdown.classList.remove('open'); }
+
+    dropdown.addEventListener('mouseenter', openDropdown);
+    dropdown.addEventListener('mouseleave', closeDropdown);
+    trigger.addEventListener('click', (e) => { e.stopPropagation(); dropdown.classList.toggle('open'); });
+    document.addEventListener('click', (e) => { if (!dropdown.contains(e.target)) closeDropdown(); });
+
+    // ======================================================================
+    // Tarefas — dados mock (pendente: persistência real via Supabase/RLS,
+    // Fase 1-2 do plano; isolamento por equipe quando o multiusuário existir)
+    // ======================================================================
+
+    function isoToday() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+    function addDays(iso, n) {
+      const d = new Date(iso + 'T00:00:00');
+      d.setDate(d.getDate() + n);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    const today = isoToday();
+    let seq = 1;
+    function nextId() { return `t${seq++}`; }
+
+    let tasks = [
+      { id: nextId(), title: 'Validar notas fiscais — Empresa Alfa', empresa: 'Empresa Alfa', responsavel: 'Wendel', prazo: addDays(today, -2), prioridade: 'alta', status: 'pendente', descricao: '' },
+      { id: nextId(), title: 'Conferir guias de ICMS recolhidas', empresa: 'Rembraz', responsavel: 'Wendel', prazo: addDays(today, -1), prioridade: 'alta', status: 'pendente', descricao: '' },
+      { id: nextId(), title: 'Enviar DCTF do mês', empresa: 'Disbral', responsavel: 'Equipe Fiscal', prazo: today, prioridade: 'alta', status: 'pendente', descricao: '' },
+      { id: nextId(), title: 'Reunião de alinhamento com Wendel', empresa: '', responsavel: 'Wendel', prazo: today, prioridade: 'media', status: 'andamento', descricao: '' },
+      { id: nextId(), title: 'Revisão de checklist — Empresa Beta', empresa: 'Empresa Beta', responsavel: 'Equipe Fiscal', prazo: addDays(today, 2), prioridade: 'media', status: 'pendente', descricao: '' },
+      { id: nextId(), title: 'Apuração mensal de ICMS/AM', empresa: 'Tecnoradio', responsavel: 'Wendel', prazo: addDays(today, 4), prioridade: 'media', status: 'pendente', descricao: '' },
+      { id: nextId(), title: 'Planejamento semanal da equipe', empresa: '', responsavel: 'Wendel', prazo: addDays(today, 6), prioridade: 'baixa', status: 'pendente', descricao: '' },
+      { id: nextId(), title: 'Organizar pasta de documentação — Lusitano', empresa: 'Lusitano', responsavel: 'Equipe Fiscal', prazo: addDays(today, 10), prioridade: 'baixa', status: 'pendente', descricao: '' },
+      { id: nextId(), title: 'Fechamento parcial do mês anterior', empresa: '', responsavel: 'Wendel', prazo: addDays(today, -5), prioridade: 'media', status: 'concluida', descricao: '' },
+      { id: nextId(), title: 'Protocolar DAS — Simples Nacional', empresa: 'Rembraz', responsavel: 'Wendel', prazo: addDays(today, -3), prioridade: 'alta', status: 'concluida', descricao: '' },
+    ];
+
+    let currentFilter = 'abertas';
+    let editingId = null;
+
+    const PRIORIDADE_LABEL = { alta: 'Alta', media: 'Média', baixa: 'Baixa' };
+    const PRIORIDADE_BADGE = { alta: 'badge-danger', media: 'badge-warning', baixa: 'badge-neutral' };
+    const STATUS_LABEL = { pendente: 'Pendente', andamento: 'Em andamento', concluida: 'Concluída' };
+
+    function initials(name) {
+      if (!name) return '?';
+      const parts = name.trim().split(/\s+/);
+      return (parts[0][0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
+    }
+
+    function formatDue(iso) {
+      const [y, m, d] = iso.split('-');
+      return `${d}/${m}`;
+    }
+
+    function taskIsOverdue(t) {
+      return t.status !== 'concluida' && t.prazo < today;
+    }
+
+    function groupTasks(list) {
+      const groups = { atrasadas: [], hoje: [], proximas: [], concluidas: [] };
+      list.forEach(t => {
+        if (t.status === 'concluida') { groups.concluidas.push(t); return; }
+        if (taskIsOverdue(t)) { groups.atrasadas.push(t); return; }
+        if (t.prazo === today) { groups.hoje.push(t); return; }
+        groups.proximas.push(t);
+      });
+      const byPrazo = (a, b) => a.prazo.localeCompare(b.prazo);
+      groups.atrasadas.sort(byPrazo);
+      groups.proximas.sort(byPrazo);
+      groups.concluidas.sort((a, b) => b.prazo.localeCompare(a.prazo));
+      return groups;
+    }
+
+    function renderRow(t) {
+      const row = document.createElement('div');
+      row.className = 'list-row' + (t.status === 'concluida' ? ' is-done' : '');
+      row.dataset.id = t.id;
+
+      const overdue = taskIsOverdue(t);
+      const metaBits = [];
+      if (t.empresa) metaBits.push(`<span>${t.empresa}</span>`);
+      metaBits.push(`<span class="due${overdue ? ' overdue' : ''}">${overdue ? 'Atrasada · ' : ''}${formatDue(t.prazo)}</span>`);
+
+      row.innerHTML = `
+        <span class="list-row-check${t.status === 'concluida' ? ' checked' : ''}" title="Marcar como concluída">
+          ${t.status === 'concluida' ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
+        </span>
+        <div class="list-row-main">
+          <p class="list-row-title">${t.title}</p>
+          <div class="list-row-meta">${metaBits.join('<span>·</span>')}</div>
+        </div>
+        <div class="list-row-side">
+          <span class="badge ${PRIORIDADE_BADGE[t.prioridade]}">${PRIORIDADE_LABEL[t.prioridade]}</span>
+          <span class="avatar-chip" title="${t.responsavel}">${initials(t.responsavel)}</span>
+        </div>
+      `;
+
+      row.querySelector('.list-row-check').addEventListener('click', (e) => {
+        e.stopPropagation();
+        t.status = t.status === 'concluida' ? 'pendente' : 'concluida';
+        render();
+      });
+
+      row.addEventListener('click', () => openPanel(t.id));
+
+      return row;
+    }
+
+    function renderGroup(container, key, label, items, overdueStyle) {
+      if (items.length === 0) return;
+      const group = document.createElement('div');
+      group.className = 'tf-group';
+      group.innerHTML = `
+        <div class="tf-group-title${overdueStyle ? ' overdue' : ''}">
+          ${label} <span class="count">${items.length}</span>
+        </div>
+      `;
+      const card = document.createElement('div');
+      card.className = 'list-card';
+      items.forEach(t => card.appendChild(renderRow(t)));
+      group.appendChild(card);
+      container.appendChild(group);
+    }
+
+    function render() {
+      const container = document.getElementById('taskGroups');
+      container.innerHTML = '';
+
+      const groups = groupTasks(tasks);
+      const show = {
+        abertas: ['atrasadas', 'hoje', 'proximas'],
+        atrasadas: ['atrasadas'],
+        concluidas: ['concluidas'],
+        todas: ['atrasadas', 'hoje', 'proximas', 'concluidas'],
+      }[currentFilter];
+
+      let totalShown = 0;
+      if (show.includes('atrasadas')) { renderGroup(container, 'atrasadas', 'Atrasadas', groups.atrasadas, true); totalShown += groups.atrasadas.length; }
+      if (show.includes('hoje')) { renderGroup(container, 'hoje', 'Hoje', groups.hoje, false); totalShown += groups.hoje.length; }
+      if (show.includes('proximas')) { renderGroup(container, 'proximas', 'Próximos dias', groups.proximas, false); totalShown += groups.proximas.length; }
+      if (show.includes('concluidas')) { renderGroup(container, 'concluidas', 'Concluídas', groups.concluidas, false); totalShown += groups.concluidas.length; }
+
+      if (totalShown === 0) {
+        container.innerHTML = '<div class="empty-state">Nenhuma tarefa nesta visão.</div>';
+      }
+    }
+
+    document.getElementById('statusFilter').addEventListener('click', (e) => {
+      const btn = e.target.closest('.segmented-btn');
+      if (!btn) return;
+      document.querySelectorAll('#statusFilter .segmented-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilter = btn.dataset.filter;
+      render();
+    });
+
+    // ---------- Painel lateral (nova / editar) ----------
+
+    const taskPanel = document.getElementById('taskPanel');
+    const panelBackdrop = document.getElementById('panelBackdrop');
+    const panelTitle = document.getElementById('panelTitle');
+    const panelSubtitle = document.getElementById('panelSubtitle');
+    const panelDelete = document.getElementById('panelDelete');
+
+    const fTitle = document.getElementById('fTitle');
+    const fEmpresa = document.getElementById('fEmpresa');
+    const fResponsavel = document.getElementById('fResponsavel');
+    const fPrazo = document.getElementById('fPrazo');
+    const fPrioridade = document.getElementById('fPrioridade');
+    const fStatus = document.getElementById('fStatus');
+    const fDescricao = document.getElementById('fDescricao');
+
+    function openPanel(id) {
+      editingId = id;
+      const t = tasks.find(x => x.id === id);
+      panelTitle.textContent = 'Editar tarefa';
+      panelSubtitle.textContent = 'Altere os campos e salve.';
+      panelDelete.style.display = '';
+      fTitle.value = t.title;
+      fEmpresa.value = t.empresa;
+      fResponsavel.value = t.responsavel;
+      fPrazo.value = t.prazo;
+      fPrioridade.value = t.prioridade;
+      fStatus.value = t.status;
+      fDescricao.value = t.descricao || '';
+      show();
+    }
+
+    function openPanelNew() {
+      editingId = null;
+      panelTitle.textContent = 'Nova tarefa';
+      panelSubtitle.textContent = 'Preencha os campos e salve.';
+      panelDelete.style.display = 'none';
+      fTitle.value = '';
+      fEmpresa.value = '';
+      fResponsavel.value = '';
+      fPrazo.value = today;
+      fPrioridade.value = 'media';
+      fStatus.value = 'pendente';
+      fDescricao.value = '';
+      show();
+    }
+
+    function show() {
+      taskPanel.classList.add('open');
+      panelBackdrop.classList.add('open');
+      fTitle.focus();
+    }
+
+    function closePanel() {
+      taskPanel.classList.remove('open');
+      panelBackdrop.classList.remove('open');
+    }
+
+    document.getElementById('newTaskBtn').addEventListener('click', openPanelNew);
+    document.getElementById('panelClose').addEventListener('click', closePanel);
+    panelBackdrop.addEventListener('click', closePanel);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closePanel(); closeDropdown(); } });
+
+    document.getElementById('panelSave').addEventListener('click', () => {
+      if (!fTitle.value.trim()) { fTitle.focus(); return; }
+      const data = {
+        title: fTitle.value.trim(),
+        empresa: fEmpresa.value.trim(),
+        responsavel: fResponsavel.value.trim() || 'Sem responsável',
+        prazo: fPrazo.value || today,
+        prioridade: fPrioridade.value,
+        status: fStatus.value,
+        descricao: fDescricao.value.trim(),
+      };
+      if (editingId) {
+        const t = tasks.find(x => x.id === editingId);
+        Object.assign(t, data);
+      } else {
+        tasks.push({ id: nextId(), ...data });
+      }
+      closePanel();
+      render();
+    });
+
+    panelDelete.addEventListener('click', () => {
+      if (!editingId) return;
+      tasks = tasks.filter(t => t.id !== editingId);
+      closePanel();
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>

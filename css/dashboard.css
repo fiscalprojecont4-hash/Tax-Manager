@@ -121,6 +121,15 @@ body {
   background: var(--surface);
 }
 
+/* Quando a página atual é um dos itens do dropdown (ex.: tarefas.html),
+   o gatilho "Módulos" recebe o mesmo tratamento de aba ativa do nav. */
+.nav-dropdown-trigger.active {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid #c3d7fa;
+  padding: calc(0.5rem - 1px) calc(0.85rem - 1px);
+}
+
 .nav-dropdown-trigger .chevron {
   transition: transform 0.2s ease;
 }
@@ -163,6 +172,12 @@ body {
 }
 
 .nav-dropdown-item:hover { background: var(--surface); }
+
+.nav-dropdown-item.active {
+  background: var(--accent-soft);
+}
+
+.nav-dropdown-item.active h4 { color: var(--accent); }
 
 .nav-dropdown-item h4 {
   margin: 0 0 0.2rem;
@@ -394,4 +409,343 @@ body {
   justify-content: center;
   font-size: 1.1rem;
   flex-shrink: 0;
+}
+
+/* =====================================================================
+   Componentes compartilhados entre os módulos (Tarefas, Validações,
+   Projetos, ...). Vivem aqui — em vez de duplicados em cada CSS de
+   módulo — porque todas as páginas de módulo importam dashboard.css
+   para herdar o nav; ver css/calendar.css para o mesmo padrão de import.
+   ===================================================================== */
+
+.wrap-fluid {
+  width: 100%;
+  margin: 0 auto;
+  padding: 1.25rem clamp(1.5rem, 3vw, 3rem) 3rem;
+}
+
+/* ---------- Controle segmentado (alternância de visão/filtro) ---------- */
+
+.segmented {
+  display: inline-flex;
+  gap: 0.4rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.25rem;
+}
+
+.segmented-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 500;
+  padding: 0.4rem 0.9rem;
+  border-radius: 9px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.segmented-btn.active {
+  background: #ffffff;
+  color: var(--accent);
+  border: 1px solid #c3d7fa;
+  box-shadow: 0 1px 3px rgba(22, 35, 58, 0.08);
+}
+
+/* ---------- Badges de prioridade e status ---------- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.22rem 0.55rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.badge-neutral { background: var(--surface); color: var(--muted); }
+.badge-accent { background: var(--accent-soft); color: var(--accent); }
+.badge-success { background: var(--success-soft); color: var(--success); }
+.badge-warning { background: var(--warning-soft); color: var(--warning); }
+.badge-danger { background: var(--danger-soft); color: var(--danger); }
+
+/* ---------- Barra de progresso ---------- */
+
+.progress-track {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+.progress-fill.success { background: var(--success); }
+.progress-fill.danger { background: var(--danger); }
+
+/* ---------- Cartão de item de lista (linhas clicáveis) ---------- */
+
+.list-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.list-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.list-row:last-child { border-bottom: none; }
+.list-row:hover { background: var(--surface); }
+
+.list-row.is-done { opacity: 0.6; }
+
+.list-row-check {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 1.5px solid var(--border);
+  background: #ffffff;
+  flex-shrink: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.list-row-check:hover { border-color: var(--accent); }
+
+.list-row-check.checked {
+  background: var(--success);
+  border-color: var(--success);
+}
+
+.list-row-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.list-row-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 0.2rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.list-row.is-done .list-row-title { text-decoration: line-through; }
+
+.list-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+  flex-wrap: wrap;
+}
+
+.list-row-meta .due {
+  font-weight: 600;
+}
+
+.list-row-meta .due.overdue { color: var(--danger); }
+
+.list-row-side {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+
+.avatar-chip {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.empty-state {
+  padding: 3rem 1rem;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+/* ---------- Painel lateral genérico (detalhe/edição) ---------- */
+
+.side-panel-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(16, 30, 54, 0.4);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease;
+  z-index: 40;
+}
+
+.side-panel-backdrop.open { opacity: 1; pointer-events: auto; }
+
+.side-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(460px, 100vw);
+  background: var(--panel);
+  border-left: 1px solid var(--border);
+  box-shadow: -16px 0 40px rgba(22, 35, 58, 0.1);
+  transform: translateX(100%);
+  transition: transform 0.22s ease;
+  z-index: 41;
+  display: flex;
+  flex-direction: column;
+}
+
+.side-panel.open { transform: translateX(0); }
+
+.side-panel-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.side-panel-header h3 {
+  margin: 0 0 0.3rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.side-panel-header p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.side-panel-close {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 0.2rem;
+  flex-shrink: 0;
+}
+
+.side-panel-close:hover { color: var(--text); }
+
+.side-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem 1.5rem;
+}
+
+.side-panel-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* ---------- Campos de formulário (usados nos painéis laterais) ---------- */
+
+.form-row { margin-bottom: 1rem; }
+.form-row:last-child { margin-bottom: 0; }
+
+.form-row label {
+  display: block;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 0.35rem;
+}
+
+.form-row input[type="text"],
+.form-row input[type="date"],
+.form-row input[type="time"],
+.form-row select,
+.form-row textarea {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 0.86rem;
+  padding: 0.6rem 0.75rem;
+  font-family: inherit;
+}
+
+.form-row textarea {
+  resize: vertical;
+  min-height: 70px;
+}
+
+.form-row-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.btn-fill {
+  background: var(--accent);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  padding: 0.6rem 1rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  flex: 1;
+  transition: background 0.15s ease;
+}
+
+.btn-fill:hover { background: var(--accent-hover); }
+
+.btn-ghost {
+  background: #ffffff;
+  color: var(--danger);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.6rem 1rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-ghost:hover { background: var(--danger-soft); border-color: #f3c6c2; }
+
+@media (max-width: 480px) {
+  .form-row-split { grid-template-columns: 1fr; }
 }

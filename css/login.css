@@ -13,6 +13,8 @@
   --danger-soft: #fbeae9;
   --success: #1c9a52;
   --success-soft: #e7f8ee;
+  --warning: #b5650d;
+  --warning-soft: #fbeedd;
   --radius: 16px;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }

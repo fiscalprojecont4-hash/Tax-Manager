@@ -7,71 +7,82 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/login.css" />
-  <style>
-    .shell {
-      max-width: 640px;
-      margin: 4rem auto;
-      padding: 0 1.5rem;
-    }
-    .card {
-      border: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.03);
-      border-radius: var(--radius);
-      padding: 2rem;
-    }
-    .badge {
-      display: inline-block;
-      font-size: 0.72rem;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      color: var(--accent);
-      background: var(--accent-soft);
-      border: 1px solid rgba(56, 189, 248, 0.25);
-      padding: 0.25rem 0.6rem;
-      border-radius: 999px;
-      margin-bottom: 1rem;
-    }
-    .user-email {
-      color: var(--text);
-      font-weight: 600;
-    }
-    ul.roadmap {
-      margin: 1.25rem 0 0;
-      padding-left: 1.1rem;
-      color: var(--muted);
-      font-size: 0.88rem;
-      line-height: 1.7;
-    }
-  </style>
+  <link rel="stylesheet" href="css/dashboard.css" />
 </head>
 <body>
-  <div class="shell">
-    <div class="card">
-      <span class="badge">Fase 0 · Protótipo de autenticação</span>
-      <h1 class="login-title" style="font-size:1.6rem">Login confirmado</h1>
-      <p class="login-subtitle" style="margin-bottom:1.5rem">
-        Sessão ativa para <span class="user-email" id="userEmail">…</span>.
-      </p>
-
-      <p style="color:var(--muted); font-size:0.9rem; line-height:1.6;">
-        Esta página é só a confirmação de que autenticação + sessão do Supabase estão
-        funcionando ponta a ponta. A plataforma de verdade (Dashboard, Requests, Validações,
-        Calendário, Projetos, Conhecimento, Administração — ver navegação corrigida na Fase 0)
-        ainda depende do modelo de dados.
-      </p>
-
-      <ul class="roadmap">
-        <li>✅ Tela de login (HTML/CSS/JS + Supabase Auth)</li>
-        <li>✅ Autenticação e sessão funcionando</li>
-        <li>⏳ Schema PostgreSQL com Row-Level Security</li>
-        <li>⏳ Telas operacionais (Requests, Validações, Calendário…)</li>
-      </ul>
-
-      <button class="btn-secondary" id="logoutBtn" style="margin-top:1.75rem">Sair</button>
+  <nav class="topnav">
+    <div class="topnav-left">
+      <a href="dashboard.html" class="topnav-brand">
+        <img src="assets/hero-login.jpg" alt="" />
+        <span>Tax Manager</span>
+      </a>
+      <div class="topnav-tabs">
+        <a href="dashboard.html" class="active">Dashboard</a>
+        <a href="#">Requests</a>
+        <a href="#">Validações</a>
+        <a href="#">Calendário</a>
+        <a href="#">Projetos</a>
+        <a href="#">Conhecimento</a>
+        <a href="#">Administração</a>
+      </div>
     </div>
-  </div>
+    <div class="topnav-right">
+      <span class="user-email" id="userEmail">…</span>
+      <button id="logoutBtn">Sair</button>
+    </div>
+  </nav>
+
+  <main class="main-wrap">
+    <div class="data-note">
+      ⚠ Dados de exemplo — o modelo de dados (Supabase/PostgreSQL) ainda não existe, então
+      estas métricas são mock para validar o layout. Serão substituídas por consultas reais
+      assim que o schema estiver pronto.
+    </div>
+
+    <div class="bento">
+      <!-- Bloco rotativo: métricas por módulo, troca a cada 5s -->
+      <div class="bento-primary" id="statSlide">
+        <div>
+          <span class="bento-tag" id="statTag">Tarefas</span>
+          <p class="bento-value" id="statValue">12</p>
+        </div>
+        <div>
+          <p class="bento-desc" id="statDesc">Tarefas em aberto hoje, 3 delas já atrasadas.</p>
+          <div class="bento-dots" id="statDots"></div>
+        </div>
+      </div>
+
+      <div class="bento-card span-3">
+        <div class="bento-card-row">
+          <div>
+            <p class="bento-card-label">Cumprimento no prazo</p>
+            <p class="bento-card-value">—</p>
+          </div>
+          <div class="bars">
+            <span style="height:30%"></span><span style="height:45%"></span>
+            <span style="height:60%"></span><span style="height:50%"></span>
+            <span style="height:80%"></span><span style="height:70%"></span>
+            <span style="height:95%"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="bento-card span-1 center">
+        <p class="bento-card-value">—</p>
+        <p class="bento-card-label">Achados repetidos</p>
+      </div>
+
+      <div class="bento-card span-2">
+        <div class="bento-card-row">
+          <div class="icon-badge">⏱</div>
+          <div>
+            <p class="bento-card-value" style="font-size:1.1rem; line-height:1.2;">—</p>
+            <p class="bento-card-label" style="margin-top:0.2rem;">Tempo médio de validação</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
 
   <script type="module">
     import { createSupabaseClient } from './js/supabase-client.js';
@@ -81,7 +92,6 @@
     const logoutBtn = document.getElementById('logoutBtn');
 
     const { data: { session } } = await supabase.auth.getSession();
-
     if (!session) {
       window.location.href = 'index.html';
     } else {
@@ -92,6 +102,47 @@
       await supabase.auth.signOut();
       window.location.href = 'index.html';
     });
+
+    // --- Carrossel de métricas por módulo (mock até o schema existir) ---
+    const slides = [
+      { tag: 'Tarefas', value: '12', desc: 'Tarefas em aberto hoje, 3 delas já atrasadas.' },
+      { tag: 'Validações', value: '5', desc: 'Validações aguardando revisão em 3 empresas diferentes.' },
+      { tag: 'Calendário', value: '2', desc: 'Obrigações fiscais vencendo nos próximos 7 dias.' },
+      { tag: 'Projetos', value: '67%', desc: 'Progresso médio dos projetos em andamento — 4 de 6 etapas concluídas no piloto.' },
+      { tag: 'Conhecimento', value: '5', desc: 'Novos padrões aprovados e adicionados à base este mês.' },
+    ];
+
+    const statSlide = document.getElementById('statSlide');
+    const statTag = document.getElementById('statTag');
+    const statValue = document.getElementById('statValue');
+    const statDesc = document.getElementById('statDesc');
+    const dotsEl = document.getElementById('statDots');
+
+    slides.forEach((_, i) => {
+      const dot = document.createElement('span');
+      if (i === 0) dot.classList.add('active');
+      dotsEl.appendChild(dot);
+    });
+
+    let current = 0;
+
+    function renderSlide(index) {
+      const s = slides[index];
+      statTag.textContent = s.tag;
+      statValue.textContent = s.value;
+      statDesc.textContent = s.desc;
+
+      statSlide.classList.remove('bento-slide');
+      void statSlide.offsetWidth; // reinicia a animação
+      statSlide.classList.add('bento-slide');
+
+      [...dotsEl.children].forEach((dot, i) => dot.classList.toggle('active', i === index));
+    }
+
+    setInterval(() => {
+      current = (current + 1) % slides.length;
+      renderSlide(current);
+    }, 5000);
   </script>
 </body>
 </html>

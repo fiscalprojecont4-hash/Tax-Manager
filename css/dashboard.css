@@ -70,6 +70,92 @@ body {
   border: 1px solid rgba(56, 189, 248, 0.25);
 }
 
+/* ---------- Módulos: dropdown de hover ---------- */
+
+.nav-dropdown {
+  position: relative;
+}
+
+.nav-dropdown-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  white-space: nowrap;
+  padding: 0.5rem 0.85rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--muted);
+  background: none;
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.nav-dropdown-trigger:hover,
+.nav-dropdown.open .nav-dropdown-trigger {
+  color: var(--text);
+  background: rgba(255,255,255,0.04);
+}
+
+.nav-dropdown-trigger .chevron {
+  transition: transform 0.2s ease;
+}
+
+.nav-dropdown.open .nav-dropdown-trigger .chevron {
+  transform: rotate(180deg);
+}
+
+.nav-dropdown-panel {
+  /* position:fixed + top/left calculados via JS (ver dashboard.html) —
+     necessário porque .topnav-tabs usa overflow-x:auto para o scroll
+     horizontal no mobile, e isso corta qualquer absolute que vaze do
+     eixo vertical. fixed escapa desse corte. */
+  position: fixed;
+  transform: translateX(-50%) scale(0.97);
+  width: 300px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 20px 45px rgba(0,0,0,0.45);
+  padding: 0.5rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+  z-index: 30;
+}
+
+.nav-dropdown.open .nav-dropdown-panel {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+  pointer-events: auto;
+}
+
+.nav-dropdown-item {
+  display: block;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: background 0.12s ease;
+}
+
+.nav-dropdown-item:hover { background: rgba(255,255,255,0.05); }
+
+.nav-dropdown-item h4 {
+  margin: 0 0 0.2rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.nav-dropdown-item p {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
 .topnav-right {
   display: flex;
   align-items: center;

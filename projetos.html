@@ -18,6 +18,7 @@
 
     <div class="topnav-tabs">
       <a href="dashboard.html">Painel</a>
+      <a href="tarefas.html">Tarefas</a>
 
       <div class="nav-dropdown" id="modulosDropdown">
         <button type="button" class="nav-dropdown-trigger" id="modulosTrigger">
@@ -25,10 +26,6 @@
           <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
         <div class="nav-dropdown-panel" role="menu">
-          <a class="nav-dropdown-item" href="tarefas.html" role="menuitem">
-            <h4>Tarefas</h4>
-            <p>Tarefas pontuais, recorrentes e a fila de trabalho do dia.</p>
-          </a>
           <a class="nav-dropdown-item" href="validacoes.html" role="menuitem">
             <h4>Validações</h4>
             <p>Checklists por empresa, achados, revisão e aprovação.</p>
@@ -81,6 +78,7 @@
         <button type="button" class="segmented-btn" data-filter="andamento">Em andamento</button>
         <button type="button" class="segmented-btn" data-filter="atrasados">Atrasados</button>
         <button type="button" class="segmented-btn" data-filter="concluidos">Concluídos</button>
+        <button type="button" class="segmented-btn" data-filter="cancelados">Cancelados</button>
       </div>
       <div class="pj-toolbar-right">
         <button type="button" class="btn-new" id="newProjectBtn">
@@ -154,6 +152,7 @@
     </div>
     <div class="side-panel-footer">
       <button type="button" class="btn-ghost" id="panelDelete" style="display:none">Excluir projeto</button>
+      <button type="button" class="btn-ghost" id="panelCancel" style="display:none">Cancelar projeto</button>
       <button type="button" class="btn-fill" id="panelSave">Salvar</button>
     </div>
   </aside>
@@ -405,26 +404,32 @@
     let activeId = null;
     let isCreating = false;
 
+    // Etapas canceladas não entram na conta do progresso.
+    const etapasValidas = (p) => p.etapas.filter(e => e.status !== 'cancelada');
+
     function etapaProgress(p) {
-      const done = p.etapas.filter(e => e.status === 'concluida').length;
-      return { done, total: p.etapas.length, pct: p.etapas.length ? Math.round((done / p.etapas.length) * 100) : 0 };
+      const validas = etapasValidas(p);
+      const done = validas.filter(e => e.status === 'concluida').length;
+      return { done, total: validas.length, pct: validas.length ? Math.round((done / validas.length) * 100) : 0 };
     }
 
     function projectHasOverdueEtapa(p) {
-      return p.etapas.some(e => e.status !== 'concluida' && e.prazo < today);
+      return etapasValidas(p).some(e => e.status !== 'concluida' && e.prazo < today);
     }
 
     function projectStatus(p) {
-      if (p.etapas.length > 0 && p.etapas.every(e => e.status === 'concluida')) return 'concluido';
+      if (p.cancelado) return 'cancelado';
+      const validas = etapasValidas(p);
+      if (validas.length > 0 && validas.every(e => e.status === 'concluida')) return 'concluido';
       if (projectHasOverdueEtapa(p) || (p.prazo && p.prazo < today)) return 'atrasado';
       return 'andamento';
     }
 
-    const STATUS_LABEL = { andamento: 'Em andamento', atrasado: 'Atrasado', concluido: 'Concluído' };
-    const STATUS_BADGE = { andamento: 'badge-accent', atrasado: 'badge-danger', concluido: 'badge-success' };
-    const ETAPA_LABEL = { pendente: 'Pendente', andamento: 'Em andamento', concluida: 'Concluída' };
-    const ETAPA_BADGE = { pendente: 'badge-neutral', andamento: 'badge-accent', concluida: 'badge-success' };
-    const ETAPA_NEXT = { pendente: 'andamento', andamento: 'concluida', concluida: 'pendente' };
+    const STATUS_LABEL = { andamento: 'Em andamento', atrasado: 'Atrasado', concluido: 'Concluído', cancelado: 'Cancelado' };
+    const STATUS_BADGE = { andamento: 'badge-accent', atrasado: 'badge-danger', concluido: 'badge-success', cancelado: 'badge-muted' };
+    const ETAPA_LABEL = { pendente: 'Pendente', andamento: 'Em andamento', concluida: 'Concluída', cancelada: 'Cancelada' };
+    const ETAPA_BADGE = { pendente: 'badge-neutral', andamento: 'badge-accent', concluida: 'badge-success', cancelada: 'badge-muted' };
+    const ETAPA_NEXT = { pendente: 'andamento', andamento: 'concluida', concluida: 'cancelada', cancelada: 'pendente' };
 
     function renderCard(p) {
       const card = document.createElement('div');
@@ -461,7 +466,9 @@
 
       const filtered = projetos.filter(p => {
         const status = projectStatus(p);
-        if (currentFilter === 'todos') return true;
+        // Cancelados ficam ocultos até o filtro "Cancelados" ser escolhido.
+        if (currentFilter === 'todos') return status !== 'cancelado';
+        if (currentFilter === 'cancelados') return status === 'cancelado';
         if (currentFilter === 'andamento') return status === 'andamento';
         if (currentFilter === 'atrasados') return status === 'atrasado';
         if (currentFilter === 'concluidos') return status === 'concluido';
@@ -492,6 +499,8 @@
     const panelTitle = document.getElementById('panelTitle');
     const panelSubtitle = document.getElementById('panelSubtitle');
     const panelDelete = document.getElementById('panelDelete');
+    const panelCancel = document.getElementById('panelCancel');
+    const rotuloCancelar = (p) => (p.cancelado ? 'Reativar projeto' : 'Cancelar projeto');
 
     const fTitulo = document.getElementById('fTitulo');
     const fCliente = document.getElementById('fCliente');
@@ -519,9 +528,9 @@
         etapasList.innerHTML = '<p class="pj-etapa-empty">Nenhuma etapa cadastrada ainda.</p>';
       }
       p.etapas.forEach(et => {
-        const overdue = et.status !== 'concluida' && et.prazo < today;
+        const overdue = et.status !== 'concluida' && et.status !== 'cancelada' && et.prazo < today;
         const row = document.createElement('div');
-        row.className = 'pj-etapa' + (et.status === 'concluida' ? ' is-done' : '');
+        row.className = 'pj-etapa' + (et.status === 'concluida' || et.status === 'cancelada' ? ' is-done' : '');
         row.innerHTML = `
           <div class="pj-etapa-main">
             <p class="pj-etapa-nome">${et.nome}</p>
@@ -575,6 +584,8 @@
       panelTitle.textContent = p.titulo;
       panelSubtitle.textContent = p.cliente || 'Projeto interno';
       panelDelete.style.display = '';
+      panelCancel.style.display = '';
+      panelCancel.textContent = rotuloCancelar(p);
 
       fTitulo.value = p.titulo;
       fCliente.value = p.cliente;
@@ -601,6 +612,7 @@
       panelTitle.textContent = 'Novo projeto';
       panelSubtitle.textContent = 'Preencha os campos e salve.';
       panelDelete.style.display = 'none';
+      panelCancel.style.display = 'none';
 
       fTitulo.value = '';
       fCliente.value = '';
@@ -656,6 +668,15 @@
       if (!activeId) return;
       projetos = projetos.filter(p => p.id !== activeId);
       closePanel();
+      render();
+    });
+
+    panelCancel.addEventListener('click', () => {
+      if (!activeId) return;
+      const p = projetos.find(x => x.id === activeId);
+      p.cancelado = !p.cancelado;
+      panelCancel.textContent = rotuloCancelar(p);
+      renderProgressSummary(p);
       render();
     });
 

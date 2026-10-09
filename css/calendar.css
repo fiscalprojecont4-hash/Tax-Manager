@@ -70,8 +70,16 @@ html, body {
   min-width: 11rem;
 }
 
-.cal-toolbar-right {
+.cal-toolbar-end {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.cal-toolbar-right {
+  margin-left: 0;
   display: flex;
   gap: 0.4rem;
   background: var(--surface);

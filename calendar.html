@@ -100,9 +100,57 @@
     </div>
     <div class="day-panel-body" id="dayPanelBody"></div>
     <div class="day-panel-footer">
-      <input type="time" id="newTaskTime" value="09:00" />
-      <input type="text" id="newTaskTitle" placeholder="Adicionar tarefa neste dia…" />
-      <button type="button" id="newTaskAdd">Adicionar</button>
+      <div class="panel-section-title" style="margin-top:0">Novo evento</div>
+
+      <div class="form-toggle" id="newTypeToggle">
+        <button type="button" class="form-toggle-btn" data-type="evento">Evento</button>
+        <button type="button" class="form-toggle-btn active" data-type="tarefa">Tarefa</button>
+      </div>
+
+      <div class="form-row">
+        <label for="newTitle">Título</label>
+        <input type="text" id="newTitle" placeholder="Adicionar título e horário" />
+      </div>
+
+      <div class="form-row form-row-split">
+        <div class="form-row-check">
+          <label><input type="checkbox" id="newAllDay" /> Dia inteiro</label>
+        </div>
+        <div>
+          <label for="newTime">Horário</label>
+          <input type="time" id="newTime" value="09:00" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label for="newConvidados">Convidados / responsáveis</label>
+        <input type="text" id="newConvidados" placeholder="Nomes, separados por vírgula (opcional)" />
+      </div>
+
+      <div class="form-row">
+        <label for="newLocal">Local</label>
+        <input type="text" id="newLocal" placeholder="Opcional" />
+      </div>
+
+      <div class="form-row">
+        <label for="newDescricao">Descrição ou anexos</label>
+        <textarea id="newDescricao" placeholder="Opcional"></textarea>
+      </div>
+
+      <div class="form-row">
+        <label for="newNotificar">Notificação</label>
+        <select id="newNotificar">
+          <option value="">Sem notificação</option>
+          <option value="0">No horário</option>
+          <option value="15" selected>15 minutos antes</option>
+          <option value="60">1 hora antes</option>
+          <option value="1440">1 dia antes</option>
+        </select>
+      </div>
+
+      <div class="day-panel-footer-actions">
+        <button type="button" class="btn-fill" id="newTaskAdd">Salvar</button>
+      </div>
     </div>
   </aside>
 
@@ -346,17 +394,50 @@
     const dayPanelTitle = document.getElementById('dayPanelTitle');
     const dayPanelBody = document.getElementById('dayPanelBody');
     const dayPanelClose = document.getElementById('dayPanelClose');
-    const newTaskTitle = document.getElementById('newTaskTitle');
-    const newTaskTime = document.getElementById('newTaskTime');
+    const newTypeToggle = document.getElementById('newTypeToggle');
+    const newTitle = document.getElementById('newTitle');
+    const newAllDay = document.getElementById('newAllDay');
+    const newTime = document.getElementById('newTime');
+    const newConvidados = document.getElementById('newConvidados');
+    const newLocal = document.getElementById('newLocal');
+    const newDescricao = document.getElementById('newDescricao');
+    const newNotificar = document.getElementById('newNotificar');
     const newTaskAdd = document.getElementById('newTaskAdd');
 
     let activeDayKey = null;
+    let newType = 'tarefa';
+
+    newTypeToggle.addEventListener('click', (e) => {
+      const btn = e.target.closest('.form-toggle-btn');
+      if (!btn) return;
+      newTypeToggle.querySelectorAll('.form-toggle-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      newType = btn.dataset.type;
+    });
+
+    newAllDay.addEventListener('change', () => {
+      newTime.disabled = newAllDay.checked;
+    });
+
+    function resetNewEventForm() {
+      newTypeToggle.querySelectorAll('.form-toggle-btn').forEach(b => b.classList.toggle('active', b.dataset.type === 'tarefa'));
+      newType = 'tarefa';
+      newTitle.value = '';
+      newAllDay.checked = false;
+      newTime.disabled = false;
+      newTime.value = '09:00';
+      newConvidados.value = '';
+      newLocal.value = '';
+      newDescricao.value = '';
+      newNotificar.value = '15';
+    }
 
     function openDayPanel(y, m, d) {
       activeDayKey = iso(y, m, d);
       const dateObj = new Date(y, m, d);
       dayPanelTitle.textContent = `${d} de ${MESES[m]}, ${DOW[dateObj.getDay()]}`;
       renderDayPanelBody();
+      resetNewEventForm();
       dayPanel.classList.add('open');
       dayPanelBackdrop.classList.add('open');
     }
@@ -369,6 +450,14 @@
 
     dayPanelClose.addEventListener('click', closeDayPanel);
     dayPanelBackdrop.addEventListener('click', closeDayPanel);
+
+    function chipTooltip(ev) {
+      const bits = [ev.title];
+      if (ev.local) bits.push(`Local: ${ev.local}`);
+      if (ev.convidados) bits.push(`Convidados: ${ev.convidados}`);
+      if (ev.descricao) bits.push(ev.descricao);
+      return bits.join('\n');
+    }
 
     function renderDayPanelBody() {
       dayPanelBody.innerHTML = '';
@@ -386,6 +475,7 @@
           const chip = document.createElement('span');
           chip.className = `day-event-chip ${ev.type}`;
           chip.textContent = ev.title;
+          chip.title = chipTooltip(ev);
           content.appendChild(chip);
         });
         row.appendChild(content);
@@ -407,6 +497,7 @@
           const chip = document.createElement('span');
           chip.className = `day-event-chip ${ev.type}`;
           chip.textContent = `${ev.time} · ${ev.title}`;
+          chip.title = chipTooltip(ev);
           content.appendChild(chip);
         });
         row.appendChild(content);
@@ -415,16 +506,24 @@
     }
 
     newTaskAdd.addEventListener('click', () => {
-      const title = newTaskTitle.value.trim();
+      const title = newTitle.value.trim();
       if (!title || !activeDayKey) return;
       const [y, m, d] = activeDayKey.split('-').map(Number);
-      addEvent(y, m - 1, d, { title, type: 'tarefa', time: newTaskTime.value || undefined });
-      newTaskTitle.value = '';
+      addEvent(y, m - 1, d, {
+        title,
+        type: newType,
+        time: newAllDay.checked ? undefined : (newTime.value || undefined),
+        convidados: newConvidados.value.trim(),
+        local: newLocal.value.trim(),
+        descricao: newDescricao.value.trim(),
+        notificar: newNotificar.value,
+      });
+      resetNewEventForm();
       renderDayPanelBody();
       render();
     });
 
-    newTaskTitle.addEventListener('keydown', (e) => {
+    newTitle.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') newTaskAdd.click();
     });
 

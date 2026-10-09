@@ -18,6 +18,7 @@
 
     <div class="topnav-tabs">
       <a href="dashboard.html">Painel</a>
+      <a href="tarefas.html">Tarefas</a>
 
       <div class="nav-dropdown" id="modulosDropdown">
         <button type="button" class="nav-dropdown-trigger active" id="modulosTrigger">
@@ -25,10 +26,6 @@
           <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
         <div class="nav-dropdown-panel" role="menu">
-          <a class="nav-dropdown-item" href="tarefas.html" role="menuitem">
-            <h4>Tarefas</h4>
-            <p>Tarefas pontuais, recorrentes e a fila de trabalho do dia.</p>
-          </a>
           <a class="nav-dropdown-item active" href="validacoes.html" role="menuitem">
             <h4>Validações</h4>
             <p>Checklists por empresa, achados, revisão e aprovação.</p>
@@ -70,124 +67,123 @@
   <main class="wrap-fluid">
     <div class="data-note">
       ⚠ Dados de exemplo — o modelo de dados (Supabase/PostgreSQL) ainda não existe, então
-      estas validações são mock para validar o layout e a interação. O checklist, os achados
-      e o fluxo de aprovação serão substituídos por dados reais assim que o schema estiver pronto.
+      estas validações são mock para validar o layout e a interação. Os pontos identificados e
+      o fluxo de aprovação serão substituídos por dados reais assim que o schema estiver pronto.
     </div>
 
-    <div class="vd-toolbar">
-      <div class="segmented" id="statusFilter">
-        <button type="button" class="segmented-btn active" data-filter="pendentes">Pendentes</button>
-        <button type="button" class="segmented-btn" data-filter="aprovadas">Aprovadas</button>
-        <button type="button" class="segmented-btn" data-filter="todas">Todas</button>
+    <div class="kpi-row" id="kpiRow"></div>
+
+    <div class="filter-bar" id="filterBar">
+      <div class="filter-search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="search" id="fltSearch" placeholder="Buscar empresa ou atividade…" aria-label="Buscar" />
+      </div>
+      <div id="msStatus"></div>
+      <div id="msAtividade"></div>
+      <div id="msEmpresa"></div>
+      <div id="msAnalista"></div>
+      <button type="button" class="btn-outline" id="btnLimpar" hidden>Limpar filtros</button>
+      <div class="filter-actions">
+        <button type="button" class="btn-outline" id="btnCsv">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Exportar CSV
+        </button>
+        <button type="button" class="btn-outline" id="btnPdf">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Gerar PDF
+        </button>
+        <button type="button" class="btn-new" id="newValidacaoBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nova validação
+        </button>
       </div>
     </div>
+    <p class="filter-note" id="filterNote" aria-live="polite"></p>
 
-    <div class="list-card" id="empresaList"></div>
+    <div class="table-card">
+      <table class="data-table" id="valTable">
+        <thead>
+          <tr>
+            <th>Empresa</th>
+            <th>Atividade</th>
+            <th>Analista responsável</th>
+            <th>Status</th>
+            <th>Pontos</th>
+            <th>Última atualização</th>
+            <th class="col-actions">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="valRows"></tbody>
+      </table>
+      <div class="empty-state" id="valEmpty" hidden>Nenhuma validação com esses filtros.</div>
+    </div>
   </main>
 
-  <!-- Painel lateral: checklist de validação da empresa -->
+  <!-- Painel lateral: dados da validação, pontos identificados e relatório -->
   <div class="side-panel-backdrop" id="panelBackdrop"></div>
   <aside class="side-panel" id="vdPanel">
     <div class="side-panel-header">
       <div>
-        <h3 id="panelTitle">Empresa</h3>
-        <p id="panelSubtitle">Atividade</p>
+        <h3 id="panelTitle">Nova validação</h3>
+        <p id="panelSubtitle">Preencha empresa e atividade — o que você digita é salvo automaticamente.</p>
       </div>
       <button type="button" class="side-panel-close" id="panelClose" aria-label="Fechar">✕</button>
     </div>
     <div class="side-panel-body">
-      <div class="form-row">
-        <label for="fStatus">Status da validação</label>
-        <select id="fStatus">
-          <option value="pendente">Pendente</option>
-          <option value="revisao">Em revisão</option>
-          <option value="aprovado">Aprovado</option>
-          <option value="reprovado">Reprovado</option>
-        </select>
+      <div class="form-row form-row-split">
+        <div>
+          <label for="fEmpresa">Empresa</label>
+          <input type="text" id="fEmpresa" list="empresasSugeridas" autocomplete="off" />
+          <datalist id="empresasSugeridas"></datalist>
+        </div>
+        <div>
+          <label for="fAtividade">Atividade</label>
+          <input type="text" id="fAtividade" list="atividadesSugeridas" autocomplete="off" placeholder="Ex: EFD ICMS/IPI" />
+          <datalist id="atividadesSugeridas"></datalist>
+        </div>
+      </div>
+      <div class="form-row form-row-split">
+        <div>
+          <label for="fAnalista">Analista responsável</label>
+          <input type="text" id="fAnalista" list="analistasSugeridos" autocomplete="off" />
+          <datalist id="analistasSugeridos"></datalist>
+        </div>
+        <div>
+          <label for="fStatus">Status</label>
+          <select id="fStatus">
+            <option value="pendente" selected>Pendente</option>
+            <option value="andamento">Em andamento</option>
+            <option value="impedimento">Impedimento</option>
+            <option value="concluida">Concluída</option>
+            <option value="cancelada">Cancelada</option>
+          </select>
+        </div>
       </div>
 
-      <div class="panel-section-title">Checklist</div>
-      <div class="vd-checklist" id="checklistBody"></div>
+      <details class="vd-more">
+        <summary id="checklistResumo">Checklist da validação</summary>
+        <div class="vd-more-body"><div class="vd-checklist" id="checklistBody"></div></div>
+      </details>
 
-      <div class="panel-section-title">Achados</div>
-      <div class="vd-achados-list" id="achadosList"></div>
-
-      <div class="vd-achado-add">
-        <div class="form-row">
-          <label for="aTarefa">Tarefa</label>
-          <textarea id="aTarefa" placeholder="Descreva o achado..."></textarea>
-        </div>
-        <div class="form-row form-row-split">
-          <div>
-            <label for="aTipo">Tipo</label>
-            <select id="aTipo">
-              <option value="operacional" selected>Operacional</option>
-              <option value="estrategico">Estratégico</option>
-              <option value="administrativo">Administrativo</option>
-            </select>
-          </div>
-          <div>
-            <label for="aPrioridade">Prioridade</label>
-            <select id="aPrioridade">
-              <option value="baixa">Baixa</option>
-              <option value="normal" selected>Normal</option>
-              <option value="alta">Alta</option>
-              <option value="critica">Crítica</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-row form-row-split">
-          <div>
-            <label for="aStatus">Status</label>
-            <select id="aStatus">
-              <option value="pendente" selected>Pendente</option>
-              <option value="revisao">Em revisão</option>
-              <option value="aprovado">Aprovado</option>
-              <option value="reprovado">Reprovado</option>
-            </select>
-          </div>
-          <div>
-            <label for="aRequerente">Requerente</label>
-            <input type="text" id="aRequerente" placeholder="Cliente, empresa ou 'Interno'" />
-          </div>
-        </div>
-        <div class="form-row form-row-split">
-          <div>
-            <label for="aPrazo">Prazo</label>
-            <input type="date" id="aPrazo" />
-          </div>
-          <div>
-            <label for="aDelegado">Delegado para</label>
-            <input type="text" id="aDelegado" placeholder="Nome de quem vai executar (opcional)" />
-          </div>
-        </div>
-        <div class="form-row">
-          <label for="aDataCriacao">Data de criação</label>
-          <input type="text" id="aDataCriacao" readonly />
-          <p class="form-row-hint">Preenchida automaticamente na criação da tarefa.</p>
-        </div>
-        <div class="form-row">
-          <label for="aObservacoes">Observações / contexto</label>
-          <textarea id="aObservacoes" placeholder="Anotações sobre o achado (opcional)"></textarea>
-        </div>
-        <div class="form-row">
-          <label for="aNotificar">Notificar / vincular à agenda de</label>
-          <input type="text" id="aNotificar" placeholder="Opcional — deixe em branco para usar todos os e-mails cadastrados" />
-          <p class="form-row-hint">Nenhum e-mail cadastrado ainda. Adicione em Administração → Google Agenda.</p>
-        </div>
-        <button type="button" class="btn-new" id="addAchadoBtn">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Adicionar achado
-        </button>
-      </div>
+      <div class="panel-section-title">Pontos identificados</div>
+      <div id="pontosList"></div>
+      <button type="button" class="btn-outline vd-add-ponto" id="addPontoBtn">+ Adicionar ponto manualmente</button>
     </div>
-    <div class="side-panel-footer">
-      <button type="button" class="btn-fill" id="panelSave">Salvar</button>
+    <div class="side-panel-footer vd-footer">
+      <button type="button" class="btn-outline" id="panelPdf">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Baixar PDF
+      </button>
+      <span class="vd-saved" id="savedAt" aria-live="polite"></span>
+      <button type="button" class="btn-fill" id="panelConcluir">Marcar como concluída</button>
     </div>
   </aside>
 
   <script type="module">
     import { createSupabaseClient } from './js/supabase-client.js';
+    import { STATUS_ORDER, STATUS_LABEL, STATUS_OCULTOS, statusVisivel, esc, norm, fmtBR, downloadFile, csvCell,
+             createMultiSelect, abrirStatusMenu, statusPillHtml } from './js/lista-ui.js';
+    import { gerarPdf } from './js/relatorio-pdf.js';
 
     const supabase = createSupabaseClient(true);
     const emailEl = document.getElementById('userEmail');
@@ -347,243 +343,477 @@
       'Obrigações acessórias enviadas (SPED, DCTF...)',
       'Pendências do mês anterior resolvidas',
     ];
+    const CATEGORIAS = ['NCM / CST', 'ICMS', 'ICMS-ST', 'PIS / COFINS', 'Simples Nacional', 'Notas fiscais',
+                        'Obrigações acessórias', 'Cadastro', 'Outros'];
+    const SEM_ANALISTA = 'Sem analista';
 
-    function makeChecklist(doneIdx) {
-      return CHECKLIST_PADRAO.map((label, i) => ({ id: `c${i}`, label, done: doneIdx.includes(i) }));
-    }
-
-    function addDays(n) {
+    function isoToday() {
       const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+    function addDays(iso, n) {
+      const d = new Date(iso + 'T00:00:00');
       d.setDate(d.getDate() + n);
-      return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+    const today = isoToday();
+
+    let seq = 1;
+    const nextId = (p) => `${p}${seq++}`;
+    function makeChecklist(feitos) {
+      return CHECKLIST_PADRAO.map((label, i) => ({ id: `c${i}`, label, done: feitos.includes(i) }));
+    }
+    function ponto(o) {
+      return { id: nextId('p'), categoria: 'Outros', titulo: '', identificado: '', motivo: '', orientacao: '', ...o };
+    }
+    function validacao(nome, atividade, analista, status, feitos, atualizadoOffset, pontos = []) {
+      return { id: nextId('v'), nome, atividade, analista, status, checklist: makeChecklist(feitos),
+               atualizadoEm: addDays(today, atualizadoOffset), pontos };
     }
 
-    function addDaysBR(n) {
-      const d = new Date();
-      d.setDate(d.getDate() + n);
-      return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
-    }
-
-    function hojeBR() { return addDaysBR(0); }
-
-    let achadoSeq = 1;
-
-    let empresas = [
-      { id: 'e1', nome: 'Rembraz', atividade: 'Indústria — Zona Franca', status: 'pendente', checklist: makeChecklist([]), atualizadoEm: addDays(-6), achados: [] },
-      { id: 'e2', nome: 'Disbral', atividade: 'Comércio atacadista', status: 'pendente', checklist: makeChecklist([0]), atualizadoEm: addDays(-4), achados: [
-        { id: `a${achadoSeq++}`, tarefa: 'Nota fiscal nº 4521 com CFOP divergente da operação declarada.', tipo: 'operacional', prioridade: 'alta', status: 'pendente', requerente: 'Disbral', prazo: '', delegadoPara: 'Sem delegado', dataCriacao: addDaysBR(-4), observacoes: '', notificar: '' },
-      ] },
-      { id: 'e3', nome: 'Tecnoradio', atividade: 'Indústria — Zona Franca', status: 'revisao', checklist: makeChecklist([0, 1, 2]), atualizadoEm: addDays(-2), achados: [] },
-      { id: 'e4', nome: 'Lusitano', atividade: 'Comércio varejista', status: 'revisao', checklist: makeChecklist([0, 1]), atualizadoEm: addDays(-1), achados: [
-        { id: `a${achadoSeq++}`, tarefa: 'Guia de ICMS de setembro recolhida com um dia de atraso — verificar multa.', tipo: 'operacional', prioridade: 'normal', status: 'revisao', requerente: 'Lusitano', prazo: '', delegadoPara: 'Sem delegado', dataCriacao: addDaysBR(-1), observacoes: '', notificar: '' },
-      ] },
-      { id: 'e5', nome: 'Empresa Alfa', atividade: 'Prestação de serviços', status: 'reprovado', checklist: makeChecklist([0, 2]), atualizadoEm: addDays(-3), achados: [
-        { id: `a${achadoSeq++}`, tarefa: 'SPED Fiscal do período anterior não localizado — solicitar reenvio à empresa.', tipo: 'estrategico', prioridade: 'critica', status: 'pendente', requerente: 'Empresa Alfa', prazo: '', delegadoPara: 'Sem delegado', dataCriacao: addDaysBR(-3), observacoes: '', notificar: '' },
-      ] },
-      { id: 'e6', nome: 'Empresa Beta', atividade: 'Comércio atacadista', status: 'aprovado', checklist: makeChecklist([0, 1, 2, 3, 4]), atualizadoEm: addDays(-8), achados: [] },
-      { id: 'e7', nome: 'Nortec', atividade: 'Indústria — Zona Franca', status: 'aprovado', checklist: makeChecklist([0, 1, 2, 3, 4]), atualizadoEm: addDays(-10), achados: [] },
+    let validacoes = [
+      validacao('Empresa Gama', 'EFD CONTRIBUIÇÕES', 'Analista A', 'impedimento', [0], 0),
+      validacao('Empresa Delta', 'EFD CONTRIBUIÇÕES', 'Analista A', 'impedimento', [], -17),
+      validacao('Rembraz', 'EFD ICMS/IPI', 'Wendel', 'pendente', [], -6),
+      validacao('Disbral', 'EFD CONTRIBUIÇÕES', 'Equipe Fiscal', 'andamento', [0], -4, [
+        ponto({ categoria: 'Notas fiscais', titulo: 'CFOP divergente na NF 4521', identificado: 'Nota fiscal nº 4521 com CFOP divergente da operação declarada.', motivo: 'CFOP incorreto distorce a apuração de ICMS e pode gerar autuação.', orientacao: 'Corrigir o CFOP (nota complementar ou carta de correção) e reapurar o período.' }),
+        ponto({ categoria: 'NCM / CST', titulo: 'Classificação de produtos ST x tributados', identificado: 'Produtos sujeitos a ST escriturados como tributados normalmente.', motivo: 'Gera recolhimento indevido ou a menor de ICMS.', orientacao: 'Revisar o cadastro de NCM e o CEST dos itens e retificar a EFD.' }),
+      ]),
+      validacao('Tecnoradio', 'EFD ICMS/IPI', 'Wendel', 'andamento', [0, 1, 2], -2),
+      validacao('Lusitano', 'Apuração de ICMS', 'Equipe Fiscal', 'pendente', [0, 1], -1, [
+        ponto({ categoria: 'ICMS', titulo: 'Guia de setembro recolhida com atraso', identificado: 'Guia de ICMS de setembro recolhida com um dia de atraso.', motivo: 'Recolhimento fora do prazo gera multa e juros.', orientacao: 'Verificar a multa, atualizar o valor devido e criar lembrete de vencimento.' }),
+      ]),
+      validacao('Empresa Alfa', 'EFD CONTRIBUIÇÕES', '', 'impedimento', [0, 2], -3, [
+        ponto({ categoria: 'Obrigações acessórias', titulo: 'SPED Fiscal anterior não localizado', identificado: 'SPED Fiscal do período anterior não localizado.', motivo: 'Sem a escrituração anterior não há como conferir o saldo; omissão gera multa.', orientacao: 'Solicitar o reenvio do arquivo à empresa e transmitir antes de validar o período atual.' }),
+      ]),
+      validacao('Empresa Beta', 'DCTF', 'Wendel', 'concluida', [0, 1, 2, 3, 4], -8),
+      validacao('Nortec', 'EFD ICMS/IPI', 'Equipe Fiscal', 'concluida', [0, 1, 2, 3, 4], -10),
+      validacao('Empresa Épsilon', 'EFD REINF', 'Analista B', 'cancelada', [], -12),
     ];
 
-    let currentFilter = 'pendentes';
-    let activeId = null;
+    const filters = { q: '', status: [], atividade: [], empresa: [], analista: [] };
+    const analistaDe = (v) => v.analista || SEM_ANALISTA;
+    const ehAberta = (v) => !STATUS_OCULTOS.includes(v.status);
 
-    const STATUS_LABEL = { pendente: 'Pendente', revisao: 'Em revisão', aprovado: 'Aprovado', reprovado: 'Reprovado' };
-    const STATUS_BADGE = { pendente: 'badge-neutral', revisao: 'badge-warning', aprovado: 'badge-success', reprovado: 'badge-danger' };
-    const PRIORIDADE_LABEL = { critica: 'Crítica', alta: 'Alta', normal: 'Normal', baixa: 'Baixa' };
-    const PRIORIDADE_BADGE = { critica: 'badge-danger', alta: 'badge-warning', normal: 'badge-accent', baixa: 'badge-neutral' };
+    function matches(v, ignorarStatus = false) {
+      if (filters.q && !norm(`${v.nome} ${v.atividade} ${v.analista}`).includes(norm(filters.q))) return false;
+      if (!ignorarStatus && !statusVisivel(v.status, filters.status)) return false;
+      if (filters.atividade.length && !filters.atividade.includes(v.atividade)) return false;
+      if (filters.empresa.length && !filters.empresa.includes(v.nome)) return false;
+      if (filters.analista.length && !filters.analista.includes(analistaDe(v))) return false;
+      return true;
+    }
+    const visibleList = () => validacoes.filter(v => matches(v)).sort((a, b) => a.nome.localeCompare(b.nome) || a.atividade.localeCompare(b.atividade));
 
-    function checklistProgress(e) {
-      const done = e.checklist.filter(c => c.done).length;
-      return { done, total: e.checklist.length, pct: Math.round((done / e.checklist.length) * 100) };
+    const svg = (d) => `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+    const ICON = {
+      mail: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 7L2 7"/>',
+      edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+      pdf: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>',
+      trash: '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>',
+    };
+
+    // ---------- filtros (multisseleção) ----------
+
+    const ms = {
+      status: createMultiSelect(document.getElementById('msStatus'), { rotuloTodos: 'Todo status', rotuloCurto: 'Status',
+        options: STATUS_ORDER.map(value => ({ value, label: STATUS_LABEL[value] })), onChange: v => setFilter('status', v) }),
+      atividade: createMultiSelect(document.getElementById('msAtividade'), { rotuloTodos: 'Toda atividade', rotuloCurto: 'Atividade',
+        options: [], onChange: v => setFilter('atividade', v) }),
+      empresa: createMultiSelect(document.getElementById('msEmpresa'), { rotuloTodos: 'Toda empresa', rotuloCurto: 'Empresa',
+        options: [], onChange: v => setFilter('empresa', v) }),
+      analista: createMultiSelect(document.getElementById('msAnalista'), { rotuloTodos: 'Todo analista', rotuloCurto: 'Analista',
+        options: [], onChange: v => setFilter('analista', v) }),
+    };
+
+    function setFilter(chave, valores) { filters[chave] = valores; ms[chave].set(valores); render(); }
+
+    function unicos(fn) { return [...new Set(validacoes.map(fn).filter(Boolean))].sort((a, b) => a.localeCompare(b)); }
+
+    function refreshDynamicOptions() {
+      ms.atividade.setOptions(unicos(v => v.atividade).map(x => ({ value: x, label: x })));
+      ms.empresa.setOptions(unicos(v => v.nome).map(x => ({ value: x, label: x })));
+      ms.analista.setOptions(unicos(analistaDe).map(x => ({ value: x, label: x })));
+      filters.atividade = ms.atividade.values(); filters.empresa = ms.empresa.values(); filters.analista = ms.analista.values();
+      const dl = (id, itens) => { document.getElementById(id).innerHTML = itens.map(x => `<option value="${esc(x)}"></option>`).join(''); };
+      dl('atividadesSugeridas', unicos(v => v.atividade));
+      dl('empresasSugeridas', unicos(v => v.nome));
+      dl('analistasSugeridos', unicos(v => v.analista));
     }
 
-    function renderRow(e) {
-      const row = document.createElement('div');
-      row.className = 'vd-row';
-      row.dataset.id = e.id;
-      const prog = checklistProgress(e);
-      const fillClass = e.status === 'reprovado' ? 'danger' : (e.status === 'aprovado' ? 'success' : '');
+    document.getElementById('fltSearch').addEventListener('input', (e) => { filters.q = e.target.value; render(); });
 
-      row.innerHTML = `
-        <div class="vd-row-main">
-          <p class="vd-row-name">${e.nome}</p>
-          <p class="vd-row-activity">${e.atividade}</p>
-        </div>
-        <div class="vd-row-progress">
-          <div class="progress-track"><div class="progress-fill ${fillClass}" style="width:${prog.pct}%"></div></div>
-          <span class="count">${prog.done}/${prog.total}</span>
-        </div>
-        <div class="vd-row-side">
-          <span class="badge ${STATUS_BADGE[e.status]}">${STATUS_LABEL[e.status]}</span>
-          <span class="vd-row-updated">${e.atualizadoEm}</span>
-        </div>
-      `;
-      row.addEventListener('click', () => openPanel(e.id));
-      return row;
+    const filtrosAtivos = () => !!filters.q || ['status', 'atividade', 'empresa', 'analista'].some(k => filters[k].length);
+    function descricaoFiltros() {
+      const partes = [];
+      if (filters.q) partes.push(`Busca: "${filters.q}"`);
+      if (filters.status.length) partes.push(`Status: ${filters.status.map(s => STATUS_LABEL[s]).join(', ')}`);
+      if (filters.atividade.length) partes.push(`Atividade: ${filters.atividade.join(', ')}`);
+      if (filters.empresa.length) partes.push(`Empresa: ${filters.empresa.join(', ')}`);
+      if (filters.analista.length) partes.push(`Analista: ${filters.analista.join(', ')}`);
+      return partes;
     }
-
-    function render() {
-      const container = document.getElementById('empresaList');
-      container.innerHTML = '';
-
-      const filtered = empresas.filter(e => {
-        if (currentFilter === 'pendentes') return e.status === 'pendente' || e.status === 'revisao' || e.status === 'reprovado';
-        if (currentFilter === 'aprovadas') return e.status === 'aprovado';
-        return true;
-      });
-
-      if (filtered.length === 0) {
-        container.innerHTML = '<div class="empty-state">Nenhuma empresa nesta visão.</div>';
-        return;
-      }
-
-      filtered
-        .slice()
-        .sort((a, b) => a.nome.localeCompare(b.nome))
-        .forEach(e => container.appendChild(renderRow(e)));
-    }
-
-    document.getElementById('statusFilter').addEventListener('click', (e) => {
-      const btn = e.target.closest('.segmented-btn');
-      if (!btn) return;
-      document.querySelectorAll('#statusFilter .segmented-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      currentFilter = btn.dataset.filter;
+    document.getElementById('btnLimpar').addEventListener('click', () => {
+      filters.q = ''; document.getElementById('fltSearch').value = '';
+      Object.keys(ms).forEach(k => { filters[k] = []; ms[k].clear(); });
       render();
     });
 
-    // ---------- Painel lateral ----------
+    // ---------- totais ----------
+
+    function renderKpis() {
+      const n = (s) => validacoes.filter(v => v.status === s).length;
+      const cards = [
+        ['total', validacoes.length, 'Empresas / atividades', ''],
+        ['pendente', n('pendente'), 'Pendentes', 'warning'],
+        ['andamento', n('andamento'), 'Em andamento', ''],
+        ['impedimento', n('impedimento'), 'Impedimentos', 'danger'],
+        ['concluida', n('concluida'), 'Concluídas', 'success'],
+        ['cancelada', n('cancelada'), 'Canceladas', 'neutral'],
+      ];
+      document.getElementById('kpiRow').innerHTML = cards.map(([k, v, label, cor]) =>
+        `<div class="kpi-card clickable ${cor}" data-kpi="${k}" tabindex="0" role="button" title="Filtrar a lista"><span class="kpi-value">${v}</span><span class="kpi-label">${label}</span></div>`).join('');
+    }
+    function aplicarKpi(k) {
+      filters.q = ''; document.getElementById('fltSearch').value = '';
+      Object.keys(ms).forEach(c => { filters[c] = []; ms[c].clear(); });
+      if (k !== 'total') { filters.status = [k]; ms.status.set([k]); }
+      render();
+    }
+    const kpiRow = document.getElementById('kpiRow');
+    kpiRow.addEventListener('click', (e) => { const c = e.target.closest('[data-kpi]'); if (c) aplicarKpi(c.dataset.kpi); });
+    kpiRow.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const c = e.target.closest('[data-kpi]');
+      if (c) { e.preventDefault(); aplicarKpi(c.dataset.kpi); }
+    });
+
+    // ---------- tabela ----------
+
+    function mailtoFor(v) {
+      const corpo = [`Validação: ${v.nome} — ${v.atividade}`, `Analista responsável: ${analistaDe(v)}`, `Status: ${STATUS_LABEL[v.status]}`,
+                     `Pontos identificados: ${v.pontos.length}`, '', ...v.pontos.map((p, i) => `${i + 1}. ${p.titulo || '(sem título)'}`)].join('\n').slice(0, 1500);
+      return `mailto:?subject=${encodeURIComponent(`Validação: ${v.nome} — ${v.atividade}`)}&body=${encodeURIComponent(corpo)}`;
+    }
+
+    function rowHtml(v) {
+      const classe = v.status === 'concluida' ? 'is-done' : (v.status === 'cancelada' ? 'is-cancelled' : '');
+      const analista = v.analista ? esc(v.analista) : '<span class="muted">—</span>';
+      return `
+        <tr data-id="${esc(v.id)}" class="${classe}">
+          <td class="col-main">${esc(v.nome)}</td>
+          <td data-label="Atividade">${esc(v.atividade)}</td>
+          <td data-label="Analista">${analista}</td>
+          <td data-label="Status">${statusPillHtml(v.status)}</td>
+          <td data-label="Pontos">${v.pontos.length ? `<strong>${v.pontos.length}</strong>` : '<span class="muted">—</span>'}</td>
+          <td data-label="Atualizada em" class="muted">${fmtBR(v.atualizadoEm)}</td>
+          <td class="col-actions">
+            <button type="button" class="icon-btn" data-act="pdf" title="Baixar relatório em PDF" aria-label="Baixar relatório em PDF">${svg(ICON.pdf)}</button>
+            <a class="icon-btn" href="${esc(mailtoFor(v))}" title="Enviar por e-mail" aria-label="Enviar por e-mail">${svg(ICON.mail)}</a>
+            <button type="button" class="icon-btn" data-act="edit" title="Editar" aria-label="Editar">${svg(ICON.edit)}</button>
+            <button type="button" class="icon-btn danger" data-act="del" title="Excluir" aria-label="Excluir">${svg(ICON.trash)}</button>
+          </td>
+        </tr>`;
+    }
+
+    let flashTimer = null;
+    function flash(msg) {
+      const note = document.getElementById('filterNote');
+      note.dataset.flash = '1';
+      note.textContent = msg;
+      clearTimeout(flashTimer);
+      flashTimer = setTimeout(() => { delete note.dataset.flash; updateNote(visibleList()); }, 6000);
+    }
+    function updateNote(list) {
+      const note = document.getElementById('filterNote');
+      if (note.dataset.flash) return;
+      const ocultas = filters.status.length ? 0 : validacoes.filter(v => STATUS_OCULTOS.includes(v.status) && matches(v, true)).length;
+      note.textContent = `${list.length} de ${validacoes.length} validações` +
+        (ocultas ? ` · ${ocultas} concluída(s)/cancelada(s) oculta(s) — use o filtro Status para vê-las.` : '.');
+    }
+
+    function render() {
+      refreshDynamicOptions();
+      renderKpis();
+      document.getElementById('btnLimpar').hidden = !filtrosAtivos();
+      const list = visibleList();
+      document.getElementById('valRows').innerHTML = list.map(rowHtml).join('');
+      document.getElementById('valEmpty').hidden = list.length > 0;
+      document.getElementById('valTable').hidden = list.length === 0;
+      updateNote(list);
+    }
+
+    document.getElementById('valRows').addEventListener('click', (e) => {
+      const tr = e.target.closest('tr');
+      if (!tr) return;
+      const v = validacoes.find(x => x.id === tr.dataset.id);
+      if (!v) return;
+      const btn = e.target.closest('[data-act]');
+      if (!btn) { if (e.target.closest('.col-main')) openPanel(v.id); return; }
+      const act = btn.dataset.act;
+      if (act === 'status') {
+        abrirStatusMenu(btn, v.status, (novo) => {
+          v.status = novo; v.atualizadoEm = today; render();
+          if (STATUS_OCULTOS.includes(novo) && !filters.status.includes(novo)) {
+            flash(`Validação marcada como ${STATUS_LABEL[novo].toLowerCase()} e ocultada da lista. Filtre por Status para vê-la.`);
+          }
+        });
+      }
+      if (act === 'edit') openPanel(v.id);
+      if (act === 'pdf') baixarRelatorio(v);
+      if (act === 'del') {
+        // exclusão em dois cliques (sem janela de confirmação do navegador)
+        if (btn.classList.contains('armed')) { validacoes = validacoes.filter(x => x.id !== v.id); render(); return; }
+        btn.classList.add('armed');
+        btn.title = 'Clique de novo para excluir';
+        setTimeout(() => { btn.classList.remove('armed'); btn.title = 'Excluir'; }, 3000);
+      }
+    });
+
+    // ---------- exportar ----------
+
+    document.getElementById('btnCsv').addEventListener('click', () => {
+      const list = visibleList();
+      if (!list.length) { flash('Nada para exportar com os filtros atuais.'); return; }
+      const linhas = [['Empresa', 'Atividade', 'Analista responsável', 'Status', 'Pontos identificados', 'Última atualização'].join(';')];
+      list.forEach(v => linhas.push([v.nome, v.atividade, v.analista, STATUS_LABEL[v.status], v.pontos.length, fmtBR(v.atualizadoEm)].map(csvCell).join(';')));
+      downloadFile('validacoes.csv', '﻿' + linhas.join('\r\n'), 'text/csv;charset=utf-8');
+      flash(`${list.length} ${list.length === 1 ? 'validação exportada' : 'validações exportadas'} em CSV.`);
+    });
+
+    document.getElementById('btnPdf').addEventListener('click', async () => {
+      const list = visibleList();
+      if (!list.length) { flash('Nada para exportar com os filtros atuais.'); return; }
+      const contar = (s) => list.filter(v => v.status === s).length;
+      try {
+        await gerarPdf({
+          titulo: 'Relatório de validações',
+          subtitulo: 'Empresas e atividades em validação fiscal, com status e pontos identificados.',
+          arquivo: `validacoes-${today}`,
+          orientacao: 'landscape',
+          geradoPor: session ? session.user.email : '',
+          resumo: [{ label: 'Validações', valor: list.length }, ...STATUS_ORDER.filter(s => contar(s)).map(s => ({ label: STATUS_LABEL[s], valor: contar(s) })),
+                   { label: 'Pontos identificados', valor: list.reduce((t, v) => t + v.pontos.length, 0) }],
+          filtros: descricaoFiltros(),
+          colunas: ['Empresa', 'Atividade', 'Analista responsável', 'Status', 'Pontos', 'Última atualização'],
+          linhas: list.map(v => [v.nome, v.atividade, v.analista || '-', STATUS_LABEL[v.status], String(v.pontos.length), fmtBR(v.atualizadoEm)]),
+          estilosColunas: { 4: { cellWidth: 20, halign: 'center' }, 5: { cellWidth: 36 } },
+        });
+        flash('PDF gerado.');
+      } catch (err) { flash('Não foi possível gerar o PDF. Tente novamente.'); }
+    });
+
+    // Relatório de uma validação: ficha + checklist + cada ponto com seus três campos.
+    async function baixarRelatorio(v) {
+      const feitos = v.checklist.filter(c => c.done).length;
+      const slug = norm(`${v.nome}-${v.atividade}`).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      try {
+        await gerarPdf({
+          titulo: 'Relatório de validação',
+          subtitulo: `${v.nome} — ${v.atividade}`,
+          arquivo: `validacao-${slug || v.id}-${today}`,
+          orientacao: 'portrait',
+          geradoPor: session ? session.user.email : '',
+          identificacao: [
+            { rotulo: 'Empresa', valor: v.nome }, { rotulo: 'Atividade', valor: v.atividade },
+            { rotulo: 'Analista responsável', valor: v.analista }, { rotulo: 'Status', valor: STATUS_LABEL[v.status] },
+          ],
+          resumo: [{ label: 'Pontos identificados', valor: v.pontos.length }, { label: 'Checklist', valor: `${feitos}/${v.checklist.length}` }],
+          blocos: v.pontos.length
+            ? v.pontos.map((p, i) => ({
+                titulo: `${i + 1}. ${p.titulo || '(sem título)'}  [${p.categoria}]`,
+                campos: [
+                  { rotulo: 'O que foi identificado', texto: p.identificado },
+                  { rotulo: 'Por que isso não pode ocorrer', texto: p.motivo },
+                  { rotulo: 'Orientação / solução recomendada', texto: p.orientacao },
+                ],
+              }))
+            : [{ titulo: 'Nenhum ponto identificado nesta validação.', campos: [] }],
+        });
+        flash('Relatório em PDF gerado.');
+      } catch (err) { flash('Não foi possível gerar o PDF. Tente novamente.'); }
+    }
+
+    // ---------- painel lateral ----------
 
     const vdPanel = document.getElementById('vdPanel');
     const panelBackdrop = document.getElementById('panelBackdrop');
     const panelTitle = document.getElementById('panelTitle');
     const panelSubtitle = document.getElementById('panelSubtitle');
+    const fEmpresa = document.getElementById('fEmpresa');
+    const fAtividade = document.getElementById('fAtividade');
+    const fAnalista = document.getElementById('fAnalista');
     const fStatus = document.getElementById('fStatus');
-    const checklistBody = document.getElementById('checklistBody');
-    const achadosList = document.getElementById('achadosList');
+    const pontosList = document.getElementById('pontosList');
+    const savedAt = document.getElementById('savedAt');
+    const btnConcluir = document.getElementById('panelConcluir');
 
-    const aTarefa = document.getElementById('aTarefa');
-    const aTipo = document.getElementById('aTipo');
-    const aPrioridade = document.getElementById('aPrioridade');
-    const aStatus = document.getElementById('aStatus');
-    const aRequerente = document.getElementById('aRequerente');
-    const aPrazo = document.getElementById('aPrazo');
-    const aDelegado = document.getElementById('aDelegado');
-    const aDataCriacao = document.getElementById('aDataCriacao');
-    const aObservacoes = document.getElementById('aObservacoes');
-    const aNotificar = document.getElementById('aNotificar');
+    // Validação aberta no painel. Uma "nova validação" só vira registro quando
+    // a empresa é preenchida (salvamento automático a cada alteração).
+    let atual = null;
+    let rascunho = null;
 
-    function renderChecklist(e) {
-      checklistBody.innerHTML = '';
-      e.checklist.forEach(item => {
+    function horaAgora() {
+      const d = new Date();
+      return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    }
+
+    function renderChecklist() {
+      const body = document.getElementById('checklistBody');
+      const itens = (atual || rascunho).checklist;
+      document.getElementById('checklistResumo').textContent = `Checklist da validação · ${itens.filter(c => c.done).length}/${itens.length}`;
+      body.innerHTML = '';
+      itens.forEach(item => {
         const row = document.createElement('div');
         row.className = 'vd-check-item' + (item.done ? ' done' : '');
         row.innerHTML = `
           <span class="list-row-check${item.done ? ' checked' : ''}">
             ${item.done ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
           </span>
-          <span class="label">${item.label}</span>
-        `;
-        row.addEventListener('click', () => {
-          item.done = !item.done;
-          renderChecklist(e);
-        });
-        checklistBody.appendChild(row);
+          <span class="label">${esc(item.label)}</span>`;
+        row.addEventListener('click', () => { item.done = !item.done; renderChecklist(); salvar(); });
+        body.appendChild(row);
       });
     }
 
-    function renderAchados(e) {
-      achadosList.innerHTML = '';
-      if (e.achados.length === 0) {
-        achadosList.innerHTML = '<p class="vd-achado-empty">Nenhum achado registrado ainda.</p>';
-        return;
-      }
-      e.achados.slice().reverse().forEach(a => {
-        const div = document.createElement('div');
-        div.className = 'vd-achado';
-        const metaBits = [a.requerente, `Criado em ${a.dataCriacao}`];
-        if (a.prazo) metaBits.push(`Prazo ${formatPrazo(a.prazo)}`);
-        if (a.delegadoPara && a.delegadoPara !== 'Sem delegado') metaBits.push(a.delegadoPara);
-        div.innerHTML = `
-          <div class="vd-achado-top">
-            <span class="badge ${PRIORIDADE_BADGE[a.prioridade]}">${PRIORIDADE_LABEL[a.prioridade]}</span>
-            <span class="badge ${STATUS_BADGE[a.status]}">${STATUS_LABEL[a.status]}</span>
+    function pontoBlocoHtml(p, i) {
+      return `
+        <div class="vd-ponto" data-pid="${esc(p.id)}">
+          <div class="vd-ponto-head">
+            <div class="vd-ponto-cat form-row">
+              <label for="cat-${esc(p.id)}">Categoria</label>
+              <select id="cat-${esc(p.id)}" data-f="categoria">${CATEGORIAS.map(c => `<option value="${esc(c)}"${c === p.categoria ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select>
+            </div>
+            <div class="vd-ponto-tit form-row">
+              <label for="tit-${esc(p.id)}">Título do ponto</label>
+              <input type="text" id="tit-${esc(p.id)}" data-f="titulo" placeholder="Ex: Classificação de produtos ST x Tributados" />
+            </div>
+            <button type="button" class="icon-btn danger vd-ponto-x" data-act="rm" title="Remover ponto" aria-label="Remover ponto ${i + 1}">${svg('<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>')}</button>
           </div>
-          <div class="texto">${a.tarefa}</div>
-          <div class="meta">${metaBits.join(' · ')}</div>
-        `;
-        achadosList.appendChild(div);
+          <div class="form-row"><label for="ide-${esc(p.id)}">O que foi identificado</label><textarea id="ide-${esc(p.id)}" data-f="identificado"></textarea></div>
+          <div class="form-row"><label for="mot-${esc(p.id)}">Por que isso não pode ocorrer</label><textarea id="mot-${esc(p.id)}" data-f="motivo"></textarea></div>
+          <div class="form-row"><label for="ori-${esc(p.id)}">Orientação / solução recomendada</label><textarea id="ori-${esc(p.id)}" data-f="orientacao"></textarea></div>
+        </div>`;
+    }
+
+    function renderPontos() {
+      const fonte = (atual || rascunho).pontos;
+      pontosList.innerHTML = fonte.length ? fonte.map(pontoBlocoHtml).join('') : '<p class="vd-achado-empty">Nenhum ponto registrado ainda.</p>';
+      // valores entram por .value (nunca por innerHTML)
+      fonte.forEach(p => {
+        const bloco = pontosList.querySelector(`[data-pid="${CSS.escape(p.id)}"]`);
+        bloco.querySelectorAll('[data-f]').forEach(el => { el.value = p[el.dataset.f]; });
       });
     }
 
-    function formatPrazo(iso) {
-      const [y, m, d] = iso.split('-');
-      return `${d}/${m}/${y}`;
+    function salvar() {
+      const dados = { nome: fEmpresa.value.trim(), atividade: fAtividade.value.trim(), analista: fAnalista.value.trim(), status: fStatus.value };
+      if (!atual) {
+        if (!dados.nome) return;
+        atual = { id: nextId('v'), checklist: rascunho.checklist, pontos: rascunho.pontos, ...dados, atualizadoEm: today };
+        validacoes.push(atual);
+        rascunho = null;
+      } else {
+        Object.assign(atual, dados, { atualizadoEm: today });
+      }
+      panelTitle.textContent = atual.nome;
+      panelSubtitle.textContent = atual.atividade || 'Sem atividade';
+      savedAt.textContent = `Salvo automaticamente às ${horaAgora()}`;
+      atualizarBotaoConcluir();
+      render();
     }
 
-    function resetAchadoForm(e) {
-      aTarefa.value = '';
-      aTipo.value = 'operacional';
-      aPrioridade.value = 'normal';
-      aStatus.value = 'pendente';
-      aRequerente.value = e.nome;
-      aPrazo.value = '';
-      aDelegado.value = '';
-      aDataCriacao.value = hojeBR();
-      aObservacoes.value = '';
-      aNotificar.value = '';
+    function atualizarBotaoConcluir() {
+      btnConcluir.textContent = fStatus.value === 'concluida' ? 'Reabrir validação' : 'Marcar como concluída';
     }
+
+    function abrirPainel() { vdPanel.classList.add('open'); panelBackdrop.classList.add('open'); }
 
     function openPanel(id) {
-      activeId = id;
-      const e = empresas.find(x => x.id === id);
-      panelTitle.textContent = e.nome;
-      panelSubtitle.textContent = e.atividade;
-      fStatus.value = e.status;
-      renderChecklist(e);
-      renderAchados(e);
-      resetAchadoForm(e);
-      vdPanel.classList.add('open');
-      panelBackdrop.classList.add('open');
+      atual = validacoes.find(x => x.id === id);
+      rascunho = null;
+      panelTitle.textContent = atual.nome;
+      panelSubtitle.textContent = atual.atividade || 'Sem atividade';
+      fEmpresa.value = atual.nome; fAtividade.value = atual.atividade; fAnalista.value = atual.analista; fStatus.value = atual.status;
+      savedAt.textContent = '';
+      atualizarBotaoConcluir();
+      renderChecklist(); renderPontos();
+      abrirPainel();
+    }
+
+    function openPanelNew() {
+      atual = null;
+      rascunho = { checklist: makeChecklist([]), pontos: [] };
+      panelTitle.textContent = 'Nova validação';
+      panelSubtitle.textContent = 'Preencha empresa e atividade — o que você digita é salvo automaticamente.';
+      fEmpresa.value = ''; fAtividade.value = ''; fAnalista.value = ''; fStatus.value = 'pendente';
+      savedAt.textContent = '';
+      atualizarBotaoConcluir();
+      renderChecklist(); renderPontos();
+      abrirPainel();
+      fEmpresa.focus();
     }
 
     function closePanel() {
       vdPanel.classList.remove('open');
       panelBackdrop.classList.remove('open');
+      atual = null; rascunho = null;
     }
 
+    document.getElementById('newValidacaoBtn').addEventListener('click', openPanelNew);
     document.getElementById('panelClose').addEventListener('click', closePanel);
     panelBackdrop.addEventListener('click', closePanel);
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closePanel(); closeDropdown(); } });
 
-    document.getElementById('addAchadoBtn').addEventListener('click', () => {
-      const tarefa = aTarefa.value.trim();
-      if (!tarefa || !activeId) return;
-      const e = empresas.find(x => x.id === activeId);
-      e.achados.push({
-        id: `a${achadoSeq++}`,
-        tarefa,
-        tipo: aTipo.value,
-        prioridade: aPrioridade.value,
-        status: aStatus.value,
-        requerente: aRequerente.value.trim() || e.nome,
-        prazo: aPrazo.value,
-        delegadoPara: aDelegado.value.trim() || 'Sem delegado',
-        dataCriacao: hojeBR(),
-        observacoes: aObservacoes.value.trim(),
-        notificar: aNotificar.value.trim(),
-      });
-      resetAchadoForm(e);
-      renderAchados(e);
+    [fEmpresa, fAtividade, fAnalista].forEach(el => el.addEventListener('input', salvar));
+    fStatus.addEventListener('change', salvar);
+
+    document.getElementById('addPontoBtn').addEventListener('click', () => {
+      const alvo = atual || rascunho;
+      if (!atual && !fEmpresa.value.trim()) { fEmpresa.focus(); savedAt.textContent = 'Informe a empresa antes de adicionar pontos.'; return; }
+      if (!atual) salvar();
+      (atual || rascunho).pontos.push(ponto({}));
+      renderPontos(); salvar();
+      const blocos = pontosList.querySelectorAll('.vd-ponto');
+      blocos[blocos.length - 1].querySelector('[data-f="titulo"]').focus();
     });
 
-    document.getElementById('panelSave').addEventListener('click', () => {
-      if (!activeId) return;
-      const e = empresas.find(x => x.id === activeId);
-      e.status = fStatus.value;
-      e.atualizadoEm = 'Hoje';
+    // edição dos campos de cada ponto (salva a cada alteração)
+    function atualizarPonto(el) {
+      const bloco = el.closest('.vd-ponto');
+      if (!bloco || !el.dataset.f) return;
+      const p = (atual || rascunho).pontos.find(x => x.id === bloco.dataset.pid);
+      if (p) { p[el.dataset.f] = el.value; salvar(); }
+    }
+    pontosList.addEventListener('input', (e) => atualizarPonto(e.target));
+    pontosList.addEventListener('change', (e) => atualizarPonto(e.target));
+    pontosList.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-act="rm"]');
+      if (!btn) return;
+      if (!btn.classList.contains('armed')) {
+        // remoção em dois cliques (sem janela de confirmação do navegador)
+        btn.classList.add('armed'); btn.title = 'Clique de novo para remover';
+        setTimeout(() => { btn.classList.remove('armed'); btn.title = 'Remover ponto'; }, 3000);
+        return;
+      }
+      const fonte = atual || rascunho;
+      fonte.pontos = fonte.pontos.filter(x => x.id !== btn.closest('.vd-ponto').dataset.pid);
+      renderPontos(); salvar();
+    });
+
+    document.getElementById('panelPdf').addEventListener('click', () => {
+      if (!atual) { savedAt.textContent = 'Informe a empresa para gerar o relatório.'; fEmpresa.focus(); return; }
+      baixarRelatorio(atual);
+    });
+
+    btnConcluir.addEventListener('click', () => {
+      if (!atual) { fEmpresa.focus(); savedAt.textContent = 'Informe a empresa antes de concluir.'; return; }
+      const reabrir = atual.status === 'concluida';
+      atual.status = reabrir ? 'andamento' : 'concluida';
+      atual.atualizadoEm = today;
       closePanel();
       render();
+      flash(reabrir ? 'Validação reaberta (Em andamento).' : 'Validação concluída. Ela fica oculta da lista — filtre por Status para vê-la.');
     });
 
     render();

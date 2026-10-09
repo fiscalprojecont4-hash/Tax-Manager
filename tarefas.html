@@ -18,17 +18,14 @@
 
     <div class="topnav-tabs">
       <a href="dashboard.html">Painel</a>
+      <a href="tarefas.html" class="active">Tarefas</a>
 
       <div class="nav-dropdown" id="modulosDropdown">
-        <button type="button" class="nav-dropdown-trigger active" id="modulosTrigger">
+        <button type="button" class="nav-dropdown-trigger" id="modulosTrigger">
           Módulos
           <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
         <div class="nav-dropdown-panel" role="menu">
-          <a class="nav-dropdown-item active" href="tarefas.html" role="menuitem">
-            <h4>Tarefas</h4>
-            <p>Tarefas pontuais, recorrentes e a fila de trabalho do dia.</p>
-          </a>
           <a class="nav-dropdown-item" href="validacoes.html" role="menuitem">
             <h4>Validações</h4>
             <p>Checklists por empresa, achados, revisão e aprovação.</p>
@@ -75,21 +72,74 @@
     </div>
 
     <div class="tf-toolbar">
-      <div class="segmented" id="statusFilter">
-        <button type="button" class="segmented-btn active" data-filter="abertas">Abertas</button>
-        <button type="button" class="segmented-btn" data-filter="atrasadas">Atrasadas</button>
-        <button type="button" class="segmented-btn" data-filter="concluidas">Concluídas</button>
-        <button type="button" class="segmented-btn" data-filter="todas">Todas</button>
-      </div>
+      <button type="button" class="btn-outline" id="btnTotais" aria-pressed="false" aria-controls="kpiWrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Totais por status
+      </button>
       <div class="tf-toolbar-right">
+        <button type="button" class="btn-outline" id="btnImport">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Importar
+        </button>
+        <button type="button" class="btn-outline" id="btnCsv">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Exportar CSV
+        </button>
+        <button type="button" class="btn-outline" id="btnIcs">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Agenda (.ics)
+        </button>
+        <button type="button" class="btn-outline" id="btnPdf">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Gerar PDF
+        </button>
         <button type="button" class="btn-new" id="newTaskBtn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Nova tarefa
         </button>
       </div>
     </div>
+    <input type="file" id="importFile" accept=".csv,text/csv" hidden />
 
-    <div id="taskGroups"></div>
+    <div class="kpi-wrap" id="kpiWrap" hidden>
+      <div class="kpi-row" id="kpiRow"></div>
+    </div>
+
+    <div class="filter-bar" id="filterBar">
+      <div class="filter-search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="search" id="fltSearch" placeholder="Buscar tarefa, cliente ou responsável…" aria-label="Buscar" />
+      </div>
+      <div id="msTipo"></div>
+      <div id="msPrioridade"></div>
+      <div id="msStatus"></div>
+      <div id="msRequerente"></div>
+      <div id="msDelegado"></div>
+      <div id="msPrazo"></div>
+      <button type="button" class="btn-outline" id="btnLimpar" hidden>Limpar filtros</button>
+    </div>
+    <p class="filter-note" id="filterNote" aria-live="polite"></p>
+
+    <div class="table-card">
+      <table class="data-table" id="taskTable">
+        <thead>
+          <tr>
+            <th class="col-check"><input type="checkbox" class="row-check" id="selAll" aria-label="Selecionar todas" /></th>
+            <th>Tarefa</th>
+            <th>Tipo</th>
+            <th>Prioridade</th>
+            <th>Status</th>
+            <th>Requerente</th>
+            <th>Delegado</th>
+            <th>Prazo</th>
+            <th>Data de criação</th>
+            <th class="col-actions">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="taskRows"></tbody>
+      </table>
+      <div class="empty-state" id="taskEmpty" hidden>Nenhuma tarefa com esses filtros.</div>
+    </div>
   </main>
 
   <!-- Painel lateral: detalhe / edição / nova tarefa -->
@@ -113,7 +163,7 @@
           <select id="fTipo">
             <option value="operacional" selected>Operacional</option>
             <option value="estrategico">Estratégico</option>
-            <option value="administrativo">Administrativo</option>
+            <option value="processual">Processual</option>
           </select>
         </div>
         <div>
@@ -132,7 +182,9 @@
           <select id="fStatus">
             <option value="pendente" selected>Pendente</option>
             <option value="andamento">Em andamento</option>
+            <option value="impedimento">Impedimento</option>
             <option value="concluida">Concluída</option>
+            <option value="cancelada">Cancelada</option>
           </select>
         </div>
         <div>
@@ -168,6 +220,9 @@
 
   <script type="module">
     import { createSupabaseClient } from './js/supabase-client.js';
+    import { STATUS_ORDER, STATUS_LABEL, STATUS_OCULTOS, statusVisivel, esc, norm, fmtBR, downloadFile, csvCell,
+             createMultiSelect, abrirStatusMenu, statusPillHtml } from './js/lista-ui.js';
+    import { gerarPdf } from './js/relatorio-pdf.js';
 
     const supabase = createSupabaseClient(true);
     const emailEl = document.getElementById('userEmail');
@@ -333,137 +388,494 @@
     let seq = 1;
     function nextId() { return `t${seq++}`; }
 
+    function mk(tarefa, tipo, requerente, delegadoPara, prazoOffset, prioridade, status, criadoOffset) {
+      return { id: nextId(), tarefa, tipo, requerente, delegadoPara, prazo: addDays(today, prazoOffset),
+               prioridade, status, criadoEm: addDays(today, criadoOffset), observacoes: '', notificar: '' };
+    }
+
     let tasks = [
-      { id: nextId(), tarefa: 'Validar notas fiscais — Empresa Alfa', tipo: 'operacional', requerente: 'Empresa Alfa', delegadoPara: 'Wendel', prazo: addDays(today, -2), prioridade: 'alta', status: 'pendente', observacoes: '', notificar: '' },
-      { id: nextId(), tarefa: 'Conferir guias de ICMS recolhidas', tipo: 'operacional', requerente: 'Rembraz', delegadoPara: 'Wendel', prazo: addDays(today, -1), prioridade: 'alta', status: 'pendente', observacoes: '', notificar: '' },
-      { id: nextId(), tarefa: 'Enviar DCTF do mês', tipo: 'operacional', requerente: 'Disbral', delegadoPara: 'Equipe Fiscal', prazo: today, prioridade: 'alta', status: 'pendente', observacoes: '', notificar: '' },
-      { id: nextId(), tarefa: 'Reunião de alinhamento com Wendel', tipo: 'administrativo', requerente: 'Interno', delegadoPara: 'Wendel', prazo: today, prioridade: 'normal', status: 'andamento', observacoes: '', notificar: '' },
-      { id: nextId(), tarefa: 'Revisão de checklist — Empresa Beta', tipo: 'operacional', requerente: 'Empresa Beta', delegadoPara: 'Equipe Fiscal', prazo: addDays(today, 2), prioridade: 'normal', status: 'pendente', observacoes: '', notificar: '' },
-      { id: nextId(), tarefa: 'Apuração mensal de ICMS/AM', tipo: 'operacional', requerente: 'Tecnoradio', delegadoPara: 'Wendel', prazo: addDays(today, 4), prioridade: 'normal', status: 'pendente', observacoes: '', notificar: '' },
-      { id: nextId(), tarefa: 'Planejamento semanal da equipe', tipo: 'administrativo', requerente: 'Interno', delegadoPara: 'Wendel', prazo: addDays(today, 6), prioridade: 'baixa', status: 'pendente', observacoes: '', notificar: '' },
-      { id: nextId(), tarefa: 'Organizar pasta de documentação — Lusitano', tipo: 'administrativo', requerente: 'Lusitano', delegadoPara: 'Equipe Fiscal', prazo: addDays(today, 10), prioridade: 'baixa', status: 'pendente', observacoes: '', notificar: '' },
-      { id: nextId(), tarefa: 'Fechamento parcial do mês anterior', tipo: 'operacional', requerente: 'Interno', delegadoPara: 'Wendel', prazo: addDays(today, -5), prioridade: 'normal', status: 'concluida', observacoes: '', notificar: '' },
-      { id: nextId(), tarefa: 'Protocolar DAS — Simples Nacional', tipo: 'operacional', requerente: 'Rembraz', delegadoPara: 'Wendel', prazo: addDays(today, -3), prioridade: 'alta', status: 'concluida', observacoes: '', notificar: '' },
+      mk('Validar notas fiscais — Empresa Alfa', 'operacional', 'Empresa Alfa', 'Wendel', -2, 'critica', 'pendente', -9),
+      mk('Conferir guias de ICMS recolhidas', 'operacional', 'Rembraz', 'Wendel', -1, 'alta', 'pendente', -8),
+      mk('Calcular invoice da Tecnoradio (mensal)', 'processual', 'Tecnoradio', 'Wendel', -9, 'alta', 'impedimento', -12),
+      mk('Enviar DCTF do mês', 'operacional', 'Disbral', 'Equipe Fiscal', 0, 'alta', 'pendente', -6),
+      mk('Reunião de alinhamento com Wendel', 'processual', 'Interno', 'Wendel', 0, 'normal', 'andamento', -3),
+      mk('Revisão de checklist — Empresa Beta', 'operacional', 'Empresa Beta', 'Equipe Fiscal', 2, 'normal', 'pendente', -2),
+      mk('Apuração mensal de ICMS/AM', 'operacional', 'Tecnoradio', 'Wendel', 4, 'normal', 'pendente', -2),
+      mk('Levantar empresas sem procuração ou certificado digital', 'estrategico', 'Interno', 'Sem delegado', 5, 'alta', 'pendente', -1),
+      mk('Planejamento semanal da equipe', 'processual', 'Interno', 'Wendel', 6, 'baixa', 'pendente', -1),
+      mk('Aguardar retorno da SEFAZ sobre o processo de restituição', 'processual', 'Rembraz', 'Analista A', 8, 'critica', 'impedimento', -4),
+      mk('Organizar pasta de documentação — Lusitano', 'operacional', 'Lusitano', 'Equipe Fiscal', 10, 'baixa', 'pendente', 0),
+      mk('Simulação de regime tributário 2027 — Tecnoradio', 'estrategico', 'Tecnoradio', 'Sem delegado', 14, 'normal', 'andamento', 0),
+      mk('Fechamento parcial do mês anterior', 'operacional', 'Interno', 'Wendel', -5, 'normal', 'concluida', -12),
+      mk('Protocolar DAS — Simples Nacional', 'operacional', 'Rembraz', 'Wendel', -3, 'alta', 'concluida', -11),
+      mk('Reemitir guia de INSS (cliente desistiu do parcelamento)', 'processual', 'Disbral', 'Analista B', -6, 'normal', 'cancelada', -10),
     ];
 
-    let currentFilter = 'abertas';
     let editingId = null;
+    const filters = { q: '', tipo: [], prioridade: [], status: [], requerente: [], delegado: [], prazo: [] };
+    const selected = new Set();
+    const SEM_DELEGADO = 'Sem delegado';
 
     const PRIORIDADE_LABEL = { critica: 'Crítica', alta: 'Alta', normal: 'Normal', baixa: 'Baixa' };
     const PRIORIDADE_BADGE = { critica: 'badge-danger', alta: 'badge-warning', normal: 'badge-accent', baixa: 'badge-neutral' };
-    const STATUS_LABEL = { pendente: 'Pendente', andamento: 'Em andamento', concluida: 'Concluída' };
+    const PRIORIDADE_FAIXA = { critica: 'var(--danger)', alta: 'var(--warning)', normal: 'transparent', baixa: 'transparent' };
+    const TIPO_LABEL = { operacional: 'Operacional', estrategico: 'Estratégico', processual: 'Processual' };
+    const TIPO_COR = { operacional: 'var(--accent)', estrategico: 'var(--warning)', processual: '#0e9fbf' };
+    const PRAZO_LABEL = { vencido: 'Vencido', hoje: 'Vence hoje', '7dias': 'Próximos 7 dias', depois: 'Depois de 7 dias' };
 
-    function initials(name) {
-      if (!name) return '?';
-      const parts = name.trim().split(/\s+/);
-      return (parts[0][0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
+    const svg = (d) => `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+    const ICON = {
+      agenda: '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+      mail: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 7L2 7"/>',
+      edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+      trash: '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>',
+    };
+
+    // ---------- regras ----------
+
+    const ABERTA = (t) => !STATUS_OCULTOS.includes(t.status);
+    function taskIsOverdue(t) { return ABERTA(t) && t.prazo < today; }
+
+    function prazoCategoria(t) {
+      if (t.prazo < today) return 'vencido';
+      if (t.prazo === today) return 'hoje';
+      return t.prazo <= addDays(today, 7) ? '7dias' : 'depois';
     }
 
-    function formatDue(iso) {
-      const [y, m, d] = iso.split('-');
-      return `${d}/${m}`;
+    function matches(t) {
+      if (filters.q && !norm(`${t.tarefa} ${t.requerente} ${t.delegadoPara}`).includes(norm(filters.q))) return false;
+      if (!statusVisivel(t.status, filters.status)) return false;
+      if (filters.tipo.length && !filters.tipo.includes(t.tipo)) return false;
+      if (filters.prioridade.length && !filters.prioridade.includes(t.prioridade)) return false;
+      if (filters.requerente.length && !filters.requerente.includes(t.requerente)) return false;
+      if (filters.delegado.length && !filters.delegado.includes(t.delegadoPara || SEM_DELEGADO)) return false;
+      if (filters.prazo.length) {
+        // "vencido" só vale para tarefas em aberto; as demais categorias olham apenas a data
+        const cat = prazoCategoria(t);
+        const ok = filters.prazo.some(p => p === cat && (p !== 'vencido' || ABERTA(t)));
+        if (!ok) return false;
+      }
+      return true;
     }
 
-    function taskIsOverdue(t) {
-      return t.status !== 'concluida' && t.prazo < today;
+    const PRI_PESO = { critica: 0, alta: 1, normal: 2, baixa: 3 };
+    function byDefaultOrder(a, b) {
+      return a.prazo.localeCompare(b.prazo) || PRI_PESO[a.prioridade] - PRI_PESO[b.prioridade] || a.tarefa.localeCompare(b.tarefa);
     }
 
-    function groupTasks(list) {
-      const groups = { atrasadas: [], hoje: [], proximas: [], concluidas: [] };
-      list.forEach(t => {
-        if (t.status === 'concluida') { groups.concluidas.push(t); return; }
-        if (taskIsOverdue(t)) { groups.atrasadas.push(t); return; }
-        if (t.prazo === today) { groups.hoje.push(t); return; }
-        groups.proximas.push(t);
-      });
-      const byPrazo = (a, b) => a.prazo.localeCompare(b.prazo);
-      groups.atrasadas.sort(byPrazo);
-      groups.proximas.sort(byPrazo);
-      groups.concluidas.sort((a, b) => b.prazo.localeCompare(a.prazo));
-      return groups;
+    function grupoDe(t) {
+      if (t.status === 'concluida') return 'concluidas';
+      if (t.status === 'cancelada') return 'canceladas';
+      if (taskIsOverdue(t)) return 'atrasadas';
+      return t.prazo === today ? 'hoje' : 'proximas';
+    }
+    const GRUPOS = [
+      ['atrasadas', 'Atrasadas'], ['hoje', 'Hoje'], ['proximas', 'Próximos dias'],
+      ['concluidas', 'Concluídas'], ['canceladas', 'Canceladas'],
+    ];
+
+    function visibleTasks() {
+      const peso = Object.fromEntries(GRUPOS.map(([k], i) => [k, i]));
+      return tasks.filter(matches).sort((a, b) => peso[grupoDe(a)] - peso[grupoDe(b)] || byDefaultOrder(a, b));
     }
 
-    function renderRow(t) {
-      const row = document.createElement('div');
-      row.className = 'list-row' + (t.status === 'concluida' ? ' is-done' : '');
-      row.dataset.id = t.id;
+    function mailtoFor(t) {
+      const to = String(t.notificar || '').split(/[,;\s]+/).filter(e => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)).join(',');
+      const corpo = [`Tarefa: ${t.tarefa}`, `Prazo: ${fmtBR(t.prazo)}`, `Prioridade: ${PRIORIDADE_LABEL[t.prioridade]}`,
+                     `Status: ${STATUS_LABEL[t.status]}`, `Requerente: ${t.requerente}`, `Delegado: ${t.delegadoPara}`].join('\n');
+      return `mailto:${to}?subject=${encodeURIComponent('Tarefa: ' + t.tarefa)}&body=${encodeURIComponent(corpo)}`;
+    }
 
+    // ---------- filtros (multisseleção) ----------
+
+    const ms = {
+      tipo: createMultiSelect(document.getElementById('msTipo'), { rotuloTodos: 'Todos os tipos', rotuloCurto: 'Tipo',
+        options: Object.entries(TIPO_LABEL).map(([value, label]) => ({ value, label })), onChange: v => setFilter('tipo', v) }),
+      prioridade: createMultiSelect(document.getElementById('msPrioridade'), { rotuloTodos: 'Toda prioridade', rotuloCurto: 'Prioridade',
+        options: Object.entries(PRIORIDADE_LABEL).map(([value, label]) => ({ value, label })), onChange: v => setFilter('prioridade', v) }),
+      status: createMultiSelect(document.getElementById('msStatus'), { rotuloTodos: 'Todo status', rotuloCurto: 'Status',
+        options: STATUS_ORDER.map(value => ({ value, label: STATUS_LABEL[value] })), onChange: v => setFilter('status', v) }),
+      requerente: createMultiSelect(document.getElementById('msRequerente'), { rotuloTodos: 'Todo requerente', rotuloCurto: 'Requerente',
+        options: [], onChange: v => setFilter('requerente', v) }),
+      delegado: createMultiSelect(document.getElementById('msDelegado'), { rotuloTodos: 'Todo delegado', rotuloCurto: 'Delegado',
+        options: [], onChange: v => setFilter('delegado', v) }),
+      prazo: createMultiSelect(document.getElementById('msPrazo'), { rotuloTodos: 'Todo prazo', rotuloCurto: 'Prazo',
+        options: Object.entries(PRAZO_LABEL).map(([value, label]) => ({ value, label })), onChange: v => setFilter('prazo', v) }),
+    };
+
+    function setFilter(chave, valores) {
+      filters[chave] = valores;
+      ms[chave].set(valores);
+      render();
+    }
+
+    function refreshDynamicOptions() {
+      const unicos = (fn) => [...new Set(tasks.map(fn).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+      ms.requerente.setOptions(unicos(t => t.requerente).map(v => ({ value: v, label: v })));
+      ms.delegado.setOptions(unicos(t => t.delegadoPara || SEM_DELEGADO).map(v => ({ value: v, label: v })));
+      filters.requerente = ms.requerente.values();
+      filters.delegado = ms.delegado.values();
+    }
+
+    document.getElementById('fltSearch').addEventListener('input', (e) => { filters.q = e.target.value; render(); });
+
+    function filtrosAtivos() {
+      return !!filters.q || ['tipo', 'prioridade', 'status', 'requerente', 'delegado', 'prazo'].some(k => filters[k].length);
+    }
+    function descricaoFiltros() {
+      const nomes = { tipo: ['Tipo', v => TIPO_LABEL[v]], prioridade: ['Prioridade', v => PRIORIDADE_LABEL[v]], status: ['Status', v => STATUS_LABEL[v]],
+                      requerente: ['Requerente', v => v], delegado: ['Delegado', v => v], prazo: ['Prazo', v => PRAZO_LABEL[v]] };
+      const partes = [];
+      if (filters.q) partes.push(`Busca: "${filters.q}"`);
+      Object.entries(nomes).forEach(([k, [rotulo, fn]]) => { if (filters[k].length) partes.push(`${rotulo}: ${filters[k].map(fn).join(', ')}`); });
+      return partes;
+    }
+
+    document.getElementById('btnLimpar').addEventListener('click', () => {
+      filters.q = '';
+      document.getElementById('fltSearch').value = '';
+      Object.keys(ms).forEach(k => { filters[k] = []; ms[k].clear(); });
+      render();
+    });
+
+    // ---------- totais por status (recolhidos até clicar no botão) ----------
+
+    const btnTotais = document.getElementById('btnTotais');
+    btnTotais.addEventListener('click', () => {
+      const wrap = document.getElementById('kpiWrap');
+      wrap.hidden = !wrap.hidden;
+      btnTotais.setAttribute('aria-pressed', String(!wrap.hidden));
+    });
+
+    function renderKpis() {
+      const n = (s) => tasks.filter(t => t.status === s).length;
+      const criticasAbertas = tasks.filter(t => ABERTA(t) && t.prioridade === 'critica').length;
+      const cards = [
+        ['total', tasks.length, 'Tarefas no total', ''],
+        ['pendente', n('pendente'), 'Pendentes', 'neutral'],
+        ['andamento', n('andamento'), 'Em andamento', ''],
+        ['impedimento', n('impedimento'), 'Impedimento', 'warning'],
+        ['criticas', criticasAbertas, 'Críticas em aberto', 'danger'],
+        ['concluida', n('concluida'), 'Concluídas', 'success'],
+        ['cancelada', n('cancelada'), 'Canceladas', 'neutral'],
+      ];
+      document.getElementById('kpiRow').innerHTML = cards.map(([k, v, label, cor]) =>
+        `<div class="kpi-card clickable ${cor}" data-kpi="${k}" tabindex="0" role="button" title="Filtrar a lista"><span class="kpi-value">${v}</span><span class="kpi-label">${label}</span></div>`).join('');
+    }
+
+    function aplicarKpi(k) {
+      filters.q = ''; document.getElementById('fltSearch').value = '';
+      Object.keys(ms).forEach(c => { filters[c] = []; ms[c].clear(); });
+      if (k === 'criticas') { filters.prioridade = ['critica']; ms.prioridade.set(['critica']); }
+      else if (k !== 'total') { filters.status = [k]; ms.status.set([k]); }
+      render();
+    }
+    const kpiRow = document.getElementById('kpiRow');
+    kpiRow.addEventListener('click', (e) => { const c = e.target.closest('[data-kpi]'); if (c) aplicarKpi(c.dataset.kpi); });
+    kpiRow.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const c = e.target.closest('[data-kpi]');
+      if (c) { e.preventDefault(); aplicarKpi(c.dataset.kpi); }
+    });
+
+    // ---------- tabela ----------
+
+    function rowHtml(t) {
       const overdue = taskIsOverdue(t);
-      const metaBits = [];
-      if (t.requerente && t.requerente !== 'Interno') metaBits.push(`<span>${t.requerente}</span>`);
-      metaBits.push(`<span class="due${overdue ? ' overdue' : ''}">${overdue ? 'Atrasada · ' : ''}${formatDue(t.prazo)}</span>`);
-
-      row.innerHTML = `
-        <span class="list-row-check${t.status === 'concluida' ? ' checked' : ''}" title="Marcar como concluída">
-          ${t.status === 'concluida' ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
-        </span>
-        <div class="list-row-main">
-          <p class="list-row-title">${t.tarefa}</p>
-          <div class="list-row-meta">${metaBits.join('<span>·</span>')}</div>
-        </div>
-        <div class="list-row-side">
-          <span class="badge ${PRIORIDADE_BADGE[t.prioridade]}">${PRIORIDADE_LABEL[t.prioridade]}</span>
-          <span class="avatar-chip" title="${t.delegadoPara}">${initials(t.delegadoPara)}</span>
-        </div>
-      `;
-
-      row.querySelector('.list-row-check').addEventListener('click', (e) => {
-        e.stopPropagation();
-        t.status = t.status === 'concluida' ? 'pendente' : 'concluida';
-        render();
-      });
-
-      row.addEventListener('click', () => openPanel(t.id));
-
-      return row;
+      const delegado = t.delegadoPara && t.delegadoPara !== SEM_DELEGADO ? esc(t.delegadoPara) : '<span class="muted">—</span>';
+      const prazo = overdue
+        ? `<span class="overdue">${fmtBR(t.prazo)} <small>(vencido)</small></span>`
+        : fmtBR(t.prazo);
+      const classe = t.status === 'concluida' ? 'is-done' : (t.status === 'cancelada' ? 'is-cancelled' : '');
+      return `
+        <tr data-id="${esc(t.id)}" class="${classe}" style="--row-accent:${PRIORIDADE_FAIXA[t.prioridade]}">
+          <td class="col-check"><input type="checkbox" class="row-check" data-sel aria-label="Selecionar tarefa" ${selected.has(t.id) ? 'checked' : ''} /></td>
+          <td class="col-main">${esc(t.tarefa)}</td>
+          <td data-label="Tipo"><span class="dot-label" style="--dot:${TIPO_COR[t.tipo]}">${TIPO_LABEL[t.tipo]}</span></td>
+          <td data-label="Prioridade"><span class="badge ${PRIORIDADE_BADGE[t.prioridade]}">${PRIORIDADE_LABEL[t.prioridade]}</span></td>
+          <td data-label="Status">${statusPillHtml(t.status)}</td>
+          <td data-label="Requerente">${esc(t.requerente)}</td>
+          <td data-label="Delegado">${delegado}</td>
+          <td data-label="Prazo">${prazo}</td>
+          <td data-label="Criada em" class="muted">${fmtBR(t.criadoEm)}</td>
+          <td class="col-actions">
+            <button type="button" class="icon-btn" data-act="ics" title="Adicionar à agenda (.ics)" aria-label="Adicionar à agenda">${svg(ICON.agenda)}</button>
+            <a class="icon-btn" href="${esc(mailtoFor(t))}" title="Enviar por e-mail" aria-label="Enviar por e-mail">${svg(ICON.mail)}</a>
+            <button type="button" class="icon-btn" data-act="edit" title="Editar" aria-label="Editar">${svg(ICON.edit)}</button>
+            <button type="button" class="icon-btn danger" data-act="del" title="Excluir" aria-label="Excluir">${svg(ICON.trash)}</button>
+          </td>
+        </tr>`;
     }
 
-    function renderGroup(container, key, label, items, overdueStyle) {
-      if (items.length === 0) return;
-      const group = document.createElement('div');
-      group.className = 'tf-group';
-      group.innerHTML = `
-        <div class="tf-group-title${overdueStyle ? ' overdue' : ''}">
-          ${label} <span class="count">${items.length}</span>
-        </div>
-      `;
-      const card = document.createElement('div');
-      card.className = 'list-card';
-      items.forEach(t => card.appendChild(renderRow(t)));
-      group.appendChild(card);
-      container.appendChild(group);
+    let flashTimer = null;
+    function flash(msg) {
+      const note = document.getElementById('filterNote');
+      note.dataset.flash = '1';
+      note.textContent = msg;
+      clearTimeout(flashTimer);
+      flashTimer = setTimeout(() => { delete note.dataset.flash; updateNote(visibleTasks()); }, 6000);
     }
+
+    function updateNote(list) {
+      const note = document.getElementById('filterNote');
+      if (note.dataset.flash) return;
+      const sel = list.filter(t => selected.has(t.id)).length;
+      const all = document.getElementById('selAll');
+      all.checked = list.length > 0 && sel === list.length;
+      all.indeterminate = sel > 0 && sel < list.length;
+      if (sel) { note.innerHTML = `${sel} selecionada(s) — as exportações usam só a seleção. <button type="button" id="clearSel">Limpar seleção</button>`; return; }
+      const ocultas = filters.status.length ? 0 : tasks.filter(t => STATUS_OCULTOS.includes(t.status) && matchesSemStatus(t)).length;
+      note.textContent = `${list.length} de ${tasks.length} tarefas` +
+        (ocultas ? ` · ${ocultas} concluída(s)/cancelada(s) oculta(s) — use o filtro Status para vê-las.` : '.');
+    }
+    function matchesSemStatus(t) {
+      const salvo = filters.status; filters.status = STATUS_ORDER.slice();
+      const r = matches(t); filters.status = salvo; return r;
+    }
+    document.getElementById('filterNote').addEventListener('click', (e) => {
+      if (e.target.id === 'clearSel') { selected.clear(); render(); }
+    });
 
     function render() {
-      const container = document.getElementById('taskGroups');
-      container.innerHTML = '';
-
-      const groups = groupTasks(tasks);
-      const show = {
-        abertas: ['atrasadas', 'hoje', 'proximas'],
-        atrasadas: ['atrasadas'],
-        concluidas: ['concluidas'],
-        todas: ['atrasadas', 'hoje', 'proximas', 'concluidas'],
-      }[currentFilter];
-
-      let totalShown = 0;
-      if (show.includes('atrasadas')) { renderGroup(container, 'atrasadas', 'Atrasadas', groups.atrasadas, true); totalShown += groups.atrasadas.length; }
-      if (show.includes('hoje')) { renderGroup(container, 'hoje', 'Hoje', groups.hoje, false); totalShown += groups.hoje.length; }
-      if (show.includes('proximas')) { renderGroup(container, 'proximas', 'Próximos dias', groups.proximas, false); totalShown += groups.proximas.length; }
-      if (show.includes('concluidas')) { renderGroup(container, 'concluidas', 'Concluídas', groups.concluidas, false); totalShown += groups.concluidas.length; }
-
-      if (totalShown === 0) {
-        container.innerHTML = '<div class="empty-state">Nenhuma tarefa nesta visão.</div>';
-      }
+      refreshDynamicOptions();
+      renderKpis();
+      document.getElementById('btnLimpar').hidden = !filtrosAtivos();
+      const list = visibleTasks();
+      const body = document.getElementById('taskRows');
+      let html = '';
+      let atual = '';
+      list.forEach(t => {
+        const g = grupoDe(t);
+        if (g !== atual) {
+          atual = g;
+          const qtd = list.filter(x => grupoDe(x) === g).length;
+          const nome = GRUPOS.find(([k]) => k === g)[1];
+          html += `<tr class="group-row${g === 'atrasadas' ? ' overdue' : ''}"><td colspan="10">${nome}<span class="count">${qtd}</span></td></tr>`;
+        }
+        html += rowHtml(t);
+      });
+      body.innerHTML = html;
+      document.getElementById('taskEmpty').hidden = list.length > 0;
+      document.getElementById('taskTable').hidden = list.length === 0;
+      updateNote(list);
     }
 
-    document.getElementById('statusFilter').addEventListener('click', (e) => {
-      const btn = e.target.closest('.segmented-btn');
-      if (!btn) return;
-      document.querySelectorAll('#statusFilter .segmented-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      currentFilter = btn.dataset.filter;
+    document.getElementById('selAll').addEventListener('change', (e) => {
+      visibleTasks().forEach(t => e.target.checked ? selected.add(t.id) : selected.delete(t.id));
       render();
+    });
+
+    const taskRows = document.getElementById('taskRows');
+    taskRows.addEventListener('change', (e) => {
+      if (!e.target.matches('[data-sel]')) return;
+      const id = e.target.closest('tr').dataset.id;
+      e.target.checked ? selected.add(id) : selected.delete(id);
+      updateNote(visibleTasks());
+    });
+    taskRows.addEventListener('click', (e) => {
+      const tr = e.target.closest('tr');
+      if (!tr || !tr.dataset.id) return;
+      const t = tasks.find(x => x.id === tr.dataset.id);
+      if (!t) return;
+      const btn = e.target.closest('[data-act]');
+      if (!btn) { if (e.target.closest('.col-main')) openPanel(t.id); return; }
+      const act = btn.dataset.act;
+      if (act === 'status') {
+        abrirStatusMenu(btn, t.status, (novo) => {
+          t.status = novo;
+          render();
+          if (STATUS_OCULTOS.includes(novo) && !filters.status.includes(novo)) {
+            flash(`Tarefa marcada como ${STATUS_LABEL[novo].toLowerCase()} e ocultada da lista. Filtre por Status para vê-la.`);
+          }
+        });
+      }
+      if (act === 'edit') openPanel(t.id);
+      if (act === 'ics') downloadFile(`tarefa-${t.id}.ics`, toIcs([t]), 'text/calendar;charset=utf-8');
+      if (act === 'del') {
+        // exclusão em dois cliques (sem janela de confirmação do navegador)
+        if (btn.classList.contains('armed')) { tasks = tasks.filter(x => x.id !== t.id); selected.delete(t.id); render(); return; }
+        btn.classList.add('armed');
+        btn.title = 'Clique de novo para excluir';
+        setTimeout(() => { btn.classList.remove('armed'); btn.title = 'Excluir'; }, 3000);
+      }
+    });
+
+    // ---------- exportar / importar ----------
+
+    function exportList() {
+      const list = visibleTasks();
+      const sel = list.filter(t => selected.has(t.id));
+      return sel.length ? sel : list;
+    }
+
+    const CSV_COLUNAS = ['Tarefa', 'Tipo', 'Prioridade', 'Status', 'Requerente', 'Delegado', 'Prazo', 'Data de criação'];
+
+    // Ponto e vírgula + BOM: abre direto no Excel em português.
+    function toCsv(list) {
+      const linhas = [CSV_COLUNAS.join(';')];
+      list.forEach(t => linhas.push([t.tarefa, TIPO_LABEL[t.tipo], PRIORIDADE_LABEL[t.prioridade], STATUS_LABEL[t.status],
+        t.requerente, t.delegadoPara === SEM_DELEGADO ? '' : t.delegadoPara, fmtBR(t.prazo), fmtBR(t.criadoEm)].map(csvCell).join(';')));
+      return '\uFEFF' + linhas.join('\r\n');
+    }
+
+    function icsEscape(v) {
+      return String(v ?? '').replace(/\\/g, '\\\\').replace(/;/g, '\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+    }
+    function icsFold(line) {
+      const enc = new TextEncoder();
+      const partes = []; let atual = '', bytes = 0, limite = 75;
+      for (const ch of line) {
+        const b = enc.encode(ch).length;
+        if (bytes + b > limite) { partes.push(atual); atual = ch; bytes = b; limite = 74; }
+        else { atual += ch; bytes += b; }
+      }
+      partes.push(atual);
+      return partes.join('\r\n ');
+    }
+    function toIcs(list) {
+      const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+      const dia = (iso) => iso.replace(/-/g, '');
+      const linhas = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Projecont Fiscal//Tarefas//PT-BR', 'CALSCALE:GREGORIAN'];
+      list.forEach(t => {
+        const desc = [`Tipo: ${TIPO_LABEL[t.tipo]}`, `Prioridade: ${PRIORIDADE_LABEL[t.prioridade]}`, `Status: ${STATUS_LABEL[t.status]}`,
+                      `Requerente: ${t.requerente}`, `Delegado: ${t.delegadoPara}`].join('\n');
+        linhas.push('BEGIN:VEVENT', `UID:${t.id}-${dia(t.criadoEm)}@projecont-fiscal`, `DTSTAMP:${stamp}`,
+          `DTSTART;VALUE=DATE:${dia(t.prazo)}`, `DTEND;VALUE=DATE:${dia(addDays(t.prazo, 1))}`,
+          `SUMMARY:${icsEscape(t.tarefa)}`, `DESCRIPTION:${icsEscape(desc)}`, 'END:VEVENT');
+      });
+      linhas.push('END:VCALENDAR');
+      return linhas.map(icsFold).join('\r\n') + '\r\n';
+    }
+
+    document.getElementById('btnCsv').addEventListener('click', () => {
+      const list = exportList();
+      if (!list.length) { flash('Nada para exportar com os filtros atuais.'); return; }
+      downloadFile('tarefas.csv', toCsv(list), 'text/csv;charset=utf-8');
+      flash(`${list.length} ${list.length === 1 ? 'tarefa exportada' : 'tarefas exportadas'} em CSV.`);
+    });
+    document.getElementById('btnIcs').addEventListener('click', () => {
+      const list = exportList();
+      if (!list.length) { flash('Nada para exportar com os filtros atuais.'); return; }
+      downloadFile('tarefas.ics', toIcs(list), 'text/calendar;charset=utf-8');
+      flash(`${list.length} ${list.length === 1 ? 'tarefa exportada' : 'tarefas exportadas'} para a agenda.`);
+    });
+
+    document.getElementById('btnPdf').addEventListener('click', async () => {
+      const list = exportList();
+      if (!list.length) { flash('Nada para exportar com os filtros atuais.'); return; }
+      const sel = selected.size && list.every(t => selected.has(t.id));
+      const contar = (s) => list.filter(t => t.status === s).length;
+      const filtros = descricaoFiltros();
+      if (sel) filtros.push('Somente as tarefas selecionadas');
+      try {
+        await gerarPdf({
+          titulo: 'Relatório de tarefas',
+          subtitulo: 'Painel de acompanhamento das demandas fiscais e administrativas.',
+          arquivo: `tarefas-${today}`,
+          orientacao: 'landscape',
+          geradoPor: session ? session.user.email : '',
+          resumo: [{ label: 'Tarefas', valor: list.length }, ...STATUS_ORDER.filter(s => contar(s)).map(s => ({ label: STATUS_LABEL[s], valor: contar(s) })),
+                   { label: 'Críticas em aberto', valor: list.filter(t => ABERTA(t) && t.prioridade === 'critica').length },
+                   { label: 'Vencidas', valor: list.filter(taskIsOverdue).length }],
+          filtros,
+          colunas: ['Tarefa', 'Tipo', 'Prioridade', 'Status', 'Requerente', 'Delegado', 'Prazo', 'Criada em'],
+          linhas: list.map(t => [t.tarefa, TIPO_LABEL[t.tipo], PRIORIDADE_LABEL[t.prioridade], STATUS_LABEL[t.status], t.requerente,
+                                 t.delegadoPara === SEM_DELEGADO ? '-' : t.delegadoPara, fmtBR(t.prazo) + (taskIsOverdue(t) ? ' (vencido)' : ''), fmtBR(t.criadoEm)]),
+          estilosColunas: { 0: { cellWidth: 82 }, 1: { cellWidth: 24 }, 2: { cellWidth: 22 }, 3: { cellWidth: 26 }, 6: { cellWidth: 30 }, 7: { cellWidth: 22 } },
+        });
+        flash('PDF gerado.');
+      } catch (err) {
+        flash('Não foi possível gerar o PDF. Tente novamente.');
+      }
+    });
+
+    // Leitor de CSV (aspas, vírgula/ponto e vírgula, quebras de linha dentro de campo)
+    function parseCsv(texto) {
+      texto = texto.replace(/^\uFEFF/, '');
+      const primeira = texto.split(/\r?\n/, 1)[0] || '';
+      const delim = (primeira.match(/;/g) || []).length >= (primeira.match(/,/g) || []).length ? ';' : ',';
+      const linhas = []; let campo = '', linha = [], aspas = false;
+      for (let i = 0; i < texto.length; i++) {
+        const c = texto[i];
+        if (aspas) {
+          if (c === '"' && texto[i + 1] === '"') { campo += '"'; i++; }
+          else if (c === '"') aspas = false;
+          else campo += c;
+        } else if (c === '"') aspas = true;
+        else if (c === delim) { linha.push(campo); campo = ''; }
+        else if (c === '\n' || c === '\r') {
+          if (c === '\r' && texto[i + 1] === '\n') i++;
+          linha.push(campo); campo = '';
+          if (linha.some(x => x.trim() !== '')) linhas.push(linha);
+          linha = [];
+        } else campo += c;
+      }
+      linha.push(campo);
+      if (linha.some(x => x.trim() !== '')) linhas.push(linha);
+      return linhas;
+    }
+
+    function parseData(v) {
+      v = String(v || '').trim();
+      let y, m, d;
+      let r = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (r) { d = +r[1]; m = +r[2]; y = +r[3]; }
+      else if ((r = v.match(/^(\d{4})-(\d{2})-(\d{2})$/))) { y = +r[1]; m = +r[2]; d = +r[3]; }
+      else return '';
+      const dt = new Date(y, m - 1, d);
+      if (dt.getFullYear() !== y || dt.getMonth() !== m - 1 || dt.getDate() !== d) return '';
+      return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    }
+
+    function pelaLabel(mapa, valor, padrao) {
+      const n = norm(valor);
+      for (const [chave, label] of Object.entries(mapa)) if (norm(label) === n || chave === n) return chave;
+      const sinonimos = { critico: 'critica', concluido: 'concluida', cancelado: 'cancelada', 'em andamento': 'andamento', impedimentos: 'impedimento', administrativo: 'processual' };
+      const s = sinonimos[n];
+      return s && Object.prototype.hasOwnProperty.call(mapa, s) ? s : padrao;
+    }
+
+    function importarCsv(texto) {
+      const linhas = parseCsv(texto);
+      if (linhas.length < 2) return { ok: 0, ignoradas: 0, erro: 'O arquivo não tem linhas de dados.' };
+      const cab = linhas[0].map(norm);
+      const col = (nome) => cab.indexOf(nome);
+      const iTarefa = col('tarefa');
+      if (iTarefa < 0) return { ok: 0, ignoradas: 0, erro: 'Não achei a coluna "Tarefa" na primeira linha.' };
+      const iTipo = col('tipo'), iPri = col('prioridade'), iSta = col('status'), iReq = col('requerente'),
+            iDel = col('delegado'), iPrazo = col('prazo'), iCri = col('data de criacao');
+      const val = (l, i) => (i >= 0 ? String(l[i] ?? '').trim().replace(/^'(?=[=+\-@])/, '') : '');
+      let ok = 0, ignoradas = 0;
+      linhas.slice(1, 2001).forEach(l => {
+        const titulo = val(l, iTarefa);
+        if (!titulo) { ignoradas++; return; }
+        tasks.push({
+          id: nextId(), tarefa: titulo,
+          tipo: pelaLabel(TIPO_LABEL, val(l, iTipo), 'operacional'),
+          prioridade: pelaLabel(PRIORIDADE_LABEL, val(l, iPri), 'normal'),
+          status: pelaLabel(STATUS_LABEL, val(l, iSta), 'pendente'),
+          requerente: val(l, iReq) || 'Interno',
+          delegadoPara: val(l, iDel) || SEM_DELEGADO,
+          prazo: parseData(val(l, iPrazo)) || today,
+          criadoEm: parseData(val(l, iCri)) || today,
+          observacoes: '', notificar: '',
+        });
+        ok++;
+      });
+      return { ok, ignoradas, erro: '' };
+    }
+
+    const importFile = document.getElementById('importFile');
+    document.getElementById('btnImport').addEventListener('click', () => importFile.click());
+    importFile.addEventListener('change', async () => {
+      const arq = importFile.files[0];
+      importFile.value = '';
+      if (!arq) return;
+      if (arq.size > 1024 * 1024) { flash('Arquivo grande demais (limite de 1 MB).'); return; }
+      const r = importarCsv(await arq.text());
+      if (r.erro) { flash(r.erro); return; }
+      render();
+      flash(`${r.ok} ${r.ok === 1 ? 'tarefa importada' : 'tarefas importadas'}${r.ignoradas ? `; ${r.ignoradas} sem título ignorada(s)` : ''}.`);
     });
 
     // ---------- Painel lateral (nova / editar) ----------
@@ -552,7 +964,7 @@
         const t = tasks.find(x => x.id === editingId);
         Object.assign(t, data);
       } else {
-        tasks.push({ id: nextId(), ...data });
+        tasks.push({ id: nextId(), criadoEm: today, ...data });
       }
       closePanel();
       render();

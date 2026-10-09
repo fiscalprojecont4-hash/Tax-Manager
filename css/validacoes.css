@@ -16,83 +16,6 @@ html, body {
   margin-bottom: 1.25rem;
 }
 
-/* ---------- Linha de empresa ---------- */
-
-.vd-row {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1.1rem 1.25rem;
-  border-bottom: 1px solid var(--border);
-  cursor: pointer;
-  transition: background 0.12s ease;
-}
-
-.vd-row:last-child { border-bottom: none; }
-.vd-row:hover { background: var(--surface); }
-
-.vd-row-main {
-  flex: 0 0 240px;
-  min-width: 0;
-}
-
-.vd-row-name {
-  font-size: 0.92rem;
-  font-weight: 600;
-  color: var(--text);
-  margin: 0 0 0.2rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.vd-row-activity {
-  font-size: 0.78rem;
-  color: var(--muted);
-}
-
-.vd-row-progress {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.vd-row-progress .progress-track { flex: 1; }
-
-.vd-row-progress .count {
-  font-size: 0.76rem;
-  color: var(--muted);
-  flex-shrink: 0;
-  width: 42px;
-  text-align: right;
-}
-
-.vd-row-side {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.vd-row-updated {
-  font-size: 0.76rem;
-  color: var(--muted);
-  width: 70px;
-  text-align: right;
-}
-
-@media (max-width: 760px) {
-  .vd-row {
-    flex-wrap: wrap;
-  }
-  .vd-row-main { flex: 1 1 100%; }
-  .vd-row-progress { flex: 1 1 auto; order: 3; width: 100%; }
-  .vd-row-side { order: 2; margin-left: auto; }
-  .vd-row-updated { display: none; }
-}
-
 /* ---------- Checklist no painel ---------- */
 
 .vd-checklist {
@@ -134,39 +57,7 @@ html, body {
 
 .panel-section-title:first-child { margin-top: 0; }
 
-/* ---------- Achados ---------- */
-
-.vd-achados-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  margin-bottom: 0.8rem;
-}
-
-.vd-achado {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 0.7rem 0.85rem;
-}
-
-.vd-achado-top {
-  display: flex;
-  gap: 0.4rem;
-  margin-bottom: 0.4rem;
-}
-
-.vd-achado .texto {
-  font-size: 0.86rem;
-  color: var(--text);
-  line-height: 1.4;
-  margin-bottom: 0.3rem;
-}
-
-.vd-achado .meta {
-  font-size: 0.74rem;
-  color: var(--muted);
-}
+/* ---------- Pontos identificados ---------- */
 
 .vd-achado-empty {
   font-size: 0.82rem;
@@ -174,10 +65,65 @@ html, body {
   margin-bottom: 0.8rem;
 }
 
-.vd-achado-add {
-  border-top: 1px solid var(--border);
-  padding-top: 1rem;
-  margin-top: 0.2rem;
+.vd-ponto {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.85rem;
+  margin-bottom: 0.8rem;
 }
 
-.vd-achado-add .form-row { margin-bottom: 0.85rem; }
+.vd-ponto-head {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.8fr) minmax(0, 1.4fr) auto;
+  gap: 0.6rem;
+  align-items: end;
+  margin-bottom: 0.7rem;
+}
+
+.vd-ponto-head .form-row { margin-bottom: 0; }
+
+.vd-ponto-head label,
+.vd-ponto .form-row label {
+  display: block;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 0.25rem;
+}
+
+.vd-ponto .form-row { margin-bottom: 0.7rem; }
+.vd-ponto .form-row:last-child { margin-bottom: 0; }
+.vd-ponto textarea { min-height: 64px; }
+.vd-ponto-x { margin: 0 0 4px; }
+
+.vd-add-ponto { width: 100%; justify-content: center; margin-top: 0.2rem; }
+
+.vd-more {
+  margin: 0.2rem 0 1rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.vd-more > summary {
+  cursor: pointer;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.vd-more[open] > summary { border-bottom: 1px solid var(--border); }
+.vd-more-body { padding: 0.5rem 0.85rem; }
+
+.vd-footer { align-items: center; gap: 0.75rem; }
+.vd-footer .btn-fill, .vd-footer .btn-outline { white-space: nowrap; flex-shrink: 0; }
+.vd-footer .vd-saved { flex: 1; font-size: 0.74rem; color: var(--muted); text-align: center; min-width: 0; }
+
+@media (max-width: 520px) {
+  .vd-ponto-head { grid-template-columns: 1fr auto; }
+  .vd-ponto-cat { grid-column: 1 / -1; }
+  .vd-footer { flex-wrap: wrap; }
+  .vd-footer .vd-saved { order: 3; flex-basis: 100%; }
+}

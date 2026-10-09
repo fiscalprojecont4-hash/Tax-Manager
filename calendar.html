@@ -18,6 +18,7 @@
 
     <div class="topnav-tabs">
       <a href="dashboard.html">Painel</a>
+      <a href="tarefas.html">Tarefas</a>
 
       <div class="nav-dropdown" id="modulosDropdown">
         <button type="button" class="nav-dropdown-trigger" id="modulosTrigger">
@@ -25,10 +26,6 @@
           <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
         <div class="nav-dropdown-panel" role="menu">
-          <a class="nav-dropdown-item" href="tarefas.html" role="menuitem">
-            <h4>Tarefas</h4>
-            <p>Tarefas pontuais, recorrentes e a fila de trabalho do dia.</p>
-          </a>
           <a class="nav-dropdown-item" href="validacoes.html" role="menuitem">
             <h4>Validações</h4>
             <p>Checklists por empresa, achados, revisão e aprovação.</p>
@@ -86,9 +83,14 @@
         </button>
         <h1 class="cal-title" id="calTitle">—</h1>
       </div>
-      <div class="cal-toolbar-right">
-        <button type="button" class="cal-view-btn active" id="viewMesBtn">Mês</button>
-        <button type="button" class="cal-view-btn" id="viewProgBtn">Programação</button>
+      <div class="cal-toolbar-end">
+        <button type="button" class="cal-btn" id="btnPdf">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Gerar PDF
+        </button>
+        <div class="cal-toolbar-right">
+          <button type="button" class="cal-view-btn active" id="viewMesBtn">Mês</button>
+          <button type="button" class="cal-view-btn" id="viewProgBtn">Programação</button>
+        </div>
       </div>
     </div>
 
@@ -169,6 +171,7 @@
 
   <script type="module">
     import { createSupabaseClient } from './js/supabase-client.js';
+    import { gerarPdf } from './js/relatorio-pdf.js';
 
     const supabase = createSupabaseClient(true);
     const emailEl = document.getElementById('userEmail');
@@ -401,6 +404,34 @@
       viewYear = today.getFullYear();
       viewMonth = today.getMonth();
       render();
+    });
+
+    // PDF do mês exibido: todos os eventos em ordem de data, com tipo e horário.
+    document.getElementById('btnPdf').addEventListener('click', async () => {
+      const prefixo = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-`;
+      const linhas = [];
+      Object.keys(events).filter(k => k.startsWith(prefixo)).sort().forEach(k => {
+        const [y, m, d] = k.split('-').map(Number);
+        const dia = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'][new Date(y, m - 1, d).getDay()];
+        [...events[k]].sort((a, b) => (a.time || '').localeCompare(b.time || '')).forEach(ev => {
+          linhas.push([`${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y}`, dia, ev.time || 'Dia inteiro', ev.title,
+                       ev.type === 'oficial' ? 'Oficial / fiscal' : 'Tarefa']);
+        });
+      });
+      const oficiais = linhas.filter(l => l[4] === 'Oficial / fiscal').length;
+      try {
+        await gerarPdf({
+          titulo: `Calendário fiscal — ${MESES[viewMonth]} de ${viewYear}`,
+          subtitulo: 'Obrigações, datas oficiais e tarefas do mês.',
+          arquivo: `calendario-${viewYear}-${String(viewMonth + 1).padStart(2, '0')}`,
+          orientacao: 'portrait',
+          geradoPor: session ? session.user.email : '',
+          resumo: [{ label: 'Eventos', valor: linhas.length }, { label: 'Oficiais / fiscais', valor: oficiais }, { label: 'Tarefas', valor: linhas.length - oficiais }],
+          colunas: ['Data', 'Dia', 'Horário', 'Evento', 'Tipo'],
+          linhas,
+          estilosColunas: { 0: { cellWidth: 24 }, 1: { cellWidth: 22 }, 2: { cellWidth: 22 }, 4: { cellWidth: 30 } },
+        });
+      } catch (err) { /* sem biblioteca de PDF: nada a fazer além de não quebrar a tela */ }
     });
 
     function render() {

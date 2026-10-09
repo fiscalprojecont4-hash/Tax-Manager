@@ -317,11 +317,11 @@ create table if not exists public.tarefas (
   empresa_id     uuid,                                   -- cliente, quando houver
   titulo         text not null,
   tipo           text not null default 'operacional'
-                   check (tipo in ('operacional','estrategico','administrativo')),
+                   check (tipo in ('operacional','estrategico','processual')),
   prioridade     text not null default 'normal'
                    check (prioridade in ('baixa','normal','alta','critica')),
   status         text not null default 'pendente'
-                   check (status in ('pendente','andamento','concluida')),
+                   check (status in ('pendente','andamento','impedimento','concluida','cancelada')),
   requerente     text not null default 'Interno',
   responsavel_id uuid references public.perfis (id) on delete set null,  -- null = sem delegado
   prazo          date,
@@ -388,12 +388,12 @@ create table if not exists public.validacoes (
   competencia   date not null check (extract(day from competencia) = 1),   -- 1º dia do mês
   modelo_id     uuid not null,
   status        text not null default 'pendente'
-                  check (status in ('pendente','revisao','aprovado','reprovado')),
+                  check (status in ('pendente','andamento','impedimento','concluida','cancelada')),
   atividade     text not null default 'Geral',          -- ex.: EFD ICMS/IPI, EFD Contribuições, DCTF
   analista_id   uuid references public.perfis (id) on delete set null,   -- "Analista responsável"
   revisor_id    uuid references public.perfis (id) on delete set null,
   observacoes   text,
-  aprovado_em   timestamptz,
+  concluida_em  timestamptz,                             -- preenchido quando status = 'concluida'
   criado_por    uuid references public.perfis (id) on delete set null default auth.uid(),
   criado_em     timestamptz not null default now(),
   atualizado_em timestamptz not null default now(),
@@ -427,11 +427,11 @@ create table if not exists public.achados (
   motivo          text,                                  -- "Por que isso não pode ocorrer"
   orientacao      text,                                  -- "Orientação / solução recomendada"
   tipo            text not null default 'operacional'
-                    check (tipo in ('operacional','estrategico','administrativo')),
+                    check (tipo in ('operacional','estrategico','processual')),
   prioridade      text not null default 'normal'
                     check (prioridade in ('baixa','normal','alta','critica')),
   status          text not null default 'pendente'
-                    check (status in ('pendente','revisao','aprovado','reprovado')),
+                    check (status in ('pendente','andamento','impedimento','concluida','cancelada')),
   requerente      text,
   prazo           date,
   responsavel_id  uuid references public.perfis (id) on delete set null,
@@ -451,6 +451,41 @@ alter table public.achados    add column if not exists identificado text;
 alter table public.achados    add column if not exists motivo       text;
 alter table public.achados    add column if not exists orientacao   text;
 alter table public.validacoes drop constraint if exists validacoes_equipe_id_empresa_id_competencia_key;
+
+-- Status e tipos unificados (Impedimento e Cancelada em todos os módulos; Processual no lugar de Administrativo).
+-- Primeiro os valores antigos são convertidos, depois as regras (CHECK) são recriadas.
+-- o gatilho antigo escrevia em aprovado_em; sai antes da coluna ser renomeada
+drop trigger if exists definir_aprovado_em on public.validacoes;
+do $$
+begin
+  if exists (select 1 from information_schema.columns
+             where table_schema = 'public' and table_name = 'validacoes' and column_name = 'aprovado_em') then
+    alter table public.validacoes rename column aprovado_em to concluida_em;
+  end if;
+end $$;
+alter table public.validacoes add column if not exists concluida_em timestamptz;
+
+alter table public.tarefas  drop constraint if exists tarefas_tipo_check;
+alter table public.tarefas  drop constraint if exists tarefas_status_check;
+update public.tarefas set tipo = 'processual' where tipo = 'administrativo';
+alter table public.tarefas  add  constraint tarefas_tipo_check   check (tipo in ('operacional','estrategico','processual'));
+alter table public.tarefas  add  constraint tarefas_status_check check (status in ('pendente','andamento','impedimento','concluida','cancelada'));
+
+alter table public.validacoes drop constraint if exists validacoes_status_check;
+update public.validacoes set status = case status when 'revisao' then 'andamento' when 'aprovado' then 'concluida'
+                                                  when 'reprovado' then 'impedimento' else status end
+ where status in ('revisao','aprovado','reprovado');
+alter table public.validacoes add constraint validacoes_status_check check (status in ('pendente','andamento','impedimento','concluida','cancelada'));
+
+alter table public.achados drop constraint if exists achados_tipo_check;
+alter table public.achados drop constraint if exists achados_status_check;
+update public.achados set tipo = 'processual' where tipo = 'administrativo';
+update public.achados set status = case status when 'revisao' then 'andamento' when 'aprovado' then 'concluida'
+                                               when 'reprovado' then 'impedimento' else status end
+ where status in ('revisao','aprovado','reprovado');
+alter table public.achados add constraint achados_tipo_check   check (tipo in ('operacional','estrategico','processual'));
+alter table public.achados add constraint achados_status_check check (status in ('pendente','andamento','impedimento','concluida','cancelada'));
+
 
 -- Uma validação por empresa, competência e atividade (a mesma empresa pode ter várias atividades no mês)
 create unique index if not exists validacoes_unica_idx
@@ -515,16 +550,6 @@ begin
   return new;
 end $$;
 
-create or replace function private.definir_aprovado_em()
-returns trigger language plpgsql as $$
-begin
-  if new.status = 'aprovado' and (tg_op = 'INSERT' or old.status is distinct from 'aprovado') then
-    new.aprovado_em := now();
-  elsif new.status <> 'aprovado' then
-    new.aprovado_em := null;
-  end if;
-  return new;
-end $$;
 
 
 -- ---------------------------------------------------------------------
@@ -540,6 +565,7 @@ create table if not exists public.projetos (
   responsavel_id uuid references public.perfis (id) on delete set null,
   prazo          date,
   observacoes    text,
+  cancelado_em   timestamptz,                            -- projeto cancelado (oculto até filtrar por Cancelados)
   criado_por     uuid references public.perfis (id) on delete set null default auth.uid(),
   criado_em      timestamptz not null default now(),
   atualizado_em  timestamptz not null default now(),
@@ -558,11 +584,16 @@ create table if not exists public.projeto_etapas (
   responsavel_id uuid references public.perfis (id) on delete set null,
   prazo          date,
   status         text not null default 'pendente'
-                   check (status in ('pendente','andamento','concluida')),
+                   check (status in ('pendente','andamento','concluida','cancelada')),
   atualizado_em  timestamptz not null default now(),
   foreign key (projeto_id, equipe_id) references public.projetos (id, equipe_id) on delete cascade
 );
 create index if not exists projeto_etapas_projeto_idx on public.projeto_etapas (projeto_id, ordem);
+
+-- Caminho de atualização: Cancelada nas etapas e cancelamento do projeto
+alter table public.projetos       add column if not exists cancelado_em timestamptz;
+alter table public.projeto_etapas drop constraint if exists projeto_etapas_status_check;
+alter table public.projeto_etapas add  constraint projeto_etapas_status_check check (status in ('pendente','andamento','concluida','cancelada'));
 
 -- Anotações do projeto (a tela "Histórico"). O log estruturado fica em audit_log.
 create table if not exists public.projeto_historico (
@@ -579,15 +610,19 @@ create index if not exists projeto_historico_projeto_idx on public.projeto_histo
 
 -- Progresso e status derivados das etapas (a mesma regra da tela:
 -- tudo concluído = concluido; etapa vencida não concluída = atrasado).
-create or replace view public.projetos_resumo with (security_invoker = true) as
+drop view if exists public.projetos_resumo;
+create view public.projetos_resumo with (security_invoker = true) as
 select p.*,
-       count(e.id)                                         as etapas_total,
+       count(e.id) filter (where e.status <> 'cancelada')  as etapas_total,
        count(e.id) filter (where e.status = 'concluida')   as etapas_concluidas,
-       case when count(e.id) = 0 then 0
-            else round(100.0 * count(e.id) filter (where e.status = 'concluida') / count(e.id)) end as progresso_pct,
+       case when count(e.id) filter (where e.status <> 'cancelada') = 0 then 0
+            else round(100.0 * count(e.id) filter (where e.status = 'concluida')
+                       / count(e.id) filter (where e.status <> 'cancelada')) end as progresso_pct,
        case
-         when count(e.id) > 0 and count(e.id) = count(e.id) filter (where e.status = 'concluida') then 'concluido'
-         when bool_or(e.status <> 'concluida' and e.prazo < current_date) then 'atrasado'
+         when p.cancelado_em is not null then 'cancelado'
+         when count(e.id) filter (where e.status <> 'cancelada') > 0
+              and count(e.id) filter (where e.status <> 'cancelada') = count(e.id) filter (where e.status = 'concluida') then 'concluido'
+         when bool_or(e.status not in ('concluida','cancelada') and e.prazo < current_date) then 'atrasado'
          else 'andamento'
        end as situacao
 from public.projetos p
@@ -875,8 +910,10 @@ create trigger definir_concluida_em before insert or update on public.tarefas
   for each row execute function private.definir_concluida_em();
 
 drop trigger if exists definir_aprovado_em on public.validacoes;
-create trigger definir_aprovado_em before insert or update on public.validacoes
-  for each row execute function private.definir_aprovado_em();
+drop function if exists private.definir_aprovado_em();
+drop trigger if exists definir_concluida_em on public.validacoes;
+create trigger definir_concluida_em before insert or update on public.validacoes
+  for each row execute function private.definir_concluida_em();
 
 drop trigger if exists preparar_validacao on public.validacoes;
 create trigger preparar_validacao before insert on public.validacoes

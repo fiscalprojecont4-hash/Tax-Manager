@@ -16,6 +16,20 @@ html, body {
   margin-bottom: 1.25rem;
 }
 
+.vd-toolbar-right {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.kpi-wrap { margin-bottom: 0.25rem; }
+
+@media (max-width: 760px) {
+  .vd-toolbar-right { margin-left: 0; }
+}
+
 /* ---------- Checklist no painel ---------- */
 
 .vd-checklist {

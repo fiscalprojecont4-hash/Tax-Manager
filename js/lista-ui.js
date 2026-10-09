@@ -17,11 +17,11 @@ export const STATUS_BADGE = {
   cancelada: 'badge-muted',
 };
 const STATUS_COR = {
-  pendente: '#8a94a6',
-  andamento: '#1d4ed8',
-  impedimento: '#c2410c',
-  concluida: '#15803d',
-  cancelada: '#6b7686',
+  pendente: 'var(--muted)',
+  andamento: 'var(--accent)',
+  impedimento: 'var(--danger)',
+  concluida: 'var(--success)',
+  cancelada: 'var(--placeholder)',
 };
 // Concluída e Cancelada ficam ocultas até que o filtro de Status peça por elas.
 export const STATUS_OCULTOS = ['concluida', 'cancelada'];

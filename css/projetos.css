@@ -31,14 +31,14 @@ html, body {
 .pj-card {
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: #ffffff;
+  background: var(--panel);
   padding: 1.25rem;
   cursor: pointer;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .pj-card:hover {
-  border-color: #c3d7fa;
+  border-color: var(--accent-line);
   box-shadow: 0 8px 24px rgba(22, 35, 58, 0.08);
 }
 

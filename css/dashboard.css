@@ -102,7 +102,7 @@ html, body {
 .topnav-tabs a.active {
   color: var(--accent);
   background: var(--accent-soft);
-  border: 1px solid #c3d7fa;
+  border: 1px solid var(--accent-line);
 }
 
 /* ---------- Módulos: dropdown de hover ---------- */
@@ -139,7 +139,7 @@ html, body {
 .nav-dropdown-trigger.active {
   color: var(--accent);
   background: var(--accent-soft);
-  border: 1px solid #c3d7fa;
+  border: 1px solid var(--accent-line);
   padding: calc(0.5rem - 1px) calc(0.85rem - 1px);
 }
 
@@ -384,7 +384,7 @@ html, body {
 }
 
 .topnav-right button {
-  background: #ffffff;
+  background: var(--panel);
   border: 1px solid var(--border);
   color: var(--muted);
   border-radius: 10px;
@@ -407,7 +407,7 @@ html, body {
   font-size: 0.78rem;
   color: var(--muted);
   background: var(--surface);
-  border: 1px dashed #c3d7fa;
+  border: 1px dashed var(--accent-line);
   border-radius: 10px;
   padding: 0.55rem 0.9rem;
   margin-bottom: 1.5rem;
@@ -469,7 +469,7 @@ html, body {
   text-transform: uppercase;
   color: var(--accent);
   background: var(--accent-soft);
-  border: 1px solid #c3d7fa;
+  border: 1px solid var(--accent-line);
   margin-bottom: 1.1rem;
 }
 
@@ -521,7 +521,7 @@ html, body {
 .bento-card {
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  background: #ffffff;
+  background: var(--panel);
   padding: 1.4rem;
 }
 
@@ -631,9 +631,9 @@ html, body {
 }
 
 .segmented-btn.active {
-  background: #ffffff;
+  background: var(--panel);
   color: var(--accent);
-  border: 1px solid #c3d7fa;
+  border: 1px solid var(--accent-line);
   box-shadow: 0 1px 3px rgba(22, 35, 58, 0.08);
 }
 
@@ -681,7 +681,7 @@ html, body {
 .list-card {
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: #ffffff;
+  background: var(--panel);
   overflow: hidden;
 }
 
@@ -705,7 +705,7 @@ html, body {
   height: 20px;
   border-radius: 6px;
   border: 1.5px solid var(--border);
-  background: #ffffff;
+  background: var(--panel);
   flex-shrink: 0;
   cursor: pointer;
   display: flex;
@@ -977,7 +977,7 @@ html, body {
 .btn-fill:hover { background: var(--accent-hover); }
 
 .btn-ghost {
-  background: #ffffff;
+  background: var(--panel);
   color: var(--danger);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -988,7 +988,7 @@ html, body {
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-.btn-ghost:hover { background: var(--danger-soft); border-color: #f3c6c2; }
+.btn-ghost:hover { background: var(--danger-soft); border-color: var(--danger-line); }
 
 @media (max-width: 480px) {
   .form-row-split { grid-template-columns: 1fr; }
@@ -1067,7 +1067,7 @@ html, body {
   font-family: inherit;
   font-size: 0.82rem;
   color: var(--text);
-  background: #ffffff;
+  background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 0.5rem 0.7rem;
@@ -1099,7 +1099,7 @@ html, body {
   align-items: center;
   gap: 0.4rem;
   height: 36px;
-  background: #ffffff;
+  background: var(--panel);
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -1112,7 +1112,7 @@ html, body {
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-.btn-outline:hover { background: var(--surface); border-color: #c3d7fa; }
+.btn-outline:hover { background: var(--surface); border-color: var(--accent-line); }
 
 .filter-note {
   font-size: 0.8rem;
@@ -1165,7 +1165,7 @@ html, body {
 }
 
 .data-table tbody tr:last-child td { border-bottom: none; }
-.data-table tbody tr:hover { background: #f8fbff; }
+.data-table tbody tr:hover { background: var(--surface); }
 
 .data-table .col-check { width: 34px; padding-right: 0; }
 .data-table .col-main  { min-width: 240px; font-weight: 500; }
@@ -1193,7 +1193,7 @@ html, body {
   width: 28px;
   height: 28px;
   margin-left: 0.15rem;
-  background: #ffffff;
+  background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 8px;
   color: var(--muted);
@@ -1201,9 +1201,9 @@ html, body {
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
-.icon-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: #c3d7fa; }
+.icon-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-line); }
 .icon-btn.danger:hover,
-.icon-btn.armed { background: var(--danger-soft); color: var(--danger); border-color: #f3c6c2; }
+.icon-btn.armed { background: var(--danger-soft); color: var(--danger); border-color: var(--danger-line); }
 
 .dot-label { display: inline-flex; align-items: center; gap: 0.4rem; white-space: nowrap; }
 .dot-label::before {
@@ -1248,7 +1248,7 @@ html, body {
 .kpi-card.clickable:hover { box-shadow: 0 6px 18px rgba(22, 35, 58, 0.08); transform: translateY(-1px); }
 .kpi-card.clickable:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-.btn-outline[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); border-color: #c3d7fa; }
+.btn-outline[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-line); }
 
 /* ---------- Filtro com multisseleção ---------- */
 
@@ -1260,7 +1260,7 @@ html, body {
   gap: 0.45rem;
   height: 36px;
   max-width: 220px;
-  background: #ffffff;
+  background: var(--panel);
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -1272,8 +1272,8 @@ html, body {
 }
 
 .ms-btn .ms-label { overflow: hidden; text-overflow: ellipsis; }
-.ms-btn:hover { border-color: #c3d7fa; }
-.ms.has-value .ms-btn { background: var(--accent-soft); border-color: #c3d7fa; color: var(--accent); font-weight: 600; }
+.ms-btn:hover { border-color: var(--accent-line); }
+.ms.has-value .ms-btn { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent); font-weight: 600; }
 .ms-btn:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .ms-btn svg { flex-shrink: 0; opacity: 0.7; }
 
@@ -1376,7 +1376,7 @@ html, body {
 .status-menu button[aria-checked="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
 .status-menu .sdot { width: 8px; height: 8px; border-radius: 50%; background: var(--sdot, var(--muted)); flex-shrink: 0; }
 
-.badge-muted { background: #eef0f3; color: #6b7686; }
+.badge-muted { background: var(--border); color: var(--muted); }
 
 /* ---------- Grupos dentro da tabela ---------- */
 

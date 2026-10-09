@@ -74,80 +74,22 @@
       dados reais, com sincronização entre usuários, assim que o schema estiver pronto.
     </div>
 
-    <section class="kpi-row" aria-label="Resumo das tarefas">
-      <div class="kpi-card"><span class="kpi-value" id="kpiTotal">0</span><span class="kpi-label">Tarefas no total</span></div>
-      <div class="kpi-card warning"><span class="kpi-value" id="kpiPendentes">0</span><span class="kpi-label">Pendentes</span></div>
-      <div class="kpi-card danger"><span class="kpi-value" id="kpiCriticas">0</span><span class="kpi-label">Críticas em aberto</span></div>
-      <div class="kpi-card neutral"><span class="kpi-value" id="kpiConcluidas">0</span><span class="kpi-label">Concluídas</span></div>
-    </section>
-
-    <div class="filter-bar" role="search">
-      <div class="filter-search">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="search" id="fltSearch" placeholder="Buscar tarefa, cliente ou responsável" aria-label="Buscar tarefa, cliente ou responsável" autocomplete="off" />
+    <div class="tf-toolbar">
+      <div class="segmented" id="statusFilter">
+        <button type="button" class="segmented-btn active" data-filter="abertas">Abertas</button>
+        <button type="button" class="segmented-btn" data-filter="atrasadas">Atrasadas</button>
+        <button type="button" class="segmented-btn" data-filter="concluidas">Concluídas</button>
+        <button type="button" class="segmented-btn" data-filter="todas">Todas</button>
       </div>
-      <select id="fltTipo" aria-label="Filtrar por tipo">
-        <option value="">Todos os tipos</option>
-        <option value="operacional">Operacional</option>
-        <option value="estrategico">Estratégico</option>
-        <option value="administrativo">Administrativo</option>
-      </select>
-      <select id="fltPrioridade" aria-label="Filtrar por prioridade">
-        <option value="">Toda prioridade</option>
-        <option value="critica">Crítica</option>
-        <option value="alta">Alta</option>
-        <option value="normal">Normal</option>
-        <option value="baixa">Baixa</option>
-      </select>
-      <select id="fltStatus" aria-label="Filtrar por status">
-        <option value="">Todo status</option>
-        <option value="abertas">Em aberto</option>
-        <option value="pendente">Pendente</option>
-        <option value="andamento">Em andamento</option>
-        <option value="concluida">Concluída</option>
-      </select>
-      <select id="fltDelegado" aria-label="Filtrar por delegado"></select>
-      <select id="fltPrazo" aria-label="Filtrar por prazo">
-        <option value="">Todo prazo</option>
-        <option value="vencido">Vencido</option>
-        <option value="hoje">Hoje</option>
-        <option value="7d">Próximos 7 dias</option>
-        <option value="30d">Próximos 30 dias</option>
-      </select>
-      <div class="filter-actions">
-        <button type="button" class="btn-outline" id="btnImport"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Importar</button>
-        <button type="button" class="btn-outline" id="btnCsv"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exportar CSV</button>
-        <button type="button" class="btn-outline" id="btnIcs"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Exportar agenda (.ics)</button>
-        <button type="button" class="btn-outline" id="btnPdf"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Gerar PDF</button>
+      <div class="tf-toolbar-right">
         <button type="button" class="btn-new" id="newTaskBtn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Nova tarefa
         </button>
       </div>
-      <input type="file" id="importFile" accept=".csv,text/csv" hidden />
     </div>
-    <p class="filter-note" id="filterNote" role="status" aria-live="polite"></p>
 
-    <div class="table-card">
-      <table class="data-table" id="taskTable">
-        <thead>
-          <tr>
-            <th class="col-check"><input type="checkbox" class="row-check" id="selAll" aria-label="Selecionar todas as tarefas listadas" /></th>
-            <th>Tarefa</th>
-            <th>Tipo</th>
-            <th>Prioridade</th>
-            <th>Status</th>
-            <th>Requerente</th>
-            <th>Delegado</th>
-            <th>Prazo</th>
-            <th>Data de criação</th>
-            <th class="col-actions">Ações</th>
-          </tr>
-        </thead>
-        <tbody id="taskRows"></tbody>
-      </table>
-      <div class="empty-state" id="taskEmpty" hidden>Nenhuma tarefa com esses filtros.</div>
-    </div>
+    <div id="taskGroups"></div>
   </main>
 
   <!-- Painel lateral: detalhe / edição / nova tarefa -->
@@ -391,384 +333,137 @@
     let seq = 1;
     function nextId() { return `t${seq++}`; }
 
-    function mk(tarefa, tipo, requerente, delegadoPara, prazoOffset, prioridade, status, criadoOffset) {
-      return { id: nextId(), tarefa, tipo, requerente, delegadoPara, prazo: addDays(today, prazoOffset),
-               prioridade, status, criadoEm: addDays(today, criadoOffset), observacoes: '', notificar: '' };
-    }
-
     let tasks = [
-      mk('Validar notas fiscais — Empresa Alfa', 'operacional', 'Empresa Alfa', 'Wendel', -2, 'critica', 'pendente', -9),
-      mk('Conferir guias de ICMS recolhidas', 'operacional', 'Rembraz', 'Wendel', -1, 'alta', 'pendente', -8),
-      mk('Enviar DCTF do mês', 'operacional', 'Disbral', 'Equipe Fiscal', 0, 'alta', 'pendente', -6),
-      mk('Reunião de alinhamento com Wendel', 'administrativo', 'Interno', 'Wendel', 0, 'normal', 'andamento', -3),
-      mk('Revisão de checklist — Empresa Beta', 'operacional', 'Empresa Beta', 'Equipe Fiscal', 2, 'normal', 'pendente', -2),
-      mk('Apuração mensal de ICMS/AM', 'operacional', 'Tecnoradio', 'Wendel', 4, 'normal', 'pendente', -2),
-      mk('Levantar empresas sem procuração ou certificado digital', 'estrategico', 'Interno', 'Sem delegado', 5, 'alta', 'pendente', -1),
-      mk('Planejamento semanal da equipe', 'administrativo', 'Interno', 'Wendel', 6, 'baixa', 'pendente', -1),
-      mk('Organizar pasta de documentação — Lusitano', 'administrativo', 'Lusitano', 'Equipe Fiscal', 10, 'baixa', 'pendente', 0),
-      mk('Simulação de regime tributário 2027 — Tecnoradio', 'estrategico', 'Tecnoradio', 'Sem delegado', 14, 'normal', 'andamento', 0),
-      mk('Fechamento parcial do mês anterior', 'operacional', 'Interno', 'Wendel', -5, 'normal', 'concluida', -12),
-      mk('Protocolar DAS — Simples Nacional', 'operacional', 'Rembraz', 'Wendel', -3, 'alta', 'concluida', -11),
+      { id: nextId(), tarefa: 'Validar notas fiscais — Empresa Alfa', tipo: 'operacional', requerente: 'Empresa Alfa', delegadoPara: 'Wendel', prazo: addDays(today, -2), prioridade: 'alta', status: 'pendente', observacoes: '', notificar: '' },
+      { id: nextId(), tarefa: 'Conferir guias de ICMS recolhidas', tipo: 'operacional', requerente: 'Rembraz', delegadoPara: 'Wendel', prazo: addDays(today, -1), prioridade: 'alta', status: 'pendente', observacoes: '', notificar: '' },
+      { id: nextId(), tarefa: 'Enviar DCTF do mês', tipo: 'operacional', requerente: 'Disbral', delegadoPara: 'Equipe Fiscal', prazo: today, prioridade: 'alta', status: 'pendente', observacoes: '', notificar: '' },
+      { id: nextId(), tarefa: 'Reunião de alinhamento com Wendel', tipo: 'administrativo', requerente: 'Interno', delegadoPara: 'Wendel', prazo: today, prioridade: 'normal', status: 'andamento', observacoes: '', notificar: '' },
+      { id: nextId(), tarefa: 'Revisão de checklist — Empresa Beta', tipo: 'operacional', requerente: 'Empresa Beta', delegadoPara: 'Equipe Fiscal', prazo: addDays(today, 2), prioridade: 'normal', status: 'pendente', observacoes: '', notificar: '' },
+      { id: nextId(), tarefa: 'Apuração mensal de ICMS/AM', tipo: 'operacional', requerente: 'Tecnoradio', delegadoPara: 'Wendel', prazo: addDays(today, 4), prioridade: 'normal', status: 'pendente', observacoes: '', notificar: '' },
+      { id: nextId(), tarefa: 'Planejamento semanal da equipe', tipo: 'administrativo', requerente: 'Interno', delegadoPara: 'Wendel', prazo: addDays(today, 6), prioridade: 'baixa', status: 'pendente', observacoes: '', notificar: '' },
+      { id: nextId(), tarefa: 'Organizar pasta de documentação — Lusitano', tipo: 'administrativo', requerente: 'Lusitano', delegadoPara: 'Equipe Fiscal', prazo: addDays(today, 10), prioridade: 'baixa', status: 'pendente', observacoes: '', notificar: '' },
+      { id: nextId(), tarefa: 'Fechamento parcial do mês anterior', tipo: 'operacional', requerente: 'Interno', delegadoPara: 'Wendel', prazo: addDays(today, -5), prioridade: 'normal', status: 'concluida', observacoes: '', notificar: '' },
+      { id: nextId(), tarefa: 'Protocolar DAS — Simples Nacional', tipo: 'operacional', requerente: 'Rembraz', delegadoPara: 'Wendel', prazo: addDays(today, -3), prioridade: 'alta', status: 'concluida', observacoes: '', notificar: '' },
     ];
 
+    let currentFilter = 'abertas';
     let editingId = null;
-    const filters = { q: '', tipo: '', prioridade: '', status: '', delegado: '', prazo: '' };
-    const selected = new Set();
-    const SEM_DELEGADO = 'Sem delegado';
 
     const PRIORIDADE_LABEL = { critica: 'Crítica', alta: 'Alta', normal: 'Normal', baixa: 'Baixa' };
     const PRIORIDADE_BADGE = { critica: 'badge-danger', alta: 'badge-warning', normal: 'badge-accent', baixa: 'badge-neutral' };
-    const PRIORIDADE_FAIXA = { critica: 'var(--danger)', alta: 'var(--warning)', normal: 'transparent', baixa: 'transparent' };
     const STATUS_LABEL = { pendente: 'Pendente', andamento: 'Em andamento', concluida: 'Concluída' };
-    const STATUS_BADGE = { pendente: 'badge-neutral', andamento: 'badge-accent', concluida: 'badge-success' };
-    const TIPO_LABEL = { operacional: 'Operacional', estrategico: 'Estratégico', administrativo: 'Administrativo' };
-    const TIPO_COR = { operacional: 'var(--accent)', estrategico: 'var(--warning)', administrativo: 'var(--muted)' };
 
-    // ---------- utilidades ----------
+    function initials(name) {
+      if (!name) return '?';
+      const parts = name.trim().split(/\s+/);
+      return (parts[0][0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
+    }
 
-    // Todo texto digitado pelo usuário passa por esc() antes de ir para innerHTML.
-    function esc(v) {
-      return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    }
-    function norm(v) {
-      return String(v ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-    }
-    function fmtBR(iso) {
-      if (!iso) return '';
+    function formatDue(iso) {
       const [y, m, d] = iso.split('-');
-      return `${d}/${m}/${y}`;
-    }
-    function taskIsOverdue(t) { return t.status !== 'concluida' && t.prazo < today; }
-
-    const ICON = {
-      check: '<polyline points="20 6 9 17 4 12"/>',
-      agenda: '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
-      mail: '<path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><polyline points="22,6 12,13 2,6"/>',
-      edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z"/>',
-      trash: '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>',
-    };
-    const svg = (d) => `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
-
-    // ---------- filtros ----------
-
-    function matches(t) {
-      if (filters.q) {
-        const hay = norm(`${t.tarefa} ${t.requerente} ${t.delegadoPara} ${t.observacoes}`);
-        if (!hay.includes(norm(filters.q))) return false;
-      }
-      if (filters.tipo && t.tipo !== filters.tipo) return false;
-      if (filters.prioridade && t.prioridade !== filters.prioridade) return false;
-      if (filters.status === 'abertas') { if (t.status === 'concluida') return false; }
-      else if (filters.status && t.status !== filters.status) return false;
-      if (filters.delegado && t.delegadoPara !== filters.delegado) return false;
-      if (filters.prazo === 'vencido' && !taskIsOverdue(t)) return false;
-      if (filters.prazo === 'hoje' && t.prazo !== today) return false;
-      if (filters.prazo === '7d' && !(t.prazo >= today && t.prazo <= addDays(today, 7))) return false;
-      if (filters.prazo === '30d' && !(t.prazo >= today && t.prazo <= addDays(today, 30))) return false;
-      return true;
+      return `${d}/${m}`;
     }
 
-    // abertas primeiro, por prazo; concluídas no fim
-    function byDefaultOrder(a, b) {
-      const da = a.status === 'concluida' ? 1 : 0, db = b.status === 'concluida' ? 1 : 0;
-      return da - db || a.prazo.localeCompare(b.prazo) || a.tarefa.localeCompare(b.tarefa);
+    function taskIsOverdue(t) {
+      return t.status !== 'concluida' && t.prazo < today;
     }
 
-    function visibleTasks() { return tasks.filter(matches).sort(byDefaultOrder); }
-
-    function refreshDelegadoOptions() {
-      const sel = document.getElementById('fltDelegado');
-      const nomes = [...new Set(tasks.map(t => t.delegadoPara).filter(n => n && n !== SEM_DELEGADO))].sort((a, b) => a.localeCompare(b));
-      const temSem = tasks.some(t => t.delegadoPara === SEM_DELEGADO);
-      const opts = [['', 'Todo delegado'], ...nomes.map(n => [n, n]), ...(temSem ? [[SEM_DELEGADO, SEM_DELEGADO]] : [])];
-      if (filters.delegado && !opts.some(o => o[0] === filters.delegado)) filters.delegado = '';
-      sel.innerHTML = opts.map(([v, l]) => `<option value="${esc(v)}">${esc(l)}</option>`).join('');
-      sel.value = filters.delegado;
+    function groupTasks(list) {
+      const groups = { atrasadas: [], hoje: [], proximas: [], concluidas: [] };
+      list.forEach(t => {
+        if (t.status === 'concluida') { groups.concluidas.push(t); return; }
+        if (taskIsOverdue(t)) { groups.atrasadas.push(t); return; }
+        if (t.prazo === today) { groups.hoje.push(t); return; }
+        groups.proximas.push(t);
+      });
+      const byPrazo = (a, b) => a.prazo.localeCompare(b.prazo);
+      groups.atrasadas.sort(byPrazo);
+      groups.proximas.sort(byPrazo);
+      groups.concluidas.sort((a, b) => b.prazo.localeCompare(a.prazo));
+      return groups;
     }
 
-    // ---------- render ----------
+    function renderRow(t) {
+      const row = document.createElement('div');
+      row.className = 'list-row' + (t.status === 'concluida' ? ' is-done' : '');
+      row.dataset.id = t.id;
 
-    function renderKpis() {
-      document.getElementById('kpiTotal').textContent = tasks.length;
-      document.getElementById('kpiPendentes').textContent = tasks.filter(t => t.status === 'pendente').length;
-      document.getElementById('kpiCriticas').textContent = tasks.filter(t => t.prioridade === 'critica' && t.status !== 'concluida').length;
-      document.getElementById('kpiConcluidas').textContent = tasks.filter(t => t.status === 'concluida').length;
-    }
-
-    function mailtoFor(t) {
-      const to = String(t.notificar || '').split(/[,;\s]+/).filter(e => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)).join(',');
-      const corpo = [`Tarefa: ${t.tarefa}`, `Prazo: ${fmtBR(t.prazo)}`, `Prioridade: ${PRIORIDADE_LABEL[t.prioridade]}`,
-                     `Requerente: ${t.requerente}`, `Delegado: ${t.delegadoPara}`].join('\n');
-      return `mailto:${to}?subject=${encodeURIComponent('Tarefa: ' + t.tarefa)}&body=${encodeURIComponent(corpo)}`;
-    }
-
-    function rowHtml(t) {
       const overdue = taskIsOverdue(t);
-      const delegado = t.delegadoPara && t.delegadoPara !== SEM_DELEGADO ? esc(t.delegadoPara) : '<span class="muted">—</span>';
-      const prazo = overdue
-        ? `<span class="overdue">${fmtBR(t.prazo)} <small>(vencido)</small></span>`
-        : fmtBR(t.prazo);
-      const concluir = t.status === 'concluida' ? 'Reabrir tarefa' : 'Marcar como concluída';
-      return `
-        <tr data-id="${esc(t.id)}" class="${t.status === 'concluida' ? 'is-done' : ''}" style="--row-accent:${PRIORIDADE_FAIXA[t.prioridade]}">
-          <td class="col-check"><input type="checkbox" class="row-check" data-sel aria-label="Selecionar tarefa" ${selected.has(t.id) ? 'checked' : ''} /></td>
-          <td class="col-main">${esc(t.tarefa)}</td>
-          <td data-label="Tipo"><span class="dot-label" style="--dot:${TIPO_COR[t.tipo]}">${TIPO_LABEL[t.tipo]}</span></td>
-          <td data-label="Prioridade"><span class="badge ${PRIORIDADE_BADGE[t.prioridade]}">${PRIORIDADE_LABEL[t.prioridade]}</span></td>
-          <td data-label="Status"><span class="badge ${STATUS_BADGE[t.status]}">${STATUS_LABEL[t.status]}</span></td>
-          <td data-label="Requerente">${esc(t.requerente)}</td>
-          <td data-label="Delegado">${delegado}</td>
-          <td data-label="Prazo">${prazo}</td>
-          <td data-label="Criada em" class="muted">${fmtBR(t.criadoEm)}</td>
-          <td class="col-actions">
-            <button type="button" class="icon-btn" data-act="done" title="${concluir}" aria-label="${concluir}">${svg(ICON.check)}</button>
-            <button type="button" class="icon-btn" data-act="ics" title="Adicionar à agenda (.ics)" aria-label="Adicionar à agenda">${svg(ICON.agenda)}</button>
-            <a class="icon-btn" href="${esc(mailtoFor(t))}" title="Enviar por e-mail" aria-label="Enviar por e-mail">${svg(ICON.mail)}</a>
-            <button type="button" class="icon-btn" data-act="edit" title="Editar" aria-label="Editar">${svg(ICON.edit)}</button>
-            <button type="button" class="icon-btn danger" data-act="del" title="Excluir" aria-label="Excluir">${svg(ICON.trash)}</button>
-          </td>
-        </tr>`;
+      const metaBits = [];
+      if (t.requerente && t.requerente !== 'Interno') metaBits.push(`<span>${t.requerente}</span>`);
+      metaBits.push(`<span class="due${overdue ? ' overdue' : ''}">${overdue ? 'Atrasada · ' : ''}${formatDue(t.prazo)}</span>`);
+
+      row.innerHTML = `
+        <span class="list-row-check${t.status === 'concluida' ? ' checked' : ''}" title="Marcar como concluída">
+          ${t.status === 'concluida' ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
+        </span>
+        <div class="list-row-main">
+          <p class="list-row-title">${t.tarefa}</p>
+          <div class="list-row-meta">${metaBits.join('<span>·</span>')}</div>
+        </div>
+        <div class="list-row-side">
+          <span class="badge ${PRIORIDADE_BADGE[t.prioridade]}">${PRIORIDADE_LABEL[t.prioridade]}</span>
+          <span class="avatar-chip" title="${t.delegadoPara}">${initials(t.delegadoPara)}</span>
+        </div>
+      `;
+
+      row.querySelector('.list-row-check').addEventListener('click', (e) => {
+        e.stopPropagation();
+        t.status = t.status === 'concluida' ? 'pendente' : 'concluida';
+        render();
+      });
+
+      row.addEventListener('click', () => openPanel(t.id));
+
+      return row;
     }
 
-    function updateSelectionUi(list) {
-      const all = document.getElementById('selAll');
-      const n = list.filter(t => selected.has(t.id)).length;
-      all.checked = list.length > 0 && n === list.length;
-      all.indeterminate = n > 0 && n < list.length;
-      const note = document.getElementById('filterNote');
-      if (n > 0) {
-        note.innerHTML = `${n} ${n === 1 ? 'tarefa selecionada' : 'tarefas selecionadas'} — as exportações usam só a seleção. <button type="button" id="clearSel">Limpar seleção</button>`;
-        document.getElementById('clearSel').addEventListener('click', () => { selected.clear(); render(); });
-      } else if (!note.dataset.flash) {
-        note.textContent = '';
-      }
+    function renderGroup(container, key, label, items, overdueStyle) {
+      if (items.length === 0) return;
+      const group = document.createElement('div');
+      group.className = 'tf-group';
+      group.innerHTML = `
+        <div class="tf-group-title${overdueStyle ? ' overdue' : ''}">
+          ${label} <span class="count">${items.length}</span>
+        </div>
+      `;
+      const card = document.createElement('div');
+      card.className = 'list-card';
+      items.forEach(t => card.appendChild(renderRow(t)));
+      group.appendChild(card);
+      container.appendChild(group);
     }
 
     function render() {
-      refreshDelegadoOptions();
-      renderKpis();
-      const list = visibleTasks();
-      const ids = new Set(list.map(t => t.id));
-      [...selected].forEach(id => { if (!ids.has(id)) selected.delete(id); });
-      document.getElementById('taskRows').innerHTML = list.map(rowHtml).join('');
-      document.getElementById('taskEmpty').hidden = list.length > 0;
-      document.getElementById('taskTable').style.display = list.length ? '' : 'none';
-      updateSelectionUi(list);
+      const container = document.getElementById('taskGroups');
+      container.innerHTML = '';
+
+      const groups = groupTasks(tasks);
+      const show = {
+        abertas: ['atrasadas', 'hoje', 'proximas'],
+        atrasadas: ['atrasadas'],
+        concluidas: ['concluidas'],
+        todas: ['atrasadas', 'hoje', 'proximas', 'concluidas'],
+      }[currentFilter];
+
+      let totalShown = 0;
+      if (show.includes('atrasadas')) { renderGroup(container, 'atrasadas', 'Atrasadas', groups.atrasadas, true); totalShown += groups.atrasadas.length; }
+      if (show.includes('hoje')) { renderGroup(container, 'hoje', 'Hoje', groups.hoje, false); totalShown += groups.hoje.length; }
+      if (show.includes('proximas')) { renderGroup(container, 'proximas', 'Próximos dias', groups.proximas, false); totalShown += groups.proximas.length; }
+      if (show.includes('concluidas')) { renderGroup(container, 'concluidas', 'Concluídas', groups.concluidas, false); totalShown += groups.concluidas.length; }
+
+      if (totalShown === 0) {
+        container.innerHTML = '<div class="empty-state">Nenhuma tarefa nesta visão.</div>';
+      }
     }
 
-    let flashTimer = null;
-    function flash(msg) {
-      const note = document.getElementById('filterNote');
-      note.dataset.flash = '1';
-      note.textContent = msg;
-      clearTimeout(flashTimer);
-      flashTimer = setTimeout(() => { delete note.dataset.flash; updateSelectionUi(visibleTasks()); }, 6000);
-    }
-
-    // ---------- eventos da barra de filtros e da tabela ----------
-
-    const bind = (id, key) => document.getElementById(id).addEventListener(key === 'q' ? 'input' : 'change', (e) => { filters[key] = e.target.value; render(); });
-    bind('fltSearch', 'q'); bind('fltTipo', 'tipo'); bind('fltPrioridade', 'prioridade');
-    bind('fltStatus', 'status'); bind('fltDelegado', 'delegado'); bind('fltPrazo', 'prazo');
-
-    document.getElementById('selAll').addEventListener('change', (e) => {
-      visibleTasks().forEach(t => e.target.checked ? selected.add(t.id) : selected.delete(t.id));
+    document.getElementById('statusFilter').addEventListener('click', (e) => {
+      const btn = e.target.closest('.segmented-btn');
+      if (!btn) return;
+      document.querySelectorAll('#statusFilter .segmented-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilter = btn.dataset.filter;
       render();
-    });
-
-    const taskRows = document.getElementById('taskRows');
-    taskRows.addEventListener('change', (e) => {
-      if (!e.target.matches('[data-sel]')) return;
-      const id = e.target.closest('tr').dataset.id;
-      e.target.checked ? selected.add(id) : selected.delete(id);
-      updateSelectionUi(visibleTasks());
-    });
-    taskRows.addEventListener('click', (e) => {
-      const tr = e.target.closest('tr');
-      if (!tr) return;
-      const t = tasks.find(x => x.id === tr.dataset.id);
-      if (!t) return;
-      const btn = e.target.closest('[data-act]');
-      if (!btn) { if (e.target.closest('.col-main')) openPanel(t.id); return; }
-      const act = btn.dataset.act;
-      if (act === 'edit') openPanel(t.id);
-      if (act === 'ics') downloadFile(`tarefa-${t.id}.ics`, toIcs([t]), 'text/calendar');
-      if (act === 'done') { t.status = t.status === 'concluida' ? 'pendente' : 'concluida'; render(); }
-      if (act === 'del') {
-        // exclusão em dois cliques (sem janela de confirmação do navegador)
-        if (btn.classList.contains('armed')) { tasks = tasks.filter(x => x.id !== t.id); selected.delete(t.id); render(); return; }
-        btn.classList.add('armed');
-        btn.title = 'Clique de novo para excluir';
-        setTimeout(() => { btn.classList.remove('armed'); btn.title = 'Excluir'; }, 3000);
-      }
-    });
-
-    // ---------- exportar / importar ----------
-
-    function exportList() {
-      const list = visibleTasks();
-      const sel = list.filter(t => selected.has(t.id));
-      return sel.length ? sel : list;
-    }
-
-    function downloadFile(name, text, mime) {
-      const blob = new Blob([text], { type: `${mime};charset=utf-8` });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = name;
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    }
-
-    const CSV_COLUNAS = ['Tarefa', 'Tipo', 'Prioridade', 'Status', 'Requerente', 'Delegado', 'Prazo', 'Data de criação'];
-
-    // Ponto e vírgula + BOM: abre direto no Excel em português. Células que
-    // começam com = + - @ ganham um apóstrofo para não virarem fórmula.
-    function csvCell(v) {
-      let s = String(v ?? '');
-      if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
-      return /[";\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-    }
-
-    function toCsv(list) {
-      const linhas = [CSV_COLUNAS.join(';')];
-      list.forEach(t => linhas.push([t.tarefa, TIPO_LABEL[t.tipo], PRIORIDADE_LABEL[t.prioridade], STATUS_LABEL[t.status],
-        t.requerente, t.delegadoPara === SEM_DELEGADO ? '' : t.delegadoPara, fmtBR(t.prazo), fmtBR(t.criadoEm)].map(csvCell).join(';')));
-      return '\uFEFF' + linhas.join('\r\n');
-    }
-
-    function icsEscape(v) {
-      return String(v ?? '').replace(/\\/g, '\\\\').replace(/;/g, '\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
-    }
-    function icsFold(line) {
-      const enc = new TextEncoder();
-      const partes = []; let atual = '', bytes = 0, limite = 75;
-      for (const ch of line) {
-        const b = enc.encode(ch).length;
-        if (bytes + b > limite) { partes.push(atual); atual = ch; bytes = b; limite = 74; }
-        else { atual += ch; bytes += b; }
-      }
-      partes.push(atual);
-      return partes.join('\r\n ');
-    }
-    function toIcs(list) {
-      const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
-      const dia = (iso) => iso.replace(/-/g, '');
-      const linhas = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Projecont Fiscal//Tarefas//PT-BR', 'CALSCALE:GREGORIAN'];
-      list.forEach(t => {
-        const desc = [`Tipo: ${TIPO_LABEL[t.tipo]}`, `Prioridade: ${PRIORIDADE_LABEL[t.prioridade]}`, `Status: ${STATUS_LABEL[t.status]}`,
-                      `Requerente: ${t.requerente}`, `Delegado: ${t.delegadoPara}`].join('\n');
-        linhas.push('BEGIN:VEVENT', `UID:${t.id}-${dia(t.criadoEm)}@projecont-fiscal`, `DTSTAMP:${stamp}`,
-          `DTSTART;VALUE=DATE:${dia(t.prazo)}`, `DTEND;VALUE=DATE:${dia(addDays(t.prazo, 1))}`,
-          `SUMMARY:${icsEscape(t.tarefa)}`, `DESCRIPTION:${icsEscape(desc)}`, 'END:VEVENT');
-      });
-      linhas.push('END:VCALENDAR');
-      return linhas.map(icsFold).join('\r\n') + '\r\n';
-    }
-
-    document.getElementById('btnCsv').addEventListener('click', () => {
-      const list = exportList();
-      if (!list.length) { flash('Nada para exportar com os filtros atuais.'); return; }
-      downloadFile('tarefas.csv', toCsv(list), 'text/csv');
-      flash(`${list.length} ${list.length === 1 ? 'tarefa exportada' : 'tarefas exportadas'} em CSV.`);
-    });
-    document.getElementById('btnIcs').addEventListener('click', () => {
-      const list = exportList();
-      if (!list.length) { flash('Nada para exportar com os filtros atuais.'); return; }
-      downloadFile('tarefas.ics', toIcs(list), 'text/calendar');
-      flash(`${list.length} ${list.length === 1 ? 'tarefa exportada' : 'tarefas exportadas'} para a agenda.`);
-    });
-    // PDF: abre a impressão do navegador com layout próprio (Salvar como PDF).
-    document.getElementById('btnPdf').addEventListener('click', () => window.print());
-
-    // Leitor de CSV (aspas, vírgula/ponto e vírgula, quebras de linha dentro de campo)
-    function parseCsv(texto) {
-      texto = texto.replace(/^\uFEFF/, '');
-      const primeira = texto.split(/\r?\n/, 1)[0] || '';
-      const delim = (primeira.match(/;/g) || []).length >= (primeira.match(/,/g) || []).length ? ';' : ',';
-      const linhas = []; let campo = '', linha = [], aspas = false;
-      for (let i = 0; i < texto.length; i++) {
-        const c = texto[i];
-        if (aspas) {
-          if (c === '"' && texto[i + 1] === '"') { campo += '"'; i++; }
-          else if (c === '"') aspas = false;
-          else campo += c;
-        } else if (c === '"') aspas = true;
-        else if (c === delim) { linha.push(campo); campo = ''; }
-        else if (c === '\n' || c === '\r') {
-          if (c === '\r' && texto[i + 1] === '\n') i++;
-          linha.push(campo); campo = '';
-          if (linha.some(x => x.trim() !== '')) linhas.push(linha);
-          linha = [];
-        } else campo += c;
-      }
-      linha.push(campo);
-      if (linha.some(x => x.trim() !== '')) linhas.push(linha);
-      return linhas;
-    }
-
-    function parseData(v) {
-      v = String(v || '').trim();
-      let y, m, d;
-      let r = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-      if (r) { d = +r[1]; m = +r[2]; y = +r[3]; }
-      else if ((r = v.match(/^(\d{4})-(\d{2})-(\d{2})$/))) { y = +r[1]; m = +r[2]; d = +r[3]; }
-      else return '';
-      const dt = new Date(y, m - 1, d);
-      if (dt.getFullYear() !== y || dt.getMonth() !== m - 1 || dt.getDate() !== d) return '';
-      return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    }
-
-    function pelaLabel(mapa, valor, padrao) {
-      const n = norm(valor);
-      for (const [chave, label] of Object.entries(mapa)) if (norm(label) === n || chave === n) return chave;
-      if (n === 'critico') return 'critica';
-      if (n === 'concluido') return 'concluida';
-      if (n === 'em andamento') return 'andamento';
-      return padrao;
-    }
-
-    function importarCsv(texto) {
-      const linhas = parseCsv(texto);
-      if (linhas.length < 2) return { ok: 0, ignoradas: 0, erro: 'O arquivo não tem linhas de dados.' };
-      const cab = linhas[0].map(norm);
-      const col = (nome) => cab.indexOf(nome);
-      const iTarefa = col('tarefa');
-      if (iTarefa < 0) return { ok: 0, ignoradas: 0, erro: 'Não achei a coluna "Tarefa" na primeira linha.' };
-      const iTipo = col('tipo'), iPri = col('prioridade'), iSta = col('status'), iReq = col('requerente'),
-            iDel = col('delegado'), iPrazo = col('prazo'), iCri = col('data de criacao');
-      const val = (l, i) => (i >= 0 ? String(l[i] ?? '').trim().replace(/^'(?=[=+\-@])/, '') : '');
-      let ok = 0, ignoradas = 0;
-      linhas.slice(1, 2001).forEach(l => {
-        const titulo = val(l, iTarefa);
-        if (!titulo) { ignoradas++; return; }
-        tasks.push({
-          id: nextId(), tarefa: titulo,
-          tipo: pelaLabel(TIPO_LABEL, val(l, iTipo), 'operacional'),
-          prioridade: pelaLabel(PRIORIDADE_LABEL, val(l, iPri), 'normal'),
-          status: pelaLabel(STATUS_LABEL, val(l, iSta), 'pendente'),
-          requerente: val(l, iReq) || 'Interno',
-          delegadoPara: val(l, iDel) || SEM_DELEGADO,
-          prazo: parseData(val(l, iPrazo)) || today,
-          criadoEm: parseData(val(l, iCri)) || today,
-          observacoes: '', notificar: '',
-        });
-        ok++;
-      });
-      return { ok, ignoradas, erro: '' };
-    }
-
-    const importFile = document.getElementById('importFile');
-    document.getElementById('btnImport').addEventListener('click', () => importFile.click());
-    importFile.addEventListener('change', async () => {
-      const arq = importFile.files[0];
-      importFile.value = '';
-      if (!arq) return;
-      if (arq.size > 1024 * 1024) { flash('Arquivo grande demais (limite de 1 MB).'); return; }
-      const r = importarCsv(await arq.text());
-      if (r.erro) { flash(r.erro); return; }
-      render();
-      flash(`${r.ok} ${r.ok === 1 ? 'tarefa importada' : 'tarefas importadas'}${r.ignoradas ? `; ${r.ignoradas} sem título ignorada(s)` : ''}.`);
     });
 
     // ---------- Painel lateral (nova / editar) ----------
@@ -857,7 +552,7 @@
         const t = tasks.find(x => x.id === editingId);
         Object.assign(t, data);
       } else {
-        tasks.push({ id: nextId(), criadoEm: today, ...data });
+        tasks.push({ id: nextId(), ...data });
       }
       closePanel();
       render();

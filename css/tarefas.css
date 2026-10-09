@@ -6,8 +6,48 @@ html, body {
 
 .data-note { margin-bottom: 1.25rem; }
 
-/* A listagem usa os componentes compartilhados de dashboard.css
-   (.kpi-row, .filter-bar, .table-card, .data-table). */
+/* ---------- Toolbar ---------- */
 
-#taskRows td.col-main { cursor: pointer; }
-#taskRows td.col-main:hover { color: var(--accent); }
+.tf-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.tf-toolbar-right {
+  margin-left: auto;
+}
+
+/* ---------- Grupos ---------- */
+
+.tf-group {
+  margin-bottom: 1.5rem;
+}
+
+.tf-group-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 0.6rem 0.1rem;
+}
+
+.tf-group-title .count {
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+}
+
+.tf-group-title.overdue { color: var(--danger); }
+.tf-group-title.overdue .count { background: var(--danger-soft); color: var(--danger); }
+
+.tf-group:last-child { margin-bottom: 0; }

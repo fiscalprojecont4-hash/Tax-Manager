@@ -71,19 +71,12 @@
       o fluxo de aprovação serão substituídos por dados reais assim que o schema estiver pronto.
     </div>
 
-    <div class="kpi-row" id="kpiRow"></div>
-
-    <div class="filter-bar" id="filterBar">
-      <div class="filter-search">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="search" id="fltSearch" placeholder="Buscar empresa ou atividade…" aria-label="Buscar" />
-      </div>
-      <div id="msStatus"></div>
-      <div id="msAtividade"></div>
-      <div id="msEmpresa"></div>
-      <div id="msAnalista"></div>
-      <button type="button" class="btn-outline" id="btnLimpar" hidden>Limpar filtros</button>
-      <div class="filter-actions">
+    <div class="vd-toolbar">
+      <button type="button" class="btn-outline" id="btnTotais" aria-pressed="false" aria-controls="kpiWrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Totais por status
+      </button>
+      <div class="vd-toolbar-right">
         <button type="button" class="btn-outline" id="btnCsv">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Exportar CSV
@@ -97,6 +90,22 @@
           Nova validação
         </button>
       </div>
+    </div>
+
+    <div class="kpi-wrap" id="kpiWrap" hidden>
+      <div class="kpi-row" id="kpiRow"></div>
+    </div>
+
+    <div class="filter-bar" id="filterBar">
+      <div class="filter-search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="search" id="fltSearch" placeholder="Buscar empresa ou atividade…" aria-label="Buscar" />
+      </div>
+      <div id="msStatus"></div>
+      <div id="msAtividade"></div>
+      <div id="msEmpresa"></div>
+      <div id="msAnalista"></div>
+      <button type="button" class="btn-outline" id="btnLimpar" hidden>Limpar filtros</button>
     </div>
     <p class="filter-note" id="filterNote" aria-live="polite"></p>
 
@@ -480,6 +489,13 @@
       if (k !== 'total') { filters.status = [k]; ms.status.set([k]); }
       render();
     }
+    const btnTotais = document.getElementById('btnTotais');
+    btnTotais.addEventListener('click', () => {
+      const wrap = document.getElementById('kpiWrap');
+      wrap.hidden = !wrap.hidden;
+      btnTotais.setAttribute('aria-pressed', String(!wrap.hidden));
+    });
+
     const kpiRow = document.getElementById('kpiRow');
     kpiRow.addEventListener('click', (e) => { const c = e.target.closest('[data-kpi]'); if (c) aplicarKpi(c.dataset.kpi); });
     kpiRow.addEventListener('keydown', (e) => {

@@ -49,6 +49,19 @@
     </div>
 
     <div class="topnav-right">
+      <div class="notif-wrap" id="notifWrap">
+        <button type="button" class="notif-bell" id="notifBell" aria-label="Notificações">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="notif-badge" id="notifBadge" style="display:none">0</span>
+        </button>
+        <div class="notif-panel" id="notifPanel">
+          <div class="notif-panel-header">
+            <h4>Notificações</h4>
+            <button type="button" class="notif-mark-all" id="notifMarkAll">Marcar todas como lidas</button>
+          </div>
+          <div class="notif-list" id="notifList"></div>
+        </div>
+      </div>
       <span class="user-email" id="userEmail">…</span>
       <button id="logoutBtn">Sair</button>
     </div>
@@ -211,6 +224,115 @@
       else openDropdown();
     });
     document.addEventListener('click', (e) => { if (!dropdown.contains(e.target)) closeDropdown(); });
+
+    // ======================================================================
+    // Notificações (sino) — dados mock, compartilhados entre todas as
+    // páginas (o sino é global, não por módulo). O estado de "lida"
+    // persiste na aba via sessionStorage, já que ainda não existe backend
+    // compartilhado entre páginas (Fase 1+ do plano).
+    // ======================================================================
+
+    const NOTIF_DATA = [
+      { id: 'n1', tipo: 'fiscal', texto: 'DCTF do mês vence hoje.', href: 'calendar.html', quando: 'Hoje', read: false },
+      { id: 'n2', tipo: 'tarefa', texto: 'Tarefa atrasada: "Validar notas fiscais — Empresa Alfa" venceu há 2 dias.', href: 'tarefas.html', quando: 'Há 2 dias', read: false },
+      { id: 'n3', tipo: 'achado', texto: 'Novo achado em Empresa Alfa: SPED Fiscal do período anterior não localizado.', href: 'validacoes.html', quando: 'Há 3 dias', read: false },
+      { id: 'n4', tipo: 'projeto', texto: 'Etapa atrasada no projeto "Rembraz — Regularização cadastral".', href: 'projetos.html', quando: 'Há 1 dia', read: true },
+      { id: 'n5', tipo: 'tarefa', texto: 'Reunião de alinhamento com Wendel às 14:30 hoje.', href: 'calendar.html', quando: 'Hoje', read: true },
+      { id: 'n6', tipo: 'achado', texto: 'Guia de ICMS de setembro (Lusitano) recolhida com atraso — verificar multa.', href: 'validacoes.html', quando: 'Há 1 dia', read: true },
+    ];
+
+    function notifReadOverrides() {
+      try { return JSON.parse(sessionStorage.getItem('tm_notif_read') || '[]'); } catch { return []; }
+    }
+    function notifSaveOverrides(ids) {
+      try { sessionStorage.setItem('tm_notif_read', JSON.stringify(ids)); } catch {}
+    }
+    function notifIsRead(n) {
+      return n.read || notifReadOverrides().includes(n.id);
+    }
+    function notifMarkRead(id) {
+      const overrides = notifReadOverrides();
+      if (!overrides.includes(id)) { overrides.push(id); notifSaveOverrides(overrides); }
+    }
+    function notifMarkAllRead() {
+      notifSaveOverrides(NOTIF_DATA.map(n => n.id));
+    }
+
+    const notifWrap = document.getElementById('notifWrap');
+    const notifBell = document.getElementById('notifBell');
+    const notifPanel = document.getElementById('notifPanel');
+    const notifBadge = document.getElementById('notifBadge');
+    const notifList = document.getElementById('notifList');
+    const notifMarkAllBtn = document.getElementById('notifMarkAll');
+
+    function renderNotifications() {
+      const unread = NOTIF_DATA.filter(n => !notifIsRead(n));
+      if (unread.length > 0) {
+        notifBadge.textContent = unread.length > 9 ? '9+' : String(unread.length);
+        notifBadge.style.display = '';
+      } else {
+        notifBadge.style.display = 'none';
+      }
+
+      notifList.innerHTML = '';
+      if (NOTIF_DATA.length === 0) {
+        notifList.innerHTML = '<div class="notif-empty">Nenhuma notificação.</div>';
+        return;
+      }
+      NOTIF_DATA.forEach(n => {
+        const read = notifIsRead(n);
+        const item = document.createElement('a');
+        item.href = n.href;
+        item.className = 'notif-item' + (read ? ' is-read' : '');
+        item.innerHTML = `
+          <span class="notif-dot ${n.tipo}"></span>
+          <div class="notif-item-main">
+            <p class="notif-item-text">${n.texto}</p>
+            <p class="notif-item-when">${n.quando}</p>
+          </div>
+        `;
+        item.addEventListener('click', () => { notifMarkRead(n.id); });
+        notifList.appendChild(item);
+      });
+    }
+
+    function positionNotifPanel() {
+      const rect = notifBell.getBoundingClientRect();
+      const panelWidth = notifPanel.offsetWidth || 360;
+      let left = rect.right - panelWidth;
+      if (left < 8) left = 8;
+      notifPanel.style.top = `${rect.bottom + 10}px`;
+      notifPanel.style.left = `${left}px`;
+    }
+
+    function openNotif() {
+      renderNotifications();
+      notifWrap.classList.add('open');
+      positionNotifPanel();
+    }
+    function closeNotif() { notifWrap.classList.remove('open'); }
+
+    notifBell.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (notifWrap.classList.contains('open')) closeNotif();
+      else openNotif();
+    });
+
+    notifMarkAllBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      notifMarkAllRead();
+      renderNotifications();
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!notifWrap.contains(e.target)) closeNotif();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeNotif();
+    });
+
+    renderNotifications();
 
     // ======================================================================
     // Validações — dados mock (pendente: persistência real via Supabase/RLS;

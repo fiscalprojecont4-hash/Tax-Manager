@@ -7,6 +7,17 @@ body {
   min-height: 100dvh;
 }
 
+/* Alguns elementos (ex.: .notif-panel) usam position:fixed sem top/left
+   definidos até o primeiro clique — até lá, a posição "hipotética" do
+   fluxo normal pode ultrapassar a largura da viewport e forçar scroll
+   horizontal mesmo com o elemento invisível (opacity:0). As páginas de
+   módulo já tinham essa regra nos seus próprios CSS (por causa dos
+   painéis laterais); dashboard.html usa este arquivo direto, sem CSS de
+   módulo por cima, então precisa da regra aqui também. */
+html, body {
+  overflow-x: hidden;
+}
+
 /* ---------- Top nav ---------- */
 
 .topnav {
@@ -175,6 +186,170 @@ body {
 
 .nav-dropdown-item.active {
   background: var(--accent-soft);
+}
+
+/* ---------- Notificações (sino) ---------- */
+
+.notif-wrap {
+  position: relative;
+}
+
+.notif-bell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 10px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.notif-bell:hover { color: var(--text); background: var(--surface); }
+
+.notif-wrap.open .notif-bell {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.notif-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--danger);
+  color: #ffffff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 15px;
+  text-align: center;
+}
+
+.notif-panel {
+  /* position:fixed + top/left calculados via JS (ver positionNotifPanel) —
+     o sino nem sempre fica colado na borda direita da tela (no mobile ele
+     divide a faixa superior com e-mail/Sair), então um simples right:0
+     relativo ao wrap pode jogar o painel para fora da viewport. fixed +
+     clamp no JS evita isso em qualquer largura. */
+  position: fixed;
+  width: min(360px, 90vw);
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 20px 45px rgba(22, 35, 58, 0.12);
+  opacity: 0;
+  transform: translateY(-6px) scale(0.98);
+  pointer-events: none;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+  z-index: 30;
+}
+
+.notif-wrap.open .notif-panel {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.notif-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.notif-panel-header h4 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.notif-mark-all {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.2rem;
+  white-space: nowrap;
+}
+
+.notif-mark-all:hover { color: var(--accent-hover); }
+
+.notif-list {
+  overflow-y: auto;
+}
+
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.notif-item:last-child { border-bottom: none; }
+.notif-item:hover { background: var(--surface); }
+
+.notif-item.is-read { opacity: 0.6; }
+
+.notif-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-top: 0.4rem;
+}
+
+.notif-dot.tarefa { background: var(--accent); }
+.notif-dot.achado { background: var(--warning); }
+.notif-dot.fiscal { background: var(--danger); }
+.notif-dot.projeto { background: var(--success); }
+
+.notif-item-main { flex: 1; min-width: 0; }
+
+.notif-item-text {
+  /* .topnav-right define white-space:nowrap para as abas/botões — como
+     .notif-panel é fixed mas continua descendente de .topnav-right no
+     DOM, essa propriedade herdada impedia a quebra de linha aqui (o
+     texto ficava cortado silenciosamente pelo overflow-x implícito do
+     .notif-list). */
+  white-space: normal;
+  font-size: 0.82rem;
+  color: var(--text);
+  line-height: 1.4;
+  margin: 0 0 0.2rem;
+}
+
+.notif-item-when {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+.notif-empty {
+  padding: 1.5rem 1rem;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--muted);
 }
 
 .nav-dropdown-item.active h4 { color: var(--accent); }

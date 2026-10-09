@@ -183,12 +183,10 @@
     }
     function closeDropdown() { dropdown.classList.remove('open'); }
 
-    dropdown.addEventListener('mouseenter', openDropdown);
-    dropdown.addEventListener('mouseleave', closeDropdown);
-
     trigger.addEventListener('click', (e) => {
       e.stopPropagation();
-      dropdown.classList.toggle('open');
+      if (dropdown.classList.contains('open')) closeDropdown();
+      else openDropdown();
     });
 
     document.addEventListener('click', (e) => {

@@ -100,9 +100,9 @@ html, body {
 }
 
 .cal-view-btn.active {
-  background: #ffffff;
+  background: var(--panel);
   color: var(--accent);
-  border: 1px solid #c3d7fa;
+  border: 1px solid var(--accent-line);
   box-shadow: 0 1px 3px rgba(22, 35, 58, 0.08);
 }
 

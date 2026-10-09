@@ -3,11 +3,12 @@
 // uma validação e o Calendário: papel timbrado Projecont, resumo, filtros
 // aplicados, tabela e/ou blocos de texto.
 
-const AZUL = [31, 129, 190];   // #1F81BE
-const CIANO = [0, 179, 214];   // #00B3D6
-const TEXTO = [22, 35, 58];
-const MUDO = [107, 118, 134];
-const FAIXA = [244, 248, 252];
+// Paleta do projeto (mesmos valores de css/login.css)
+const AZUL = [29, 78, 216];    // --accent  #1d4ed8
+const CIANO = [195, 215, 250]; // --accent-line  #c3d7fa
+const TEXTO = [22, 35, 58];    // --text  #16233a
+const MUDO = [103, 119, 140];  // --muted  #67778c
+const FAIXA = [241, 246, 252]; // --surface  #f1f6fc
 
 let carregando = null;
 
@@ -151,9 +152,9 @@ export async function gerarPdf(o) {
         startY: y + 1,
         margin: { top: TOPO, left: M, right: M, bottom: 18 },
         theme: 'grid',
-        styles: { font: 'helvetica', fontSize: 8, cellPadding: 1.8, textColor: TEXTO, lineColor: [221, 229, 238], lineWidth: 0.15, overflow: 'linebreak', valign: 'top' },
+        styles: { font: 'helvetica', fontSize: 8, cellPadding: 1.8, textColor: TEXTO, lineColor: [220, 231, 244], lineWidth: 0.15, overflow: 'linebreak', valign: 'top' },
         headStyles: { fillColor: AZUL, textColor: 255, fontStyle: 'bold', halign: 'left' },
-        alternateRowStyles: { fillColor: [250, 252, 254] },
+        alternateRowStyles: { fillColor: [248, 251, 254] },
         columnStyles: o.estilosColunas || {},
         rowPageBreak: 'avoid',
       });
@@ -165,7 +166,7 @@ export async function gerarPdf(o) {
   (o.blocos || []).forEach(bloco => {
     doc.setFontSize(10);
     garantir(16);
-    doc.setFillColor(...CIANO);
+    doc.setFillColor(...AZUL);
     doc.rect(M, y - 4, 1.2, 6.2, 'F');
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...TEXTO);

@@ -30,13 +30,13 @@
             <h4>Validações</h4>
             <p>Checklists por empresa, achados, revisão e aprovação.</p>
           </a>
-          <a class="nav-dropdown-item" href="#" role="menuitem">
+          <a class="nav-dropdown-item" href="conhecimento.html" role="menuitem">
             <h4>Conhecimento</h4>
-            <p>Histórico, padrões aprovados, incidentes e playbooks.</p>
+            <p>Histórico mensal das validações e mapeamento fiscal por empresa.</p>
           </a>
-          <a class="nav-dropdown-item" href="#" role="menuitem">
+          <a class="nav-dropdown-item" href="administracao.html" role="menuitem">
             <h4>Administração</h4>
-            <p>Usuários, equipes, permissões e configurações.</p>
+            <p>Categorias, empresas, responsáveis e executores.</p>
           </a>
         </div>
       </div>
@@ -159,6 +159,8 @@
 
   <script type="module">
     import { createSupabaseClient } from './js/supabase-client.js';
+    import { carregar, gravar, novoId, projetosExemplo } from './js/dados-teste.js';
+    import { instalarRelatoriosNoSino } from './js/relatorio-diario.js';
 
     const supabase = createSupabaseClient(true);
     const emailEl = document.getElementById('userEmail');
@@ -304,6 +306,7 @@
     });
 
     renderNotifications();
+    instalarRelatoriosNoSino();
 
     // ======================================================================
     // Projetos — dados mock (pendente: persistência real via Supabase/RLS;
@@ -326,79 +329,10 @@
     }
 
     const today = isoToday();
-    let seq = 1;
-    let etapaSeq = 1;
-    let historicoSeq = 1;
-    function nextId() { return `p${seq++}`; }
-    function nextEtapaId() { return `et${etapaSeq++}`; }
-
-    function etapa(nome, responsavel, prazoOffset, status) {
-      return { id: nextEtapaId(), nome, responsavel, prazo: addDays(today, prazoOffset), status };
-    }
-
-    let projetos = [
-      {
-        id: nextId(),
-        titulo: 'Regularização cadastral — Rembraz',
-        cliente: 'Rembraz',
-        responsavel: 'Wendel',
-        prazo: addDays(today, 12),
-        historico: [
-          { id: `h${historicoSeq++}`, data: addDays(today, -10), texto: 'Projeto iniciado a pedido do cliente após notificação da SEFAZ-AM.' },
-          { id: `h${historicoSeq++}`, data: addDays(today, -4), texto: 'Levantamento de pendências cadastrais concluído.' },
-        ],
-        etapas: [
-          etapa('Levantamento de pendências cadastrais', 'Wendel', -5, 'concluida'),
-          etapa('Protocolo de atualização na Receita Federal', 'Equipe Fiscal', -1, 'concluida'),
-          etapa('Atualização de inscrição estadual (SEFAZ-AM)', 'Wendel', 3, 'andamento'),
-          etapa('Conferência final e envio ao cliente', 'Wendel', 12, 'pendente'),
-        ],
-      },
-      {
-        id: nextId(),
-        titulo: 'Planejamento tributário 2027',
-        cliente: 'Tecnoradio',
-        responsavel: 'Wendel',
-        prazo: addDays(today, 30),
-        historico: [
-          { id: `h${historicoSeq++}`, data: addDays(today, -2), texto: 'Reunião inicial com o cliente para alinhar objetivos do planejamento.' },
-        ],
-        etapas: [
-          etapa('Levantamento do regime tributário atual', 'Wendel', -2, 'concluida'),
-          etapa('Simulação comparativa de regimes', 'Equipe Fiscal', 7, 'andamento'),
-          etapa('Apresentação de recomendações ao cliente', 'Wendel', 20, 'pendente'),
-          etapa('Implementação das mudanças aprovadas', 'Equipe Fiscal', 30, 'pendente'),
-        ],
-      },
-      {
-        id: nextId(),
-        titulo: 'Migração para Tax Manager — dados-base',
-        cliente: '',
-        responsavel: 'Wendel',
-        prazo: addDays(today, -1),
-        historico: [
-          { id: `h${historicoSeq++}`, data: addDays(today, -15), texto: 'Mapeamento do protótipo atual concluído (ver docs/fase-0).' },
-        ],
-        etapas: [
-          etapa('Mapear módulos e regras de negócio do protótipo', 'Wendel', -15, 'concluida'),
-          etapa('Definir perfil fiscal estruturado da empresa', 'Wendel', -1, 'andamento'),
-          etapa('Confirmar escopo de dados a migrar com Wendel', 'Wendel', -1, 'pendente'),
-        ],
-      },
-      {
-        id: nextId(),
-        titulo: 'Due diligence fiscal — abertura de filial',
-        cliente: 'Disbral',
-        responsavel: 'Equipe Fiscal',
-        prazo: addDays(today, -20),
-        historico: [],
-        etapas: [
-          etapa('Levantamento de obrigações no novo município', 'Equipe Fiscal', -25, 'concluida'),
-          etapa('Parecer de viabilidade tributária', 'Wendel', -20, 'concluida'),
-          etapa('Entrega do relatório final ao cliente', 'Equipe Fiscal', -20, 'concluida'),
-        ],
-      },
-    ];
+    const nextId = () => novoId('p');
+    const nextEtapaId = () => novoId('et');
+    const novoHistoricoId = () => novoId('h');
+    let projetos = carregar('projetos', projetosExemplo);
 
     let currentFilter = 'todos';
     let activeId = null;
@@ -461,6 +395,7 @@
     }
 
     function render() {
+      gravar('projetos', projetos);
       const grid = document.getElementById('projectGrid');
       grid.innerHTML = '';
 
@@ -705,7 +640,7 @@
       const texto = novoHistorico.value.trim();
       if (!texto) return;
       const p = projetos.find(x => x.id === activeId);
-      p.historico.push({ id: `h${historicoSeq++}`, data: 'Hoje', texto });
+      p.historico.push({ id: novoHistoricoId(), data: 'Hoje', texto });
       novoHistorico.value = '';
       renderHistorico(p);
     });

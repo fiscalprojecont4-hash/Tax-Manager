@@ -1,0 +1,57 @@
+@import url('dashboard.css');
+
+html, body { overflow-x: hidden; }
+
+.data-note { margin-bottom: 1.25rem; }
+
+.kn-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; }
+.kn-toolbar-right { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+@media (max-width: 760px) { .kn-toolbar-right { margin-left: 0; } }
+
+/* ---------- Barras (padrões e painel gerencial) ---------- */
+
+.kn-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
+.kn-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.1rem 1.25rem; min-width: 0; }
+.kn-card h4 { margin: 0 0 0.15rem; font-size: 0.95rem; }
+.kn-card > p { margin: 0 0 0.8rem; font-size: 0.8rem; color: var(--muted); }
+.kn-bars { display: flex; flex-direction: column; gap: 0.5rem; }
+.kn-bar-row { display: grid; grid-template-columns: minmax(120px, 1.6fr) 1.4fr auto; align-items: center; gap: 0.6rem; font-size: 0.85rem; }
+.kn-bar-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kn-bar-track { height: 10px; border-radius: 999px; background: var(--surface); overflow: hidden; }
+.kn-bar-track i { display: block; height: 100%; border-radius: 999px; background: var(--accent); }
+.kn-bar-track i.danger { background: var(--danger); }
+.kn-bar-track i.warning { background: var(--warning); }
+.kn-bar-n { font-weight: 600; font-variant-numeric: tabular-nums; min-width: 1.5rem; text-align: right; }
+.kn-empty { margin: 0; color: var(--muted); font-size: 0.85rem; }
+
+.kn-gerencial { margin-bottom: 1.25rem; }
+.kn-gerencial-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
+.kn-gerencial-head h3 { margin: 0; font-size: 1.05rem; }
+
+/* ---------- Histórico: linha expandida ---------- */
+
+.kn-arq td.col-main { cursor: pointer; }
+.kn-arq td.col-main:hover { color: var(--accent); }
+.kn-arq .kn-seta { display: inline-block; margin-right: 0.4rem; color: var(--muted); transition: transform 0.15s ease; }
+.kn-arq.is-open .kn-seta { transform: rotate(90deg); }
+.kn-badges { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+
+.data-table tbody tr.kn-detail td { background: var(--surface); padding: 0.9rem 1rem 1.1rem; }
+.kn-itens { display: flex; flex-direction: column; gap: 0.7rem; }
+.kn-item { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 0.8rem 1rem; }
+.kn-item-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.8rem; }
+.kn-item-meta { margin: 0.35rem 0 0; font-size: 0.8rem; color: var(--muted); }
+.kn-item p { margin: 0.45rem 0 0; font-size: 0.86rem; line-height: 1.5; }
+.kn-item .kn-label { font-weight: 600; color: var(--text); }
+.kn-retif { color: var(--warning); }
+.kn-item-actions { margin-top: 0.6rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+/* ---------- Mapeamento: painel ---------- */
+
+.kn-novacat { display: flex; gap: 0.4rem; margin-top: 0.4rem; }
+.kn-novacat input { flex: 1; min-width: 0; }
+.kn-footer { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; flex-wrap: wrap; }
+.kn-footer .btn-outline, .kn-footer .btn-fill { white-space: nowrap; }
+.kn-saved { flex: 1; text-align: center; font-size: 0.8rem; color: var(--muted); min-width: 0; }
+.kn-row-vencido { color: var(--danger); font-weight: 600; }
+.kn-row-vencido small { font-weight: 400; }

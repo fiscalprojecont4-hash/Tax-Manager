@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Administração — Tax Manager Projecont</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/administracao.css" />
+</head>
+<body>
+  <nav class="topnav">
+    <a href="dashboard.html" class="topnav-brand">
+      <img src="assets/hero-login.jpg" alt="" />
+      <span>Tax Manager</span>
+    </a>
+
+    <div class="topnav-tabs">
+      <a href="dashboard.html">Painel</a>
+      <a href="tarefas.html">Tarefas</a>
+
+      <div class="nav-dropdown" id="modulosDropdown">
+        <button type="button" class="nav-dropdown-trigger active" id="modulosTrigger">
+          Módulos
+          <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="nav-dropdown-panel" role="menu">
+          <a class="nav-dropdown-item" href="validacoes.html" role="menuitem">
+            <h4>Validações</h4>
+            <p>Checklists por empresa, achados, revisão e aprovação.</p>
+          </a>
+          <a class="nav-dropdown-item" href="conhecimento.html" role="menuitem">
+            <h4>Conhecimento</h4>
+            <p>Histórico mensal das validações e mapeamento fiscal por empresa.</p>
+          </a>
+          <a class="nav-dropdown-item active" href="administracao.html" role="menuitem">
+            <h4>Administração</h4>
+            <p>Categorias, empresas, responsáveis e executores.</p>
+          </a>
+        </div>
+      </div>
+
+      <a href="calendar.html">Calendário</a>
+      <a href="projetos.html">Projetos</a>
+    </div>
+
+    <div class="topnav-right">
+      <div class="notif-wrap" id="notifWrap">
+        <button type="button" class="notif-bell" id="notifBell" aria-label="Notificações">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="notif-badge" id="notifBadge" style="display:none">0</span>
+        </button>
+        <div class="notif-panel" id="notifPanel">
+          <div class="notif-panel-header">
+            <h4>Notificações</h4>
+            <button type="button" class="notif-mark-all" id="notifMarkAll">Marcar todas como lidas</button>
+          </div>
+          <div class="notif-list" id="notifList"></div>
+        </div>
+      </div>
+      <span class="user-email" id="userEmail">…</span>
+      <button id="logoutBtn">Sair</button>
+    </div>
+  </nav>
+
+  <main class="wrap-fluid">
+    <div class="data-note">
+      ⚠ Dados de exemplo — os cadastros ficam guardados só neste navegador até o banco (Supabase/PostgreSQL) ser ligado.
+      Usuários, equipes e permissões entram nessa etapa.
+      <button type="button" class="link-btn" id="btnRestaurar">Restaurar exemplos</button>
+    </div>
+
+    <div class="tab-bar" role="tablist" aria-label="Cadastros">
+      <button type="button" role="tab" id="tabCat" aria-selected="true" aria-controls="paneCat">Categorias</button>
+      <button type="button" role="tab" id="tabEmp" aria-selected="false" aria-controls="paneEmp">Empresas</button>
+    </div>
+
+    <section id="paneCat" role="tabpanel" aria-labelledby="tabCat">
+      <div class="form-card">
+        <h3>Categorias de problemas</h3>
+        <p>Lista padrão usada nos pontos das validações e no Mapeamento fiscal. Ela cresce com a experiência: uma categoria criada hoje aparece
+        pronta para escolher nos próximos meses. Remover uma categoria não altera os registros que já a usam.</p>
+        <form class="inline-form" id="formCat">
+          <div class="form-row">
+            <label for="novaCat">Nova categoria</label>
+            <input type="text" id="novaCat" placeholder="Ex: Crédito indevido" autocomplete="off" />
+          </div>
+          <button type="submit" class="btn-new">+ Adicionar categoria</button>
+        </form>
+        <p class="field-hint" id="catMsg" aria-live="polite"></p>
+        <ul class="cat-list" id="catList"></ul>
+      </div>
+    </section>
+
+    <section id="paneEmp" role="tabpanel" aria-labelledby="tabEmp" hidden>
+      <div class="form-card">
+        <h3>Empresas, responsáveis e executores</h3>
+        <p>Cada empresa tem um responsável (quem responde pelo assunto) e um executor (quem faz a rotina). O executor identifica de onde veio um erro:
+        no Mapeamento fiscal ele é preenchido sozinho a partir deste cadastro.</p>
+        <form class="inline-form" id="formEmp">
+          <div class="form-row"><label for="nEmpresa">Empresa</label><input type="text" id="nEmpresa" autocomplete="off" /></div>
+          <div class="form-row"><label for="nResp">Responsável</label><input type="text" id="nResp" list="pessoas" autocomplete="off" /></div>
+          <div class="form-row"><label for="nExec">Executor</label><input type="text" id="nExec" list="pessoas" autocomplete="off" /></div>
+          <button type="submit" class="btn-new">+ Adicionar empresa</button>
+        </form>
+        <p class="field-hint" id="empMsg" aria-live="polite"></p>
+        <datalist id="pessoas"></datalist>
+      </div>
+      <div class="table-card">
+        <table class="data-table cad-table">
+          <thead><tr><th>Empresa</th><th>Responsável</th><th>Executor</th><th class="col-actions">Ações</th></tr></thead>
+          <tbody id="empRows"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { iniciarShell } from './js/shell.js';
+    import { esc, norm } from './js/lista-ui.js';
+    import { restaurarExemplos, categorias, salvarCategorias, adicionarCategoria, empresas, salvarEmpresas,
+             carregar } from './js/dados-teste.js';
+
+    await iniciarShell();
+
+    document.getElementById('btnRestaurar').addEventListener('click', () => { restaurarExemplos(); window.location.reload(); });
+
+    // ---------- abas ----------
+    const abas = { cat: ['tabCat', 'paneCat'], emp: ['tabEmp', 'paneEmp'] };
+    function mostrar(qual) {
+      Object.entries(abas).forEach(([k, [t, p]]) => {
+        document.getElementById(t).setAttribute('aria-selected', String(k === qual));
+        document.getElementById(p).hidden = k !== qual;
+      });
+      try { history.replaceState(null, '', '#' + qual); } catch { /* ignora */ }
+    }
+    Object.entries(abas).forEach(([k, [t]]) => document.getElementById(t).addEventListener('click', () => mostrar(k)));
+    if (location.hash === '#emp') mostrar('emp');
+
+    const svg = (d) => `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+    const LIXEIRA = '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>';
+    const armar = (btn, titulo) => {
+      btn.classList.add('armed'); btn.title = 'Clique de novo para remover';
+      setTimeout(() => { btn.classList.remove('armed'); btn.title = titulo; }, 3000);
+    };
+
+    // ---------- categorias ----------
+    function usoDeCategoria(nome) {
+      let n = 0;
+      (carregar('validacoes', () => [])).forEach(v => v.pontos.forEach(p => { if (p.categoria === nome) n++; }));
+      (carregar('arquivos', () => [])).forEach(a => a.itens.forEach(i => i.pontos.forEach(p => { if (p.categoria === nome) n++; })));
+      (carregar('mapeamento', () => [])).forEach(m => { if (m.problema === nome) n++; });
+      return n;
+    }
+    function desenharCategorias() {
+      const lista = categorias();
+      document.getElementById('catList').innerHTML = lista.map((c, i) => {
+        const uso = usoDeCategoria(c);
+        return `<li class="cat-item"><span>${esc(c)}</span> <small>${uso ? `${uso} ${uso === 1 ? 'uso' : 'usos'}` : 'sem uso'}</small>
+          <button type="button" class="icon-btn danger" data-i="${i}" title="Remover" aria-label="Remover ${esc(c)}">${svg(LIXEIRA)}</button></li>`;
+      }).join('') || '<li class="muted">Nenhuma categoria cadastrada.</li>';
+    }
+    document.getElementById('formCat').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const campo = document.getElementById('novaCat');
+      const msg = document.getElementById('catMsg');
+      const antes = categorias().length;
+      const nome = adicionarCategoria(campo.value);
+      if (!nome) { msg.textContent = 'Digite o nome da categoria.'; campo.focus(); return; }
+      msg.textContent = categorias().length > antes ? `Categoria "${nome}" adicionada.` : `"${nome}" já existe na lista.`;
+      campo.value = '';
+      desenharCategorias();
+    });
+    document.getElementById('catList').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-i]');
+      if (!btn) return;
+      if (!btn.classList.contains('armed')) { armar(btn, 'Remover'); return; }
+      const lista = categorias();
+      const [removida] = lista.splice(Number(btn.dataset.i), 1);
+      salvarCategorias(lista);
+      document.getElementById('catMsg').textContent = `Categoria "${removida}" removida.`;
+      desenharCategorias();
+    });
+
+    // ---------- empresas ----------
+    function desenharEmpresas() {
+      const lista = empresas().slice().sort((a, b) => a.nome.localeCompare(b.nome));
+      const pessoas = [...new Set(lista.flatMap(e => [e.responsavel, e.executor]).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+      document.getElementById('pessoas').innerHTML = pessoas.map(p => `<option value="${esc(p)}"></option>`).join('');
+      document.getElementById('empRows').innerHTML = lista.map(e => `
+        <tr data-nome="${esc(e.nome)}">
+          <td class="col-main">${esc(e.nome)}</td>
+          <td data-label="Responsável"><div class="form-row"><input type="text" data-f="responsavel" list="pessoas" value="${esc(e.responsavel)}" aria-label="Responsável de ${esc(e.nome)}" /></div></td>
+          <td data-label="Executor"><div class="form-row"><input type="text" data-f="executor" list="pessoas" value="${esc(e.executor)}" aria-label="Executor de ${esc(e.nome)}" /></div></td>
+          <td class="col-actions"><button type="button" class="icon-btn danger" data-del title="Remover" aria-label="Remover ${esc(e.nome)}">${svg(LIXEIRA)}</button></td>
+        </tr>`).join('');
+    }
+    document.getElementById('formEmp').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const nome = document.getElementById('nEmpresa').value.trim();
+      const msg = document.getElementById('empMsg');
+      if (!nome) { msg.textContent = 'Informe o nome da empresa.'; document.getElementById('nEmpresa').focus(); return; }
+      const lista = empresas();
+      if (lista.some(x => norm(x.nome) === norm(nome))) { msg.textContent = `"${nome}" já está cadastrada.`; return; }
+      lista.push({ nome, responsavel: document.getElementById('nResp').value.trim(), executor: document.getElementById('nExec').value.trim() });
+      salvarEmpresas(lista);
+      ['nEmpresa', 'nResp', 'nExec'].forEach(id => { document.getElementById(id).value = ''; });
+      msg.textContent = `Empresa "${nome}" adicionada.`;
+      desenharEmpresas();
+    });
+    document.getElementById('empRows').addEventListener('change', (e) => {
+      const campo = e.target.closest('[data-f]');
+      if (!campo) return;
+      const lista = empresas();
+      const emp = lista.find(x => x.nome === campo.closest('tr').dataset.nome);
+      if (emp) { emp[campo.dataset.f] = campo.value.trim(); salvarEmpresas(lista); document.getElementById('empMsg').textContent = 'Alteração salva.'; desenharEmpresas(); }
+    });
+    document.getElementById('empRows').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-del]');
+      if (!btn) return;
+      if (!btn.classList.contains('armed')) { armar(btn, 'Remover'); return; }
+      const nome = btn.closest('tr').dataset.nome;
+      salvarEmpresas(empresas().filter(x => x.nome !== nome));
+      document.getElementById('empMsg').textContent = `Empresa "${nome}" removida do cadastro. Os registros que já a usam não mudam.`;
+      desenharEmpresas();
+    });
+
+    desenharCategorias();
+    desenharEmpresas();
+  </script>
+</body>
+</html>

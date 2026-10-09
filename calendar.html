@@ -30,13 +30,13 @@
             <h4>Validações</h4>
             <p>Checklists por empresa, achados, revisão e aprovação.</p>
           </a>
-          <a class="nav-dropdown-item" href="#" role="menuitem">
+          <a class="nav-dropdown-item" href="conhecimento.html" role="menuitem">
             <h4>Conhecimento</h4>
-            <p>Histórico, padrões aprovados, incidentes e playbooks.</p>
+            <p>Histórico mensal das validações e mapeamento fiscal por empresa.</p>
           </a>
-          <a class="nav-dropdown-item" href="#" role="menuitem">
+          <a class="nav-dropdown-item" href="administracao.html" role="menuitem">
             <h4>Administração</h4>
-            <p>Usuários, equipes, permissões e configurações.</p>
+            <p>Categorias, empresas, responsáveis e executores.</p>
           </a>
         </div>
       </div>
@@ -172,6 +172,8 @@
   <script type="module">
     import { createSupabaseClient } from './js/supabase-client.js';
     import { gerarPdf } from './js/relatorio-pdf.js';
+    import { carregar, gravar, eventosExemplo } from './js/dados-teste.js';
+    import { instalarRelatoriosNoSino } from './js/relatorio-diario.js';
 
     const supabase = createSupabaseClient(true);
     const emailEl = document.getElementById('userEmail');
@@ -318,6 +320,7 @@
     });
 
     renderNotifications();
+    instalarRelatoriosNoSino();
 
     // ======================================================================
     // Calendário — dados mock (pendente: integração com SEFAZ-AM / Receita
@@ -337,35 +340,14 @@
 
     // eventos: chave = data ISO, valor = lista de { title, type: 'oficial'|'tarefa', time? }
     // 'time' omitido = evento de dia inteiro (feriados/obrigações sem horário fixo)
-    const events = {};
+    const events = Object.assign({}, carregar('eventos', eventosExemplo));
 
     function addEvent(y, m, d, ev) {
       const key = iso(y, m, d);
       if (!events[key]) events[key] = [];
       events[key].push(ev);
+      gravar('eventos', events);
     }
-
-    (function seedMockData() {
-      const y = today.getFullYear();
-      const m = today.getMonth();
-
-      // Feriados/datas oficiais (estilo do exemplo anexado)
-      addEvent(y, m, 5, { title: 'Nossa Senhora de Aparecida', type: 'oficial' });
-      addEvent(y, m, 15, { title: 'Dia do Professor', type: 'oficial' });
-      addEvent(y, m, 28, { title: 'Dia do Servidor Público', type: 'oficial' });
-
-      // Obrigações fiscais (mock — viriam do calendário oficial SEFAZ-AM / RFB)
-      addEvent(y, m, 10, { title: 'DCTF — vencimento', type: 'oficial', time: '23:59' });
-      addEvent(y, m, 20, { title: 'ICMS/AM — apuração mensal', type: 'oficial', time: '18:00' });
-      addEvent(y, m, 22, { title: 'DAS — Simples Nacional', type: 'oficial', time: '23:59' });
-
-      // Tarefas internas (mock)
-      addEvent(y, m, 8, { title: 'Validar notas — Empresa Alfa', type: 'tarefa', time: '09:00' });
-      addEvent(y, m, 8, { title: 'Reunião com Wendel', type: 'tarefa', time: '14:30' });
-      addEvent(y, m, 12, { title: 'Revisão checklist — Empresa Beta', type: 'tarefa', time: '10:00' });
-      addEvent(y, m, 20, { title: 'Conferência de guias recolhidas', type: 'tarefa', time: '11:00' });
-      addEvent(y, m, 25, { title: 'Fechamento parcial do mês', type: 'tarefa', time: '16:00' });
-    })();
 
     let viewYear = today.getFullYear();
     let viewMonth = today.getMonth();

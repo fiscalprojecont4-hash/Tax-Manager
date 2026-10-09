@@ -30,13 +30,13 @@
             <h4>Validações</h4>
             <p>Checklists por empresa, achados, revisão e aprovação.</p>
           </a>
-          <a class="nav-dropdown-item" href="#" role="menuitem">
+          <a class="nav-dropdown-item" href="conhecimento.html" role="menuitem">
             <h4>Conhecimento</h4>
-            <p>Histórico, padrões aprovados, incidentes e playbooks.</p>
+            <p>Histórico mensal das validações e mapeamento fiscal por empresa.</p>
           </a>
-          <a class="nav-dropdown-item" href="#" role="menuitem">
+          <a class="nav-dropdown-item" href="administracao.html" role="menuitem">
             <h4>Administração</h4>
-            <p>Usuários, equipes, permissões e configurações.</p>
+            <p>Categorias, empresas, responsáveis e executores.</p>
           </a>
         </div>
       </div>
@@ -69,6 +69,7 @@
       ⚠ Dados de exemplo — o modelo de dados (Supabase/PostgreSQL) ainda não existe, então
       estas validações são mock para validar o layout e a interação. Os pontos identificados e
       o fluxo de aprovação serão substituídos por dados reais assim que o schema estiver pronto.
+      <button type="button" class="link-btn" id="btnRestaurar">Restaurar exemplos</button>
     </div>
 
     <div class="vd-toolbar">
@@ -76,6 +77,7 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
         Totais por status
       </button>
+      <span class="vd-comp" id="compChip" title="Competência em andamento"></span>
       <div class="vd-toolbar-right">
         <button type="button" class="btn-outline" id="btnCsv">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -84,6 +86,10 @@
         <button type="button" class="btn-outline" id="btnPdf">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           Gerar PDF
+        </button>
+        <button type="button" class="btn-outline" id="btnEncerrar">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9 16 11 18 15 14"/></svg>
+          Encerrar mês
         </button>
         <button type="button" class="btn-new" id="newValidacaoBtn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -169,6 +175,13 @@
         </div>
       </div>
 
+      <div class="form-row">
+        <label for="fJust">Justificativa</label>
+        <textarea id="fJust" rows="3" placeholder="Por que esta validação está pendente, em impedimento ou cancelada?"></textarea>
+        <p class="field-hint" id="fJustHint">Obrigatória para encerrar o mês quando a validação não estiver concluída.</p>
+      </div>
+      <p class="vd-retif" id="retifInfo" hidden></p>
+
       <details class="vd-more">
         <summary id="checklistResumo">Checklist da validação</summary>
         <div class="vd-more-body"><div class="vd-checklist" id="checklistBody"></div></div>
@@ -188,8 +201,21 @@
     </div>
   </aside>
 
+  <!-- Encerramento do mês -->
+  <div class="modal-backdrop" id="encModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="encTitulo">
+      <h3 id="encTitulo">Encerrar mês</h3>
+      <div id="encCorpo"></div>
+      <div class="modal-actions" id="encAcoes"></div>
+    </div>
+  </div>
+
   <script type="module">
     import { createSupabaseClient } from './js/supabase-client.js';
+    import { instalarRelatoriosNoSino } from './js/relatorio-diario.js';
+    import { carregar, gravar, restaurarExemplos, hojeIso, somarDias, novoId, novoChecklist, novoPonto, categorias, adicionarCategoria,
+             empresas as listarEmpresas, empresaPorNome, competenciaVigente, definirCompetencia, proximaCompetencia, competenciaExtenso,
+             competenciaCurta, arquivos as listarArquivos, salvarArquivos, montarArquivos, validacoesExemplo } from './js/dados-teste.js';
     import { STATUS_ORDER, STATUS_LABEL, STATUS_OCULTOS, statusVisivel, esc, norm, fmtBR, downloadFile, csvCell,
              createMultiSelect, abrirStatusMenu, statusPillHtml } from './js/lista-ui.js';
     import { gerarPdf } from './js/relatorio-pdf.js';
@@ -338,6 +364,7 @@
     });
 
     renderNotifications();
+    instalarRelatoriosNoSino();
 
     // ======================================================================
     // Validações — dados mock (pendente: persistência real via Supabase/RLS;
@@ -345,60 +372,22 @@
     // com fluxo de aprovação/revisão, por empresa e por competência)
     // ======================================================================
 
-    const CHECKLIST_PADRAO = [
-      'Notas fiscais do período conferidas',
-      'Apuração de ICMS revisada',
-      'Guias de recolhimento conferidas',
-      'Obrigações acessórias enviadas (SPED, DCTF...)',
-      'Pendências do mês anterior resolvidas',
-    ];
-    const CATEGORIAS = ['NCM / CST', 'ICMS', 'ICMS-ST', 'PIS / COFINS', 'Simples Nacional', 'Notas fiscais',
-                        'Obrigações acessórias', 'Cadastro', 'Outros'];
     const SEM_ANALISTA = 'Sem analista';
+    const today = hojeIso();
+    const addDays = somarDias;
+    const nextId = novoId;
+    const makeChecklist = novoChecklist;
+    const ponto = novoPonto;
+    let competencia = competenciaVigente();
 
-    function isoToday() {
-      const d = new Date();
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    }
-    function addDays(iso, n) {
-      const d = new Date(iso + 'T00:00:00');
-      d.setDate(d.getDate() + n);
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    }
-    const today = isoToday();
-
-    let seq = 1;
-    const nextId = (p) => `${p}${seq++}`;
-    function makeChecklist(feitos) {
-      return CHECKLIST_PADRAO.map((label, i) => ({ id: `c${i}`, label, done: feitos.includes(i) }));
-    }
-    function ponto(o) {
-      return { id: nextId('p'), categoria: 'Outros', titulo: '', identificado: '', motivo: '', orientacao: '', ...o };
-    }
-    function validacao(nome, atividade, analista, status, feitos, atualizadoOffset, pontos = []) {
-      return { id: nextId('v'), nome, atividade, analista, status, checklist: makeChecklist(feitos),
-               atualizadoEm: addDays(today, atualizadoOffset), pontos };
-    }
-
-    let validacoes = [
-      validacao('Empresa Gama', 'EFD CONTRIBUIÇÕES', 'Analista A', 'impedimento', [0], 0),
-      validacao('Empresa Delta', 'EFD CONTRIBUIÇÕES', 'Analista A', 'impedimento', [], -17),
-      validacao('Rembraz', 'EFD ICMS/IPI', 'Wendel', 'pendente', [], -6),
-      validacao('Disbral', 'EFD CONTRIBUIÇÕES', 'Equipe Fiscal', 'andamento', [0], -4, [
-        ponto({ categoria: 'Notas fiscais', titulo: 'CFOP divergente na NF 4521', identificado: 'Nota fiscal nº 4521 com CFOP divergente da operação declarada.', motivo: 'CFOP incorreto distorce a apuração de ICMS e pode gerar autuação.', orientacao: 'Corrigir o CFOP (nota complementar ou carta de correção) e reapurar o período.' }),
-        ponto({ categoria: 'NCM / CST', titulo: 'Classificação de produtos ST x tributados', identificado: 'Produtos sujeitos a ST escriturados como tributados normalmente.', motivo: 'Gera recolhimento indevido ou a menor de ICMS.', orientacao: 'Revisar o cadastro de NCM e o CEST dos itens e retificar a EFD.' }),
-      ]),
-      validacao('Tecnoradio', 'EFD ICMS/IPI', 'Wendel', 'andamento', [0, 1, 2], -2),
-      validacao('Lusitano', 'Apuração de ICMS', 'Equipe Fiscal', 'pendente', [0, 1], -1, [
-        ponto({ categoria: 'ICMS', titulo: 'Guia de setembro recolhida com atraso', identificado: 'Guia de ICMS de setembro recolhida com um dia de atraso.', motivo: 'Recolhimento fora do prazo gera multa e juros.', orientacao: 'Verificar a multa, atualizar o valor devido e criar lembrete de vencimento.' }),
-      ]),
-      validacao('Empresa Alfa', 'EFD CONTRIBUIÇÕES', '', 'impedimento', [0, 2], -3, [
-        ponto({ categoria: 'Obrigações acessórias', titulo: 'SPED Fiscal anterior não localizado', identificado: 'SPED Fiscal do período anterior não localizado.', motivo: 'Sem a escrituração anterior não há como conferir o saldo; omissão gera multa.', orientacao: 'Solicitar o reenvio do arquivo à empresa e transmitir antes de validar o período atual.' }),
-      ]),
-      validacao('Empresa Beta', 'DCTF', 'Wendel', 'concluida', [0, 1, 2, 3, 4], -8),
-      validacao('Nortec', 'EFD ICMS/IPI', 'Equipe Fiscal', 'concluida', [0, 1, 2, 3, 4], -10),
-      validacao('Empresa Épsilon', 'EFD REINF', 'Analista B', 'cancelada', [], -12),
-    ];
+    let validacoes = carregar('validacoes', validacoesExemplo);
+    // registros antigos (guardados antes de existirem estes campos)
+    validacoes.forEach(v => {
+      v.competencia = v.competencia || competencia; v.justificativa = v.justificativa || ''; v.criadoEm = v.criadoEm || v.atualizadoEm;
+      v.concluidaEm = v.concluidaEm || ''; v.retificadora = v.retificadora || null;
+    });
+    const persistir = () => gravar('validacoes', validacoes);
+    const categoriasLista = () => categorias();
 
     const filters = { q: '', status: [], atividade: [], empresa: [], analista: [] };
     const analistaDe = (v) => v.analista || SEM_ANALISTA;
@@ -446,8 +435,9 @@
       filters.atividade = ms.atividade.values(); filters.empresa = ms.empresa.values(); filters.analista = ms.analista.values();
       const dl = (id, itens) => { document.getElementById(id).innerHTML = itens.map(x => `<option value="${esc(x)}"></option>`).join(''); };
       dl('atividadesSugeridas', unicos(v => v.atividade));
-      dl('empresasSugeridas', unicos(v => v.nome));
-      dl('analistasSugeridos', unicos(v => v.analista));
+      const cad = listarEmpresas();
+      dl('empresasSugeridas', [...new Set([...cad.map(e => e.nome), ...validacoes.map(v => v.nome)])].sort((a, b) => a.localeCompare(b)));
+      dl('analistasSugeridos', [...new Set([...cad.flatMap(e => [e.responsavel, e.executor]), ...validacoes.map(v => v.analista)].filter(Boolean))].sort((a, b) => a.localeCompare(b)));
     }
 
     document.getElementById('fltSearch').addEventListener('input', (e) => { filters.q = e.target.value; render(); });
@@ -506,6 +496,13 @@
 
     // ---------- tabela ----------
 
+    // Troca de status: registra a data de conclusão (e a remove ao reabrir).
+    function definirStatus(v, novo) {
+      v.status = novo;
+      v.atualizadoEm = today;
+      v.concluidaEm = novo === 'concluida' ? (v.concluidaEm || today) : '';
+    }
+
     function mailtoFor(v) {
       const corpo = [`Validação: ${v.nome} — ${v.atividade}`, `Analista responsável: ${analistaDe(v)}`, `Status: ${STATUS_LABEL[v.status]}`,
                      `Pontos identificados: ${v.pontos.length}`, '', ...v.pontos.map((p, i) => `${i + 1}. ${p.titulo || '(sem título)'}`)].join('\n').slice(0, 1500);
@@ -517,7 +514,7 @@
       const analista = v.analista ? esc(v.analista) : '<span class="muted">—</span>';
       return `
         <tr data-id="${esc(v.id)}" class="${classe}">
-          <td class="col-main">${esc(v.nome)}</td>
+          <td class="col-main">${esc(v.nome)}${v.retificadora ? ` <span class="badge badge-warning" title="Retifica a validação de ${esc(competenciaCurta(v.retificadora.competencia))}">Retificadora ${esc(competenciaCurta(v.retificadora.competencia))}</span>` : ''}</td>
           <td data-label="Atividade">${esc(v.atividade)}</td>
           <td data-label="Analista">${analista}</td>
           <td data-label="Status">${statusPillHtml(v.status)}</td>
@@ -549,6 +546,8 @@
     }
 
     function render() {
+      persistir();
+      document.getElementById('compChip').textContent = `Competência ${competenciaExtenso(competencia)}`;
       refreshDynamicOptions();
       renderKpis();
       document.getElementById('btnLimpar').hidden = !filtrosAtivos();
@@ -569,7 +568,7 @@
       const act = btn.dataset.act;
       if (act === 'status') {
         abrirStatusMenu(btn, v.status, (novo) => {
-          v.status = novo; v.atualizadoEm = today; render();
+          definirStatus(v, novo); render();
           if (STATUS_OCULTOS.includes(novo) && !filters.status.includes(novo)) {
             flash(`Validação marcada como ${STATUS_LABEL[novo].toLowerCase()} e ocultada da lista. Filtre por Status para vê-la.`);
           }
@@ -591,8 +590,8 @@
     document.getElementById('btnCsv').addEventListener('click', () => {
       const list = visibleList();
       if (!list.length) { flash('Nada para exportar com os filtros atuais.'); return; }
-      const linhas = [['Empresa', 'Atividade', 'Analista responsável', 'Status', 'Pontos identificados', 'Última atualização'].join(';')];
-      list.forEach(v => linhas.push([v.nome, v.atividade, v.analista, STATUS_LABEL[v.status], v.pontos.length, fmtBR(v.atualizadoEm)].map(csvCell).join(';')));
+      const linhas = [['Empresa', 'Atividade', 'Analista responsável', 'Status', 'Pontos identificados', 'Última atualização', 'Justificativa'].join(';')];
+      list.forEach(v => linhas.push([v.nome, v.atividade, v.analista, STATUS_LABEL[v.status], v.pontos.length, fmtBR(v.atualizadoEm), v.justificativa].map(csvCell).join(';')));
       downloadFile('validacoes.csv', '﻿' + linhas.join('\r\n'), 'text/csv;charset=utf-8');
       flash(`${list.length} ${list.length === 1 ? 'validação exportada' : 'validações exportadas'} em CSV.`);
     });
@@ -619,7 +618,35 @@
       } catch (err) { flash('Não foi possível gerar o PDF. Tente novamente.'); }
     });
 
-    // Relatório de uma validação: ficha + checklist + cada ponto com seus três campos.
+    function identificacaoDe(v, comp) {
+      const itens = [
+        { rotulo: 'Empresa', valor: v.nome }, { rotulo: 'Atividade', valor: v.atividade },
+        { rotulo: 'Analista responsável', valor: v.analista }, { rotulo: 'Status', valor: STATUS_LABEL[v.status] },
+        { rotulo: 'Competência', valor: competenciaExtenso(comp) }, { rotulo: 'Criada em', valor: fmtBR(v.criadoEm) },
+      ];
+      if (v.concluidaEm) itens.push({ rotulo: 'Concluída em', valor: fmtBR(v.concluidaEm) });
+      if (v.retificadora) itens.push({ rotulo: 'Retificadora de', valor: competenciaExtenso(v.retificadora.competencia) });
+      return itens;
+    }
+
+    // Blocos do relatório de uma validação: justificativa (se houver) e cada ponto com seus três campos.
+    function blocosDe(v) {
+      const blocos = [];
+      if (v.justificativa) blocos.push({ titulo: 'Justificativa', campos: [{ rotulo: 'Motivo do status atual', texto: v.justificativa }] });
+      if (v.pontos.length) {
+        v.pontos.forEach((p, i) => blocos.push({
+          titulo: `${i + 1}. ${p.titulo || '(sem título)'}  [${p.categoria}]`,
+          campos: [
+            { rotulo: 'O que foi identificado', texto: p.identificado },
+            { rotulo: 'Por que isso não pode ocorrer', texto: p.motivo },
+            { rotulo: 'Orientação / solução recomendada', texto: p.orientacao },
+          ],
+        }));
+      } else blocos.push({ titulo: 'Nenhum ponto identificado nesta validação.', campos: [] });
+      return blocos;
+    }
+
+    // Relatório de uma validação: ficha + checklist + justificativa + pontos.
     async function baixarRelatorio(v) {
       const feitos = v.checklist.filter(c => c.done).length;
       const slug = norm(`${v.nome}-${v.atividade}`).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -630,21 +657,9 @@
           arquivo: `validacao-${slug || v.id}-${today}`,
           orientacao: 'portrait',
           geradoPor: session ? session.user.email : '',
-          identificacao: [
-            { rotulo: 'Empresa', valor: v.nome }, { rotulo: 'Atividade', valor: v.atividade },
-            { rotulo: 'Analista responsável', valor: v.analista }, { rotulo: 'Status', valor: STATUS_LABEL[v.status] },
-          ],
+          identificacao: identificacaoDe(v, competencia),
           resumo: [{ label: 'Pontos identificados', valor: v.pontos.length }, { label: 'Checklist', valor: `${feitos}/${v.checklist.length}` }],
-          blocos: v.pontos.length
-            ? v.pontos.map((p, i) => ({
-                titulo: `${i + 1}. ${p.titulo || '(sem título)'}  [${p.categoria}]`,
-                campos: [
-                  { rotulo: 'O que foi identificado', texto: p.identificado },
-                  { rotulo: 'Por que isso não pode ocorrer', texto: p.motivo },
-                  { rotulo: 'Orientação / solução recomendada', texto: p.orientacao },
-                ],
-              }))
-            : [{ titulo: 'Nenhum ponto identificado nesta validação.', campos: [] }],
+          blocos: blocosDe(v),
         });
         flash('Relatório em PDF gerado.');
       } catch (err) { flash('Não foi possível gerar o PDF. Tente novamente.'); }
@@ -660,6 +675,8 @@
     const fAtividade = document.getElementById('fAtividade');
     const fAnalista = document.getElementById('fAnalista');
     const fStatus = document.getElementById('fStatus');
+    const fJust = document.getElementById('fJust');
+    const retifInfo = document.getElementById('retifInfo');
     const pontosList = document.getElementById('pontosList');
     const savedAt = document.getElementById('savedAt');
     const btnConcluir = document.getElementById('panelConcluir');
@@ -692,13 +709,25 @@
       });
     }
 
+    // Categorias vêm do cadastro (Administração); quem está em uso e saiu do cadastro continua aparecendo.
+    function opcoesCategoria(atual) {
+      const lista = categoriasLista();
+      if (atual && !lista.includes(atual)) lista.push(atual);
+      return lista.map(c => `<option value="${esc(c)}"${c === atual ? ' selected' : ''}>${esc(c)}</option>`).join('')
+        + '<option value="__nova__">+ Nova categoria…</option>';
+    }
+
     function pontoBlocoHtml(p, i) {
       return `
         <div class="vd-ponto" data-pid="${esc(p.id)}">
           <div class="vd-ponto-head">
             <div class="vd-ponto-cat form-row">
               <label for="cat-${esc(p.id)}">Categoria</label>
-              <select id="cat-${esc(p.id)}" data-f="categoria">${CATEGORIAS.map(c => `<option value="${esc(c)}"${c === p.categoria ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select>
+              <select id="cat-${esc(p.id)}" data-f="categoria">${opcoesCategoria(p.categoria)}</select>
+              <div class="vd-novacat" hidden>
+                <input type="text" id="nc-${esc(p.id)}" placeholder="Nome da nova categoria" aria-label="Nome da nova categoria" />
+                <button type="button" class="btn-outline" data-act="addcat">Adicionar</button>
+              </div>
             </div>
             <div class="vd-ponto-tit form-row">
               <label for="tit-${esc(p.id)}">Título do ponto</label>
@@ -723,15 +752,18 @@
     }
 
     function salvar() {
-      const dados = { nome: fEmpresa.value.trim(), atividade: fAtividade.value.trim(), analista: fAnalista.value.trim(), status: fStatus.value };
+      const dados = { nome: fEmpresa.value.trim(), atividade: fAtividade.value.trim(), analista: fAnalista.value.trim(), status: fStatus.value,
+                      justificativa: fJust.value.trim() };
       if (!atual) {
         if (!dados.nome) return;
-        atual = { id: nextId('v'), checklist: rascunho.checklist, pontos: rascunho.pontos, ...dados, atualizadoEm: today };
+        atual = { id: nextId('v'), checklist: rascunho.checklist, pontos: rascunho.pontos, ...dados, atualizadoEm: today,
+                  competencia, criadoEm: today, concluidaEm: '', retificadora: null };
         validacoes.push(atual);
         rascunho = null;
       } else {
         Object.assign(atual, dados, { atualizadoEm: today });
       }
+      atual.concluidaEm = atual.status === 'concluida' ? (atual.concluidaEm || today) : '';
       panelTitle.textContent = atual.nome;
       panelSubtitle.textContent = atual.atividade || 'Sem atividade';
       savedAt.textContent = `Salvo automaticamente às ${horaAgora()}`;
@@ -743,6 +775,13 @@
       btnConcluir.textContent = fStatus.value === 'concluida' ? 'Reabrir validação' : 'Marcar como concluída';
     }
 
+    function mostrarRetificadora(v) {
+      retifInfo.hidden = !(v && v.retificadora);
+      if (v && v.retificadora) {
+        retifInfo.textContent = `Retificadora da validação de ${competenciaExtenso(v.retificadora.competencia)}. O registro original continua guardado no Conhecimento.`;
+      }
+    }
+
     function abrirPainel() { vdPanel.classList.add('open'); panelBackdrop.classList.add('open'); }
 
     function openPanel(id) {
@@ -751,6 +790,8 @@
       panelTitle.textContent = atual.nome;
       panelSubtitle.textContent = atual.atividade || 'Sem atividade';
       fEmpresa.value = atual.nome; fAtividade.value = atual.atividade; fAnalista.value = atual.analista; fStatus.value = atual.status;
+      fJust.value = atual.justificativa || '';
+      mostrarRetificadora(atual);
       savedAt.textContent = '';
       atualizarBotaoConcluir();
       renderChecklist(); renderPontos();
@@ -762,7 +803,8 @@
       rascunho = { checklist: makeChecklist([]), pontos: [] };
       panelTitle.textContent = 'Nova validação';
       panelSubtitle.textContent = 'Preencha empresa e atividade — o que você digita é salvo automaticamente.';
-      fEmpresa.value = ''; fAtividade.value = ''; fAnalista.value = ''; fStatus.value = 'pendente';
+      fEmpresa.value = ''; fAtividade.value = ''; fAnalista.value = ''; fStatus.value = 'pendente'; fJust.value = '';
+      mostrarRetificadora(null);
       savedAt.textContent = '';
       atualizarBotaoConcluir();
       renderChecklist(); renderPontos();
@@ -781,8 +823,13 @@
     panelBackdrop.addEventListener('click', closePanel);
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closePanel(); closeDropdown(); } });
 
-    [fEmpresa, fAtividade, fAnalista].forEach(el => el.addEventListener('input', salvar));
+    [fEmpresa, fAtividade, fAnalista, fJust].forEach(el => el.addEventListener('input', salvar));
     fStatus.addEventListener('change', salvar);
+    // Ao escolher uma empresa do cadastro, sugere o responsável dela como analista (se o campo estiver vazio).
+    fEmpresa.addEventListener('change', () => {
+      const cad = empresaPorNome(fEmpresa.value);
+      if (cad && !fAnalista.value.trim()) { fAnalista.value = cad.responsavel; salvar(); }
+    });
 
     document.getElementById('addPontoBtn').addEventListener('click', () => {
       const alvo = atual || rascunho;
@@ -798,12 +845,33 @@
     function atualizarPonto(el) {
       const bloco = el.closest('.vd-ponto');
       if (!bloco || !el.dataset.f) return;
+      if (el.dataset.f === 'categoria' && el.value === '__nova__') {
+        const p0 = (atual || rascunho).pontos.find(x => x.id === bloco.dataset.pid);
+        el.value = p0 ? p0.categoria : 'Outros';
+        const area = bloco.querySelector('.vd-novacat');
+        area.hidden = false;
+        area.querySelector('input').focus();
+        return;
+      }
       const p = (atual || rascunho).pontos.find(x => x.id === bloco.dataset.pid);
       if (p) { p[el.dataset.f] = el.value; salvar(); }
     }
     pontosList.addEventListener('input', (e) => atualizarPonto(e.target));
     pontosList.addEventListener('change', (e) => atualizarPonto(e.target));
+    function adicionarNovaCategoria(bloco) {
+      const campo = bloco.querySelector('.vd-novacat input');
+      const nome = adicionarCategoria(campo.value);
+      if (!nome) { campo.focus(); return; }
+      const p = (atual || rascunho).pontos.find(x => x.id === bloco.dataset.pid);
+      if (p) p.categoria = nome;
+      renderPontos(); salvar();
+    }
+    pontosList.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && e.target.closest('.vd-novacat')) { e.preventDefault(); adicionarNovaCategoria(e.target.closest('.vd-ponto')); }
+    });
     pontosList.addEventListener('click', (e) => {
+      const add = e.target.closest('[data-act="addcat"]');
+      if (add) { adicionarNovaCategoria(add.closest('.vd-ponto')); return; }
       const btn = e.target.closest('[data-act="rm"]');
       if (!btn) return;
       if (!btn.classList.contains('armed')) {
@@ -825,12 +893,82 @@
     btnConcluir.addEventListener('click', () => {
       if (!atual) { fEmpresa.focus(); savedAt.textContent = 'Informe a empresa antes de concluir.'; return; }
       const reabrir = atual.status === 'concluida';
-      atual.status = reabrir ? 'andamento' : 'concluida';
-      atual.atualizadoEm = today;
+      definirStatus(atual, reabrir ? 'andamento' : 'concluida');
       closePanel();
       render();
       flash(reabrir ? 'Validação reaberta (Em andamento).' : 'Validação concluída. Ela fica oculta da lista — filtre por Status para vê-la.');
     });
+
+    // ---------- encerrar mês ----------
+
+    const encModal = document.getElementById('encModal');
+    const encTitulo = document.getElementById('encTitulo');
+    const encCorpo = document.getElementById('encCorpo');
+    const encAcoes = document.getElementById('encAcoes');
+    const fecharEnc = () => { encModal.hidden = true; };
+
+    function abrirEnc() {
+      const lista = validacoes.slice();
+      encTitulo.textContent = `Encerrar ${competenciaExtenso(competencia)}`;
+      if (!lista.length) {
+        encCorpo.innerHTML = '<p>Não há validações nesta competência para encerrar.</p>';
+        encAcoes.innerHTML = '<button type="button" class="btn-outline" data-enc="fechar">Fechar</button>';
+        encModal.hidden = false;
+        return;
+      }
+      const faltam = lista.filter(v => v.status !== 'concluida' && !(v.justificativa || '').trim());
+      const empresasN = new Set(lista.map(v => v.nome.trim().toLowerCase())).size;
+      const cont = (st) => lista.filter(v => v.status === st).length;
+      const chips = [['Empresas', empresasN], ['Validações', lista.length], ...STATUS_ORDER.map(st => [STATUS_LABEL[st], cont(st)])]
+        .filter(([, n]) => n > 0).map(([l, n]) => `<span class="enc-chip"><strong>${n}</strong> ${esc(l)}</span>`).join('');
+      encCorpo.innerHTML = `
+        <p>Cada empresa vira um arquivo no <strong>Conhecimento</strong>, com PDF, reunindo todas as validações do mês: concluídas, pendentes,
+        em andamento, em impedimento e canceladas, com as justificativas. Depois disso a lista fica vazia para
+        <strong>${esc(competenciaExtenso(proximaCompetencia(competencia)))}</strong>. Nada é apagado: o arquivo guarda o que foi encerrado, e um novo registro sobre o mesmo
+        assunto entra como retificadora.</p>
+        <div class="enc-resumo">${chips}</div>
+        ${faltam.length ? `
+        <div class="enc-alerta" role="alert">
+          <strong>${faltam.length} ${faltam.length === 1 ? 'validação sem justificativa' : 'validações sem justificativa'}.</strong>
+          Toda validação não concluída precisa de justificativa para ser encerrada.
+          <ul>${faltam.map(v => `<li><span>${esc(v.nome)} — ${esc(v.atividade)} (${esc(STATUS_LABEL[v.status])})</span>
+            <button type="button" class="btn-outline" data-abrir="${esc(v.id)}">Preencher</button></li>`).join('')}</ul>
+        </div>` : ''}`;
+      encAcoes.innerHTML = `<button type="button" class="btn-outline" data-enc="fechar">Cancelar</button>
+        <button type="button" class="btn-fill" data-enc="confirmar"${faltam.length ? ' disabled' : ''}>Encerrar e enviar ao Conhecimento</button>`;
+      encModal.hidden = false;
+    }
+
+    function encerrarMes() {
+      const encerradas = competencia;
+      const novos = montarArquivos(validacoes, encerradas, today, session ? session.user.email : '');
+      salvarArquivos([...novos, ...listarArquivos()]);
+      const total = validacoes.length;
+      competencia = proximaCompetencia(encerradas);
+      definirCompetencia(competencia);
+      validacoes = [];
+      closePanel();
+      render();
+      encTitulo.textContent = 'Mês encerrado';
+      encCorpo.innerHTML = `<p><strong>${total}</strong> ${total === 1 ? 'validação foi enviada' : 'validações foram enviadas'} ao Conhecimento em
+        <strong>${novos.length}</strong> ${novos.length === 1 ? 'arquivo' : 'arquivos'}, um por empresa, referentes a ${esc(competenciaExtenso(encerradas))}.
+        A lista de Validações está limpa para ${esc(competenciaExtenso(competencia))}.</p>`;
+      encAcoes.innerHTML = '<button type="button" class="btn-outline" data-enc="fechar">Fechar</button><a class="btn-fill" href="conhecimento.html">Abrir Conhecimento</a>';
+    }
+
+    document.getElementById('btnEncerrar').addEventListener('click', abrirEnc);
+    encModal.addEventListener('click', (e) => {
+      if (e.target === encModal) { fecharEnc(); return; }
+      const ab = e.target.closest('[data-abrir]');
+      if (ab) { fecharEnc(); openPanel(ab.dataset.abrir); fJust.focus(); return; }
+      const acao = e.target.closest('[data-enc]');
+      if (!acao) return;
+      if (acao.dataset.enc === 'fechar') fecharEnc();
+      if (acao.dataset.enc === 'confirmar') encerrarMes();
+    });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') fecharEnc(); });
+
+    document.getElementById('btnRestaurar').addEventListener('click', () => { restaurarExemplos(); window.location.reload(); });
 
     render();
   </script>

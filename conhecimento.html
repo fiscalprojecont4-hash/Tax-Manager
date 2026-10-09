@@ -1,0 +1,927 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Conhecimento — Tax Manager Projecont</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/conhecimento.css" />
+</head>
+<body>
+  <nav class="topnav">
+    <a href="dashboard.html" class="topnav-brand">
+      <img src="assets/hero-login.jpg" alt="" />
+      <span>Tax Manager</span>
+    </a>
+
+    <div class="topnav-tabs">
+      <a href="dashboard.html">Painel</a>
+      <a href="tarefas.html">Tarefas</a>
+
+      <div class="nav-dropdown" id="modulosDropdown">
+        <button type="button" class="nav-dropdown-trigger active" id="modulosTrigger">
+          Módulos
+          <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="nav-dropdown-panel" role="menu">
+          <a class="nav-dropdown-item" href="validacoes.html" role="menuitem">
+            <h4>Validações</h4>
+            <p>Checklists por empresa, achados, revisão e aprovação.</p>
+          </a>
+          <a class="nav-dropdown-item active" href="conhecimento.html" role="menuitem">
+            <h4>Conhecimento</h4>
+            <p>Histórico mensal das validações e mapeamento fiscal por empresa.</p>
+          </a>
+          <a class="nav-dropdown-item" href="administracao.html" role="menuitem">
+            <h4>Administração</h4>
+            <p>Categorias, empresas, responsáveis e executores.</p>
+          </a>
+        </div>
+      </div>
+
+      <a href="calendar.html">Calendário</a>
+      <a href="projetos.html">Projetos</a>
+    </div>
+
+    <div class="topnav-right">
+      <div class="notif-wrap" id="notifWrap">
+        <button type="button" class="notif-bell" id="notifBell" aria-label="Notificações">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="notif-badge" id="notifBadge" style="display:none">0</span>
+        </button>
+        <div class="notif-panel" id="notifPanel">
+          <div class="notif-panel-header">
+            <h4>Notificações</h4>
+            <button type="button" class="notif-mark-all" id="notifMarkAll">Marcar todas como lidas</button>
+          </div>
+          <div class="notif-list" id="notifList"></div>
+        </div>
+      </div>
+      <span class="user-email" id="userEmail">…</span>
+      <button id="logoutBtn">Sair</button>
+    </div>
+  </nav>
+
+  <main class="wrap-fluid">
+    <div class="data-note">
+      ⚠ Dados de exemplo — o histórico e o mapeamento ficam guardados só neste navegador até o banco (Supabase/PostgreSQL) ser ligado.
+      <button type="button" class="link-btn" id="btnRestaurar">Restaurar exemplos</button>
+    </div>
+
+    <div class="tab-bar" role="tablist" aria-label="Conhecimento">
+      <button type="button" role="tab" id="tabHist" aria-selected="true" aria-controls="paneHist">Histórico e padrões</button>
+      <button type="button" role="tab" id="tabMap" aria-selected="false" aria-controls="paneMap">Mapeamento fiscal</button>
+    </div>
+
+    <!-- ===================== Histórico e padrões ===================== -->
+    <section id="paneHist" role="tabpanel" aria-labelledby="tabHist">
+      <div class="kn-toolbar">
+        <div class="kn-toolbar-right">
+          <button type="button" class="btn-outline" id="hBtnPdf">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Gerar PDF da lista
+          </button>
+        </div>
+      </div>
+
+      <div class="kn-cards" id="padroes"></div>
+
+      <div class="filter-bar">
+        <div class="filter-search">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="search" id="hSearch" placeholder="Buscar empresa, atividade ou justificativa…" aria-label="Buscar no histórico" />
+        </div>
+        <div id="hMsCompetencia"></div>
+        <div id="hMsEmpresa"></div>
+        <div id="hMsStatus"></div>
+        <div id="hMsAnalista"></div>
+        <button type="button" class="btn-outline" id="hLimpar" hidden>Limpar filtros</button>
+      </div>
+      <p class="filter-note" id="hNote" aria-live="polite"></p>
+
+      <div class="table-card">
+        <table class="data-table" id="hTable">
+          <thead>
+            <tr>
+              <th>Empresa</th><th>Competência</th><th>Validações</th><th>Situação no encerramento</th><th>Pontos</th><th>Encerrado em</th>
+              <th class="col-actions">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="hRows"></tbody>
+        </table>
+        <div class="empty-state" id="hEmpty" hidden>Nenhum arquivo com esses filtros. Os arquivos aparecem aqui quando o mês é encerrado em Validações.</div>
+      </div>
+    </section>
+
+    <!-- ===================== Mapeamento fiscal ===================== -->
+    <section id="paneMap" role="tabpanel" aria-labelledby="tabMap" hidden>
+      <div class="kn-toolbar">
+        <button type="button" class="btn-outline" id="mBtnGerencial" aria-pressed="false" aria-controls="mGerencial">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          Painel gerencial
+        </button>
+        <div class="kn-toolbar-right">
+          <button type="button" class="btn-outline" id="mBtnCsv">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Exportar CSV
+          </button>
+          <button type="button" class="btn-outline" id="mBtnPdf">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Gerar PDF
+          </button>
+          <button type="button" class="btn-new" id="mBtnNovo">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Novo problema
+          </button>
+        </div>
+      </div>
+
+      <div class="kn-gerencial" id="mGerencial" hidden>
+        <div class="kn-gerencial-head">
+          <h3>Painel gerencial</h3>
+          <button type="button" class="btn-outline" id="mBtnPdfGerencial">Gerar PDF do painel</button>
+        </div>
+        <div class="kpi-row" id="mKpis"></div>
+        <div class="kn-cards" id="mBarras"></div>
+      </div>
+
+      <div class="filter-bar">
+        <div class="filter-search">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="search" id="mSearch" placeholder="Buscar empresa, problema ou contexto…" aria-label="Buscar no mapeamento" />
+        </div>
+        <div id="mMsStatus"></div>
+        <div id="mMsCompl"></div>
+        <div id="mMsEmpresa"></div>
+        <div id="mMsProblema"></div>
+        <div id="mMsResp"></div>
+        <div id="mMsExec"></div>
+        <div id="mMsPrazo"></div>
+        <button type="button" class="btn-outline" id="mLimpar" hidden>Limpar filtros</button>
+      </div>
+      <p class="filter-note" id="mNote" aria-live="polite"></p>
+
+      <div class="table-card">
+        <table class="data-table" id="mTable">
+          <thead>
+            <tr>
+              <th>Empresa</th><th>Problema</th><th>Complexidade</th><th>Prazo</th><th>Responsável</th><th>Origem do erro</th>
+              <th>Status</th><th>Registrado em</th><th class="col-actions">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="mRows"></tbody>
+        </table>
+        <div class="empty-state" id="mEmpty" hidden>Nenhum problema com esses filtros.</div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Painel lateral do problema mapeado -->
+  <div class="side-panel-backdrop" id="mBackdrop"></div>
+  <aside class="side-panel" id="mPanel">
+    <div class="side-panel-header">
+      <div>
+        <h3 id="mTitulo">Novo problema</h3>
+        <p id="mSubtitulo">Escolha a empresa e o problema — o que você digita é salvo automaticamente.</p>
+      </div>
+      <button type="button" class="side-panel-close" id="mFechar" aria-label="Fechar">✕</button>
+    </div>
+    <div class="side-panel-body">
+      <div class="form-row form-row-split">
+        <div>
+          <label for="mEmpresa">Empresa</label>
+          <input type="text" id="mEmpresa" list="mEmpresas" autocomplete="off" />
+          <datalist id="mEmpresas"></datalist>
+        </div>
+        <div>
+          <label for="mProblema">Problema</label>
+          <select id="mProblema"></select>
+          <div class="kn-novacat" id="mNovaCat" hidden>
+            <input type="text" id="mNovaCatNome" placeholder="Nome da nova categoria" aria-label="Nome da nova categoria" />
+            <button type="button" class="btn-outline" id="mNovaCatOk">Adicionar</button>
+          </div>
+        </div>
+      </div>
+      <div class="form-row form-row-split">
+        <div>
+          <label for="mCompl">Complexidade</label>
+          <select id="mCompl"></select>
+        </div>
+        <div>
+          <label for="mPrazo">Prazo</label>
+          <input type="date" id="mPrazo" />
+        </div>
+      </div>
+      <div class="form-row form-row-split">
+        <div>
+          <label for="mResp">Responsável</label>
+          <input type="text" id="mResp" list="mPessoas" autocomplete="off" />
+          <datalist id="mPessoas"></datalist>
+        </div>
+        <div>
+          <label for="mExec">Origem do erro (executor)</label>
+          <input type="text" id="mExec" list="mPessoas" autocomplete="off" />
+          <p class="field-hint" id="mExecHint"></p>
+        </div>
+      </div>
+      <div class="form-row">
+        <label for="mStatus">Status</label>
+        <select id="mStatus"></select>
+      </div>
+      <div class="form-row">
+        <label for="mContexto">Contexto</label>
+        <textarea id="mContexto" rows="8" placeholder="O que ocorreu, como ocorreu e o que precisa ser feito."></textarea>
+      </div>
+    </div>
+    <div class="side-panel-footer kn-footer">
+      <button type="button" class="btn-outline" id="mPanelPdf">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Baixar PDF
+      </button>
+      <span class="kn-saved" id="mSaved" aria-live="polite"></span>
+      <button type="button" class="btn-fill" id="mConcluir">Marcar como resolvido</button>
+    </div>
+  </aside>
+
+  <script type="module">
+    import { iniciarShell } from './js/shell.js';
+    import { STATUS_ORDER, STATUS_LABEL, STATUS_BADGE, STATUS_OCULTOS, statusVisivel, PRIORIDADE_ORDER, PRIORIDADE_LABEL, PRIORIDADE_BADGE,
+             esc, norm, fmtBR, downloadFile, csvCell, createMultiSelect, abrirStatusMenu, statusPillHtml } from './js/lista-ui.js';
+    import { gerarPdf } from './js/relatorio-pdf.js';
+    import { carregar, gravar, restaurarExemplos, hojeIso, somarDias, novoId, novoChecklist, categorias, adicionarCategoria, empresas as listarEmpresas,
+             empresaPorNome, competenciaVigente, competenciaExtenso, competenciaCurta, arquivos as listarArquivos, resumoArquivo,
+             mapeamento as listarMapeamento, salvarMapeamento, validacoesExemplo } from './js/dados-teste.js';
+
+    const session = await iniciarShell();
+    const today = hojeIso();
+    const geradoPor = session ? session.user.email : '';
+
+    document.getElementById('btnRestaurar').addEventListener('click', () => { restaurarExemplos(); window.location.reload(); });
+
+    const svg = (d) => `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+    const ICON = {
+      pdf: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>',
+      mail: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 7L2 7"/>',
+      edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+      trash: '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>',
+    };
+    const slug = (t) => norm(t).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+    let flashTimer = null;
+    function flash(el, msg, depois) {
+      el.dataset.flash = '1';
+      el.textContent = msg;
+      clearTimeout(flashTimer);
+      flashTimer = setTimeout(() => { delete el.dataset.flash; depois(); }, 6000);
+    }
+
+    // ---------- abas ----------
+    const abas = { hist: ['tabHist', 'paneHist'], map: ['tabMap', 'paneMap'] };
+    function mostrarAba(qual) {
+      Object.entries(abas).forEach(([k, [t, p]]) => {
+        document.getElementById(t).setAttribute('aria-selected', String(k === qual));
+        document.getElementById(p).hidden = k !== qual;
+      });
+      try { history.replaceState(null, '', '#' + (qual === 'map' ? 'mapeamento' : 'historico')); } catch { /* ignora */ }
+    }
+    Object.entries(abas).forEach(([k, [t]]) => document.getElementById(t).addEventListener('click', () => mostrarAba(k)));
+    if (location.hash === '#mapeamento') mostrarAba('map');
+
+    // ---------- barras (padrões e painel gerencial) ----------
+    function contar(lista, chave) {
+      const m = new Map();
+      lista.forEach(x => { const k = chave(x); if (k) m.set(k, (m.get(k) || 0) + 1); });
+      return [...m.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+    }
+    function barrasHtml(pares, cor = '') {
+      if (!pares.length) return '<p class="kn-empty">Sem dados ainda.</p>';
+      const max = Math.max(...pares.map(([, n]) => n));
+      return `<div class="kn-bars">${pares.map(([nome, n]) => `
+        <div class="kn-bar-row"><span class="kn-bar-label" title="${esc(nome)}">${esc(nome)}</span>
+        <span class="kn-bar-track"><i class="${cor}" style="width:${Math.max(4, Math.round((n / max) * 100))}%"></i></span><span class="kn-bar-n">${n}</span></div>`).join('')}</div>`;
+    }
+    const cartao = (titulo, sub, corpo) => `<div class="kn-card"><h4>${esc(titulo)}</h4><p>${esc(sub)}</p>${corpo}</div>`;
+
+    // ======================================================================
+    // Histórico e padrões
+    // ======================================================================
+
+    let arqs = listarArquivos();
+    const hf = { q: '', competencia: [], empresa: [], status: [], analista: [] };
+    const abertos = new Set();   // arquivos com o detalhe expandido
+
+    const hMs = {
+      competencia: createMultiSelect(document.getElementById('hMsCompetencia'), { rotuloTodos: 'Toda competência', rotuloCurto: 'Competência', options: [], onChange: v => hSet('competencia', v) }),
+      empresa: createMultiSelect(document.getElementById('hMsEmpresa'), { rotuloTodos: 'Toda empresa', rotuloCurto: 'Empresa', options: [], onChange: v => hSet('empresa', v) }),
+      status: createMultiSelect(document.getElementById('hMsStatus'), { rotuloTodos: 'Todo status', rotuloCurto: 'Status',
+        options: STATUS_ORDER.map(value => ({ value, label: STATUS_LABEL[value] })), onChange: v => hSet('status', v) }),
+      analista: createMultiSelect(document.getElementById('hMsAnalista'), { rotuloTodos: 'Todo analista', rotuloCurto: 'Analista', options: [], onChange: v => hSet('analista', v) }),
+    };
+    function hSet(k, v) { hf[k] = v; hMs[k].set(v); hRender(); }
+    document.getElementById('hSearch').addEventListener('input', (e) => { hf.q = e.target.value; hRender(); });
+    document.getElementById('hLimpar').addEventListener('click', () => {
+      hf.q = ''; document.getElementById('hSearch').value = '';
+      Object.keys(hMs).forEach(k => { hf[k] = []; hMs[k].clear(); });
+      hRender();
+    });
+
+    const hFiltrosAtivos = () => !!hf.q || ['competencia', 'empresa', 'status', 'analista'].some(k => hf[k].length);
+    function hDescricaoFiltros() {
+      const p = [];
+      if (hf.q) p.push(`Busca: "${hf.q}"`);
+      if (hf.competencia.length) p.push(`Competência: ${hf.competencia.map(competenciaCurta).join(', ')}`);
+      if (hf.empresa.length) p.push(`Empresa: ${hf.empresa.join(', ')}`);
+      if (hf.status.length) p.push(`Status: ${hf.status.map(s => STATUS_LABEL[s]).join(', ')}`);
+      if (hf.analista.length) p.push(`Analista: ${hf.analista.join(', ')}`);
+      return p;
+    }
+
+    function hMatch(a) {
+      if (hf.q) {
+        const texto = norm(`${a.empresa} ${a.itens.map(i => `${i.atividade} ${i.analista} ${i.justificativa}`).join(' ')}`);
+        if (!texto.includes(norm(hf.q))) return false;
+      }
+      if (hf.competencia.length && !hf.competencia.includes(a.competencia)) return false;
+      if (hf.empresa.length && !hf.empresa.includes(a.empresa)) return false;
+      if (hf.status.length && !a.itens.some(i => hf.status.includes(i.status))) return false;
+      if (hf.analista.length && !a.itens.some(i => hf.analista.includes(i.analista || 'Sem analista'))) return false;
+      return true;
+    }
+    const hLista = () => arqs.filter(hMatch).sort((a, b) => b.competencia.localeCompare(a.competencia) || a.empresa.localeCompare(b.empresa));
+
+    // Quem retifica um item arquivado: uma validação atual ou um item de arquivo posterior.
+    function retificadoraDe(itemId) {
+      const atuais = carregar('validacoes', validacoesExemplo);
+      const v = atuais.find(x => x.retificadora && x.retificadora.itemId === itemId);
+      if (v) return { onde: 'validacao', criadaEm: v.criadoEm, status: v.status, concluidaEm: v.concluidaEm, competencia: v.competencia };
+      for (const a of arqs) {
+        const it = a.itens.find(x => x.retificadora && x.retificadora.itemId === itemId);
+        if (it) return { onde: 'arquivo', criadaEm: it.criadoEm, status: it.status, concluidaEm: it.concluidaEm, competencia: a.competencia };
+      }
+      return null;
+    }
+
+    function badgesArquivo(a) {
+      const r = resumoArquivo(a);
+      return STATUS_ORDER.filter(s => r[s]).map(s => `<span class="badge ${STATUS_BADGE[s]}">${r[s]} ${esc(STATUS_LABEL[s].toLowerCase())}</span>`).join('');
+    }
+
+    function itemHtml(a, i) {
+      const analista = i.analista ? esc(i.analista) : 'sem analista';
+      const meta = [`Criada em ${fmtBR(i.criadoEm)}`, i.concluidaEm ? `Concluída em ${fmtBR(i.concluidaEm)}` : '', `Checklist ${i.checklistFeitos}/${i.checklistTotal}`]
+        .filter(Boolean).join(' · ');
+      const pontos = (i.pontos || []).length
+        ? `<p><span class="kn-label">Pontos identificados:</span> ${i.pontos.map(p => `${esc(p.titulo || '(sem título)')} <span class="muted">[${esc(p.categoria)}]</span>`).join('; ')}</p>` : '';
+      const justif = i.justificativa ? `<p><span class="kn-label">Justificativa:</span> ${esc(i.justificativa)}</p>` : '';
+      const eRetif = i.retificadora ? `<p class="kn-retif">Retificadora da validação de ${esc(competenciaExtenso(i.retificadora.competencia))}. O registro original continua arquivado.</p>` : '';
+      const ret = retificadoraDe(i.id);
+      let retInfo = '';
+      let acao = '';
+      if (ret) {
+        retInfo = `<p class="kn-retif">Retificada em ${esc(fmtBR(ret.criadaEm))} (${esc(competenciaExtenso(ret.competencia))}): ${ret.status === 'concluida' && ret.concluidaEm
+          ? `concluída em ${esc(fmtBR(ret.concluidaEm))}` : `situação atual: ${esc(STATUS_LABEL[ret.status].toLowerCase())}`}. Este registro original não foi alterado.</p>`;
+      } else if (i.status !== 'concluida') {
+        acao = `<button type="button" class="btn-outline" data-retif="${esc(a.id)}|${esc(i.id)}">Criar retificadora</button>`;
+      }
+      return `<div class="kn-item">
+        <div class="kn-item-head"><strong>${esc(i.atividade)}</strong><span class="badge ${STATUS_BADGE[i.status]}">${esc(STATUS_LABEL[i.status])}</span>
+          <span class="muted">Analista: ${analista}</span></div>
+        <p class="kn-item-meta">${esc(meta)}</p>${justif}${pontos}${eRetif}${retInfo}
+        ${acao ? `<div class="kn-item-actions">${acao}</div>` : ''}</div>`;
+    }
+
+    function hRowHtml(a) {
+      const r = resumoArquivo(a);
+      const aberto = abertos.has(a.id);
+      let html = `
+        <tr class="kn-arq${aberto ? ' is-open' : ''}" data-id="${esc(a.id)}">
+          <td class="col-main"><span class="kn-seta" aria-hidden="true">▸</span>${esc(a.empresa)}</td>
+          <td data-label="Competência">${esc(competenciaCurta(a.competencia))}</td>
+          <td data-label="Validações"><strong>${r.total}</strong></td>
+          <td data-label="Situação"><div class="kn-badges">${badgesArquivo(a)}</div></td>
+          <td data-label="Pontos">${r.pontos ? `<strong>${r.pontos}</strong>` : '<span class="muted">—</span>'}</td>
+          <td data-label="Encerrado em" class="muted">${fmtBR(a.encerradoEm)}</td>
+          <td class="col-actions">
+            <button type="button" class="icon-btn" data-act="pdf" title="Baixar PDF da empresa" aria-label="Baixar PDF de ${esc(a.empresa)}">${svg(ICON.pdf)}</button>
+          </td>
+        </tr>`;
+      if (aberto) html += `<tr class="kn-detail" data-det="${esc(a.id)}"><td colspan="7"><div class="kn-itens">${a.itens.map(i => itemHtml(a, i)).join('')}</div></td></tr>`;
+      return html;
+    }
+
+    function hPadroes() {
+      const itens = arqs.flatMap(a => a.itens.map(i => ({ ...i, empresa: a.empresa })));
+      const pontos = itens.flatMap(i => i.pontos || []);
+      const naoConcl = itens.filter(i => i.status !== 'concluida');
+      document.getElementById('padroes').innerHTML =
+        cartao('Categorias mais frequentes', 'Pontos identificados nas validações arquivadas.', barrasHtml(contar(pontos, p => p.categoria).slice(0, 6))) +
+        cartao('Itens não concluídos por empresa', 'Pendentes, em andamento, em impedimento ou cancelados no encerramento.',
+          barrasHtml(contar(naoConcl, i => i.empresa).slice(0, 6), 'warning'));
+    }
+
+    function hOpcoes() {
+      const unicos = (fn) => [...new Set(arqs.flatMap(fn).filter(Boolean))];
+      hMs.competencia.setOptions(unicos(a => [a.competencia]).sort().reverse().map(c => ({ value: c, label: competenciaExtenso(c) })));
+      hMs.empresa.setOptions(unicos(a => [a.empresa]).sort((x, y) => x.localeCompare(y)).map(x => ({ value: x, label: x })));
+      hMs.analista.setOptions(unicos(a => a.itens.map(i => i.analista || 'Sem analista')).sort((x, y) => x.localeCompare(y)).map(x => ({ value: x, label: x })));
+      ['competencia', 'empresa', 'analista'].forEach(k => { hf[k] = hMs[k].values(); });
+    }
+
+    function hRender() {
+      hOpcoes();
+      hPadroes();
+      document.getElementById('hLimpar').hidden = !hFiltrosAtivos();
+      const lista = hLista();
+      document.getElementById('hRows').innerHTML = lista.map(hRowHtml).join('');
+      document.getElementById('hEmpty').hidden = lista.length > 0;
+      document.getElementById('hTable').hidden = lista.length === 0;
+      const nota = document.getElementById('hNote');
+      if (!nota.dataset.flash) nota.textContent = `${lista.length} de ${arqs.length} arquivos de empresa por competência.`;
+    }
+
+    document.getElementById('hRows').addEventListener('click', (e) => {
+      const tr = e.target.closest('tr');
+      if (!tr) return;
+      const ret = e.target.closest('[data-retif]');
+      if (ret) { criarRetificadora(...ret.dataset.retif.split('|')); return; }
+      const a = arqs.find(x => x.id === tr.dataset.id);
+      if (!a) return;
+      if (e.target.closest('[data-act="pdf"]')) { baixarArquivo(a); return; }
+      if (e.target.closest('.col-main')) { if (abertos.has(a.id)) abertos.delete(a.id); else abertos.add(a.id); hRender(); }
+    });
+
+    function criarRetificadora(arqId, itemId) {
+      const a = arqs.find(x => x.id === arqId);
+      const i = a && a.itens.find(x => x.id === itemId);
+      if (!i) return;
+      const atuais = carregar('validacoes', validacoesExemplo);
+      atuais.push({
+        id: novoId('v'), nome: a.empresa, atividade: i.atividade, analista: i.analista, status: 'pendente', checklist: novoChecklist([]),
+        atualizadoEm: today, pontos: [], competencia: competenciaVigente(), criadoEm: today, justificativa: '', concluidaEm: '',
+        retificadora: { arquivoId: a.id, itemId: i.id, competencia: a.competencia },
+      });
+      gravar('validacoes', atuais);
+      hRender();
+      flash(document.getElementById('hNote'), `Retificadora criada em Validações (${competenciaExtenso(competenciaVigente())}). O registro de ${competenciaExtenso(a.competencia)} segue como foi encerrado.`, hRender);
+    }
+
+    // PDF de um arquivo (empresa + competência)
+    async function baixarArquivo(a) {
+      const r = resumoArquivo(a);
+      try {
+        await gerarPdf({
+          titulo: 'Arquivo de validações',
+          subtitulo: `${a.empresa} — competência ${competenciaExtenso(a.competencia)}`,
+          arquivo: `arquivo-${slug(a.empresa)}-${a.competencia}`,
+          orientacao: 'portrait',
+          geradoPor,
+          identificacao: [
+            { rotulo: 'Empresa', valor: a.empresa }, { rotulo: 'Competência', valor: competenciaExtenso(a.competencia) },
+            { rotulo: 'Encerrado em', valor: fmtBR(a.encerradoEm) }, { rotulo: 'Validações', valor: String(r.total) },
+          ],
+          resumo: STATUS_ORDER.filter(s => r[s]).map(s => ({ label: STATUS_LABEL[s], valor: r[s] })).concat([{ label: 'Pontos', valor: r.pontos }]),
+          tabelas: [{
+            colunas: ['Atividade', 'Analista', 'Status', 'Criada em', 'Concluída em', 'Justificativa'],
+            linhas: a.itens.map(i => [i.atividade, i.analista || '-', STATUS_LABEL[i.status] + (i.retificadora ? ' (retificadora)' : ''),
+              fmtBR(i.criadoEm), i.concluidaEm ? fmtBR(i.concluidaEm) : '-', i.justificativa || '-']),
+            estilosColunas: { 3: { cellWidth: 20 }, 4: { cellWidth: 22 } },
+          }],
+          blocos: a.itens.flatMap(i => (i.pontos || []).map((p, n) => ({
+            titulo: `${i.atividade} — ponto ${n + 1}: ${p.titulo || '(sem título)'}  [${p.categoria}]`,
+            campos: [{ rotulo: 'O que foi identificado', texto: p.identificado }, { rotulo: 'Por que isso não pode ocorrer', texto: p.motivo },
+                     { rotulo: 'Orientação / solução recomendada', texto: p.orientacao }],
+          }))),
+        });
+        flash(document.getElementById('hNote'), 'PDF gerado.', hRender);
+      } catch (err) { flash(document.getElementById('hNote'), 'Não foi possível gerar o PDF. Tente novamente.', hRender); }
+    }
+
+    document.getElementById('hBtnPdf').addEventListener('click', async () => {
+      const lista = hLista();
+      if (!lista.length) { flash(document.getElementById('hNote'), 'Nada para exportar com os filtros atuais.', hRender); return; }
+      try {
+        await gerarPdf({
+          titulo: 'Histórico das validações',
+          subtitulo: 'Arquivos mensais por empresa, enviados ao Conhecimento no encerramento de cada competência.',
+          arquivo: `historico-validacoes-${today}`,
+          orientacao: 'landscape',
+          geradoPor,
+          resumo: [{ label: 'Arquivos', valor: lista.length }, { label: 'Validações', valor: lista.reduce((t, a) => t + a.itens.length, 0) }],
+          filtros: hDescricaoFiltros(),
+          colunas: ['Empresa', 'Competência', 'Validações', 'Situação no encerramento', 'Pontos', 'Encerrado em'],
+          linhas: lista.map(a => {
+            const r = resumoArquivo(a);
+            return [a.empresa, competenciaCurta(a.competencia), String(r.total),
+              STATUS_ORDER.filter(s => r[s]).map(s => `${r[s]} ${STATUS_LABEL[s].toLowerCase()}`).join(', '), String(r.pontos), fmtBR(a.encerradoEm)];
+          }),
+          estilosColunas: { 1: { cellWidth: 26 }, 2: { cellWidth: 24, halign: 'center' }, 4: { cellWidth: 18, halign: 'center' }, 5: { cellWidth: 30 } },
+        });
+        flash(document.getElementById('hNote'), 'PDF gerado.', hRender);
+      } catch (err) { flash(document.getElementById('hNote'), 'Não foi possível gerar o PDF. Tente novamente.', hRender); }
+    });
+
+    // ======================================================================
+    // Mapeamento fiscal
+    // ======================================================================
+
+    let mapa = listarMapeamento();
+    const persistirMapa = () => salvarMapeamento(mapa);
+    const mf = { q: '', status: [], compl: [], empresa: [], problema: [], resp: [], exec: [], prazo: [] };
+    const PRAZO_LABEL = { vencido: 'Vencido', semana: 'Vence em 7 dias', sem: 'Sem prazo' };
+    const PRI_PESO = { critica: 0, alta: 1, normal: 2, baixa: 3 };
+    const FAIXA = { critica: 'var(--danger)', alta: 'var(--warning)', normal: 'transparent', baixa: 'transparent' };
+    const emAberto = (m) => !STATUS_OCULTOS.includes(m.status);
+    const vencido = (m) => emAberto(m) && m.prazo && m.prazo < today;
+
+    const mMs = {
+      status: createMultiSelect(document.getElementById('mMsStatus'), { rotuloTodos: 'Todo status', rotuloCurto: 'Status',
+        options: STATUS_ORDER.map(value => ({ value, label: STATUS_LABEL[value] })), onChange: v => mSet('status', v) }),
+      compl: createMultiSelect(document.getElementById('mMsCompl'), { rotuloTodos: 'Toda complexidade', rotuloCurto: 'Complexidade',
+        options: PRIORIDADE_ORDER.map(value => ({ value, label: PRIORIDADE_LABEL[value] })), onChange: v => mSet('compl', v) }),
+      empresa: createMultiSelect(document.getElementById('mMsEmpresa'), { rotuloTodos: 'Toda empresa', rotuloCurto: 'Empresa', options: [], onChange: v => mSet('empresa', v) }),
+      problema: createMultiSelect(document.getElementById('mMsProblema'), { rotuloTodos: 'Todo problema', rotuloCurto: 'Problema', options: [], onChange: v => mSet('problema', v) }),
+      resp: createMultiSelect(document.getElementById('mMsResp'), { rotuloTodos: 'Todo responsável', rotuloCurto: 'Responsável', options: [], onChange: v => mSet('resp', v) }),
+      exec: createMultiSelect(document.getElementById('mMsExec'), { rotuloTodos: 'Toda origem', rotuloCurto: 'Origem do erro', options: [], onChange: v => mSet('exec', v) }),
+      prazo: createMultiSelect(document.getElementById('mMsPrazo'), { rotuloTodos: 'Todo prazo', rotuloCurto: 'Prazo',
+        options: Object.entries(PRAZO_LABEL).map(([value, label]) => ({ value, label })), onChange: v => mSet('prazo', v) }),
+    };
+    function mSet(k, v) { mf[k] = v; mMs[k].set(v); mRender(); }
+    document.getElementById('mSearch').addEventListener('input', (e) => { mf.q = e.target.value; mRender(); });
+    document.getElementById('mLimpar').addEventListener('click', () => {
+      mf.q = ''; document.getElementById('mSearch').value = '';
+      Object.keys(mMs).forEach(k => { mf[k] = []; mMs[k].clear(); });
+      mRender();
+    });
+    const mFiltrosAtivos = () => !!mf.q || Object.keys(mMs).some(k => mf[k].length);
+    function mDescricaoFiltros() {
+      const p = [];
+      if (mf.q) p.push(`Busca: "${mf.q}"`);
+      if (mf.status.length) p.push(`Status: ${mf.status.map(s => STATUS_LABEL[s]).join(', ')}`);
+      if (mf.compl.length) p.push(`Complexidade: ${mf.compl.map(c => PRIORIDADE_LABEL[c]).join(', ')}`);
+      if (mf.empresa.length) p.push(`Empresa: ${mf.empresa.join(', ')}`);
+      if (mf.problema.length) p.push(`Problema: ${mf.problema.join(', ')}`);
+      if (mf.resp.length) p.push(`Responsável: ${mf.resp.join(', ')}`);
+      if (mf.exec.length) p.push(`Origem do erro: ${mf.exec.join(', ')}`);
+      if (mf.prazo.length) p.push(`Prazo: ${mf.prazo.map(x => PRAZO_LABEL[x]).join(', ')}`);
+      return p;
+    }
+
+    function prazoCasa(m, chaves) {
+      return chaves.some(k => (k === 'vencido' && vencido(m)) || (k === 'sem' && !m.prazo) ||
+        (k === 'semana' && m.prazo && m.prazo >= today && m.prazo <= somarDias(today, 7)));
+    }
+    function mMatch(m, ignorarStatus = false) {
+      if (mf.q && !norm(`${m.empresa} ${m.problema} ${m.contexto} ${m.responsavel} ${m.executor}`).includes(norm(mf.q))) return false;
+      if (!ignorarStatus && !statusVisivel(m.status, mf.status)) return false;
+      if (mf.compl.length && !mf.compl.includes(m.complexidade)) return false;
+      if (mf.empresa.length && !mf.empresa.includes(m.empresa)) return false;
+      if (mf.problema.length && !mf.problema.includes(m.problema)) return false;
+      if (mf.resp.length && !mf.resp.includes(m.responsavel || 'Sem responsável')) return false;
+      if (mf.exec.length && !mf.exec.includes(m.executor || 'Sem origem')) return false;
+      if (mf.prazo.length && !prazoCasa(m, mf.prazo)) return false;
+      return true;
+    }
+    const mLista = () => mapa.filter(m => mMatch(m)).sort((a, b) =>
+      (a.prazo || '9999').localeCompare(b.prazo || '9999') || PRI_PESO[a.complexidade] - PRI_PESO[b.complexidade] || a.empresa.localeCompare(b.empresa));
+
+    function mOpcoes() {
+      const u = (fn) => [...new Set(mapa.map(fn).filter(Boolean))].sort((x, y) => x.localeCompare(y)).map(x => ({ value: x, label: x }));
+      mMs.empresa.setOptions(u(m => m.empresa));
+      mMs.problema.setOptions(u(m => m.problema));
+      mMs.resp.setOptions(u(m => m.responsavel || 'Sem responsável'));
+      mMs.exec.setOptions(u(m => m.executor || 'Sem origem'));
+      ['empresa', 'problema', 'resp', 'exec'].forEach(k => { mf[k] = mMs[k].values(); });
+    }
+
+    function mRowHtml(m) {
+      const prazo = !m.prazo ? '<span class="muted">Sem prazo</span>'
+        : (vencido(m) ? `<span class="kn-row-vencido">${fmtBR(m.prazo)} <small>(vencido)</small></span>` : fmtBR(m.prazo));
+      const classe = m.status === 'concluida' ? 'is-done' : (m.status === 'cancelada' ? 'is-cancelled' : '');
+      return `
+        <tr data-id="${esc(m.id)}" class="${classe}" style="--row-accent:${FAIXA[m.complexidade]}">
+          <td class="col-main">${esc(m.empresa)}</td>
+          <td data-label="Problema">${esc(m.problema)}</td>
+          <td data-label="Complexidade"><span class="badge ${PRIORIDADE_BADGE[m.complexidade]}">${esc(PRIORIDADE_LABEL[m.complexidade])}</span></td>
+          <td data-label="Prazo">${prazo}</td>
+          <td data-label="Responsável">${m.responsavel ? esc(m.responsavel) : '<span class="muted">—</span>'}</td>
+          <td data-label="Origem do erro">${m.executor ? esc(m.executor) : '<span class="muted">—</span>'}</td>
+          <td data-label="Status">${statusPillHtml(m.status)}</td>
+          <td data-label="Registrado em" class="muted">${fmtBR(m.criadoEm)}</td>
+          <td class="col-actions">
+            <button type="button" class="icon-btn" data-act="pdf" title="Baixar PDF do problema" aria-label="Baixar PDF">${svg(ICON.pdf)}</button>
+            <button type="button" class="icon-btn" data-act="edit" title="Editar" aria-label="Editar">${svg(ICON.edit)}</button>
+            <button type="button" class="icon-btn danger" data-act="del" title="Excluir" aria-label="Excluir">${svg(ICON.trash)}</button>
+          </td>
+        </tr>`;
+    }
+
+    function mNota(lista) {
+      const nota = document.getElementById('mNote');
+      if (nota.dataset.flash) return;
+      const ocultos = mf.status.length ? 0 : mapa.filter(m => STATUS_OCULTOS.includes(m.status) && mMatch(m, true)).length;
+      nota.textContent = `${lista.length} de ${mapa.length} problemas` +
+        (ocultos ? ` · ${ocultos} resolvido(s)/cancelado(s) oculto(s) — use o filtro Status para vê-los.` : '.');
+    }
+
+    function mRender() {
+      persistirMapa();
+      mOpcoes();
+      document.getElementById('mLimpar').hidden = !mFiltrosAtivos();
+      const lista = mLista();
+      document.getElementById('mRows').innerHTML = lista.map(mRowHtml).join('');
+      document.getElementById('mEmpty').hidden = lista.length > 0;
+      document.getElementById('mTable').hidden = lista.length === 0;
+      mNota(lista);
+      if (!document.getElementById('mGerencial').hidden) mGerencialRender();
+    }
+
+    document.getElementById('mRows').addEventListener('click', (e) => {
+      const tr = e.target.closest('tr');
+      if (!tr) return;
+      const m = mapa.find(x => x.id === tr.dataset.id);
+      if (!m) return;
+      const btn = e.target.closest('[data-act]');
+      if (!btn) { if (e.target.closest('.col-main')) abrirPainel(m.id); return; }
+      const act = btn.dataset.act;
+      if (act === 'status') {
+        abrirStatusMenu(btn, m.status, (novo) => {
+          definirStatus(m, novo); mRender();
+          if (STATUS_OCULTOS.includes(novo) && !mf.status.includes(novo)) {
+            flash(document.getElementById('mNote'), `Problema marcado como ${STATUS_LABEL[novo].toLowerCase()} e ocultado da lista. Filtre por Status para vê-lo.`, mRender);
+          }
+        });
+      }
+      if (act === 'edit') abrirPainel(m.id);
+      if (act === 'pdf') baixarProblema(m);
+      if (act === 'del') {
+        if (btn.classList.contains('armed')) { mapa = mapa.filter(x => x.id !== m.id); mRender(); return; }
+        btn.classList.add('armed'); btn.title = 'Clique de novo para excluir';
+        setTimeout(() => { btn.classList.remove('armed'); btn.title = 'Excluir'; }, 3000);
+      }
+    });
+
+    function definirStatus(m, novo) {
+      m.status = novo; m.atualizadoEm = today;
+      m.concluidoEm = novo === 'concluida' ? (m.concluidoEm || today) : '';
+    }
+
+    // ---------- painel gerencial ----------
+
+    function dadosGerenciais() {
+      const base = mapa.filter(m => m.status !== 'cancelada');
+      const abertosL = base.filter(m => m.status !== 'concluida');
+      const itensArq = arqs.flatMap(a => a.itens);
+      return {
+        kpis: [
+          ['Em aberto', abertosL.length, ''], ['Vencidos', abertosL.filter(vencido).length, 'danger'],
+          ['Críticos e altos em aberto', abertosL.filter(m => m.complexidade === 'critica' || m.complexidade === 'alta').length, 'warning'],
+          ['Resolvidos', base.filter(m => m.status === 'concluida').length, 'success'],
+          ['Empresas com problema em aberto', new Set(abertosL.map(m => m.empresa)).size, ''],
+        ],
+        porEmpresa: contar(base, m => m.empresa), porExecutor: contar(base, m => m.executor || 'Sem origem'),
+        porResp: contar(abertosL, m => m.responsavel || 'Sem responsável'), porProblema: contar(base, m => m.problema),
+        porCompl: PRIORIDADE_ORDER.map(c => [PRIORIDADE_LABEL[c], abertosL.filter(m => m.complexidade === c).length]).filter(([, n]) => n),
+        pontosArq: contar(itensArq.flatMap(i => i.pontos || []), p => p.categoria),
+        qtdBase: base.length,
+      };
+    }
+
+    function mGerencialRender() {
+      const d = dadosGerenciais();
+      document.getElementById('mKpis').innerHTML = d.kpis.map(([label, v, cor]) =>
+        `<div class="kpi-card ${cor}"><span class="kpi-value">${v}</span><span class="kpi-label">${esc(label)}</span></div>`).join('');
+      document.getElementById('mBarras').innerHTML =
+        cartao('Empresas com mais problemas', 'Todos os problemas mapeados, sem os cancelados.', barrasHtml(d.porEmpresa.slice(0, 8))) +
+        cartao('Origem do erro (executor)', 'Quem executava a rotina em que o problema ocorreu.', barrasHtml(d.porExecutor.slice(0, 8), 'warning')) +
+        cartao('Problemas recorrentes', 'Categorias que mais aparecem.', barrasHtml(d.porProblema.slice(0, 8))) +
+        cartao('Responsáveis com problemas em aberto', 'Problemas ainda não resolvidos por responsável.', barrasHtml(d.porResp.slice(0, 8))) +
+        cartao('Complexidade dos problemas em aberto', 'Crítica, alta, normal e melhoria.', barrasHtml(d.porCompl)) +
+        cartao('Pontos nas validações mensais', 'Categorias mais frequentes nas validações arquivadas.', barrasHtml(d.pontosArq.slice(0, 8)));
+    }
+    const btnGer = document.getElementById('mBtnGerencial');
+    btnGer.addEventListener('click', () => {
+      const painel = document.getElementById('mGerencial');
+      painel.hidden = !painel.hidden;
+      btnGer.setAttribute('aria-pressed', String(!painel.hidden));
+      if (!painel.hidden) mGerencialRender();
+    });
+
+    document.getElementById('mBtnPdfGerencial').addEventListener('click', async () => {
+      const d = dadosGerenciais();
+      const tab = (titulo, pares, col) => ({ titulo, colunas: [col, 'Quantidade'], linhas: pares.map(([n, q]) => [n, String(q)]), estilosColunas: { 1: { cellWidth: 30, halign: 'center' } }, vazio: 'Sem dados.' });
+      try {
+        await gerarPdf({
+          titulo: 'Mapeamento fiscal — painel gerencial',
+          subtitulo: 'Empresas com mais problemas, origem dos erros, problemas recorrentes e prazos, para apoiar o plano de ação.',
+          arquivo: `mapeamento-fiscal-painel-${today}`,
+          orientacao: 'portrait',
+          geradoPor,
+          resumo: d.kpis.map(([label, v]) => ({ label, valor: v })),
+          tabelas: [
+            tab('Empresas com mais problemas', d.porEmpresa, 'Empresa'), tab('Origem do erro (executor)', d.porExecutor, 'Executor'),
+            tab('Problemas recorrentes', d.porProblema, 'Problema'), tab('Responsáveis com problemas em aberto', d.porResp, 'Responsável'),
+            tab('Complexidade dos problemas em aberto', d.porCompl, 'Complexidade'), tab('Pontos nas validações mensais', d.pontosArq, 'Categoria'),
+          ],
+        });
+        flash(document.getElementById('mNote'), 'PDF do painel gerado.', mRender);
+      } catch (err) { flash(document.getElementById('mNote'), 'Não foi possível gerar o PDF. Tente novamente.', mRender); }
+    });
+
+    // ---------- exportar ----------
+
+    document.getElementById('mBtnCsv').addEventListener('click', () => {
+      const lista = mLista();
+      if (!lista.length) { flash(document.getElementById('mNote'), 'Nada para exportar com os filtros atuais.', mRender); return; }
+      const linhas = [['Empresa', 'Problema', 'Complexidade', 'Prazo', 'Responsável', 'Origem do erro', 'Status', 'Registrado em', 'Contexto'].join(';')];
+      lista.forEach(m => linhas.push([m.empresa, m.problema, PRIORIDADE_LABEL[m.complexidade], m.prazo ? fmtBR(m.prazo) : '', m.responsavel, m.executor,
+        STATUS_LABEL[m.status], fmtBR(m.criadoEm), m.contexto].map(csvCell).join(';')));
+      downloadFile('mapeamento-fiscal.csv', '﻿' + linhas.join('\r\n'), 'text/csv;charset=utf-8');
+      flash(document.getElementById('mNote'), `${lista.length} ${lista.length === 1 ? 'problema exportado' : 'problemas exportados'} em CSV.`, mRender);
+    });
+
+    document.getElementById('mBtnPdf').addEventListener('click', async () => {
+      const lista = mLista();
+      if (!lista.length) { flash(document.getElementById('mNote'), 'Nada para exportar com os filtros atuais.', mRender); return; }
+      try {
+        await gerarPdf({
+          titulo: 'Mapeamento fiscal',
+          subtitulo: 'Problemas registrados por empresa que precisam ficar no radar do analista.',
+          arquivo: `mapeamento-fiscal-${today}`,
+          orientacao: 'landscape',
+          geradoPor,
+          resumo: [{ label: 'Problemas', valor: lista.length }, { label: 'Vencidos', valor: lista.filter(vencido).length },
+                   ...PRIORIDADE_ORDER.filter(c => lista.some(m => m.complexidade === c)).map(c => ({ label: PRIORIDADE_LABEL[c], valor: lista.filter(m => m.complexidade === c).length }))],
+          filtros: mDescricaoFiltros(),
+          colunas: ['Empresa', 'Problema', 'Complexidade', 'Prazo', 'Responsável', 'Origem do erro', 'Status'],
+          linhas: lista.map(m => [m.empresa, m.problema, PRIORIDADE_LABEL[m.complexidade], m.prazo ? fmtBR(m.prazo) + (vencido(m) ? ' (vencido)' : '') : 'Sem prazo',
+            m.responsavel || '-', m.executor || '-', STATUS_LABEL[m.status]]),
+          estilosColunas: { 2: { cellWidth: 26 }, 3: { cellWidth: 34 }, 6: { cellWidth: 28 } },
+        });
+        flash(document.getElementById('mNote'), 'PDF gerado.', mRender);
+      } catch (err) { flash(document.getElementById('mNote'), 'Não foi possível gerar o PDF. Tente novamente.', mRender); }
+    });
+
+    async function baixarProblema(m) {
+      try {
+        await gerarPdf({
+          titulo: 'Mapeamento fiscal',
+          subtitulo: `${m.empresa} — ${m.problema}`,
+          arquivo: `mapeamento-${slug(m.empresa)}-${slug(m.problema)}-${today}`,
+          orientacao: 'portrait',
+          geradoPor,
+          identificacao: [
+            { rotulo: 'Empresa', valor: m.empresa }, { rotulo: 'Problema', valor: m.problema },
+            { rotulo: 'Complexidade', valor: PRIORIDADE_LABEL[m.complexidade] }, { rotulo: 'Prazo', valor: m.prazo ? fmtBR(m.prazo) : 'Sem prazo' },
+            { rotulo: 'Responsável', valor: m.responsavel }, { rotulo: 'Origem do erro (executor)', valor: m.executor },
+            { rotulo: 'Status', valor: STATUS_LABEL[m.status] }, { rotulo: 'Registrado em', valor: fmtBR(m.criadoEm) },
+            ...(m.concluidoEm ? [{ rotulo: 'Resolvido em', valor: fmtBR(m.concluidoEm) }] : []),
+          ],
+          blocos: [{ titulo: 'Contexto', campos: [{ rotulo: 'O que ocorreu, como ocorreu e o que precisa ser feito', texto: m.contexto || '(sem contexto registrado)' }] }],
+        });
+        flash(document.getElementById('mNote'), 'PDF gerado.', mRender);
+      } catch (err) { flash(document.getElementById('mNote'), 'Não foi possível gerar o PDF. Tente novamente.', mRender); }
+    }
+
+    // ---------- painel lateral ----------
+
+    const mPanel = document.getElementById('mPanel');
+    const mBackdrop = document.getElementById('mBackdrop');
+    const fEmp = document.getElementById('mEmpresa');
+    const fProb = document.getElementById('mProblema');
+    const fCompl = document.getElementById('mCompl');
+    const fPrazo = document.getElementById('mPrazo');
+    const fResp = document.getElementById('mResp');
+    const fExec = document.getElementById('mExec');
+    const fSta = document.getElementById('mStatus');
+    const fCtx = document.getElementById('mContexto');
+    const mSaved = document.getElementById('mSaved');
+    const btnConcl = document.getElementById('mConcluir');
+    let atual = null;
+    let respAuto = false;   // responsável foi sugerido pelo cadastro (pode ser sobrescrito ao trocar de empresa)
+
+    fCompl.innerHTML = PRIORIDADE_ORDER.map(c => `<option value="${c}">${esc(PRIORIDADE_LABEL[c])}</option>`).join('');
+    fSta.innerHTML = STATUS_ORDER.map(s => `<option value="${s}">${esc(STATUS_LABEL[s])}</option>`).join('');
+
+    function opcoesProblema(escolhido) {
+      const lista = categorias();
+      if (escolhido && !lista.includes(escolhido)) lista.push(escolhido);
+      fProb.innerHTML = '<option value="">Selecione…</option>' + lista.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('') + '<option value="__nova__">+ Nova categoria…</option>';
+      fProb.value = escolhido || '';
+    }
+    function opcoesPessoas() {
+      const cad = listarEmpresas();
+      const pessoas = [...new Set([...cad.flatMap(e => [e.responsavel, e.executor]), ...mapa.flatMap(m => [m.responsavel, m.executor])].filter(Boolean))].sort((a, b) => a.localeCompare(b));
+      document.getElementById('mPessoas').innerHTML = pessoas.map(p => `<option value="${esc(p)}"></option>`).join('');
+      document.getElementById('mEmpresas').innerHTML = [...new Set([...cad.map(e => e.nome), ...mapa.map(m => m.empresa)])].sort((a, b) => a.localeCompare(b))
+        .map(n => `<option value="${esc(n)}"></option>`).join('');
+    }
+
+    // O executor vem do cadastro da empresa; só é editável quando a empresa não está cadastrada.
+    function aplicarCadastro(sugerirResp) {
+      const cad = empresaPorNome(fEmp.value);
+      const hint = document.getElementById('mExecHint');
+      if (cad) {
+        fExec.value = cad.executor; fExec.readOnly = true;
+        hint.textContent = 'Preenchido pelo cadastro da empresa (Administração).';
+        if (sugerirResp && (respAuto || !fResp.value.trim())) { fResp.value = cad.responsavel; respAuto = true; }
+      } else {
+        fExec.readOnly = false;
+        hint.textContent = fEmp.value.trim() ? 'Empresa fora do cadastro: informe o executor ou cadastre a empresa em Administração.' : '';
+      }
+    }
+
+    const horaAgora = () => { const d = new Date(); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+
+    function atualizarBotao() { btnConcl.textContent = fSta.value === 'concluida' ? 'Reabrir problema' : 'Marcar como resolvido'; }
+
+    function salvarPainel() {
+      const dados = { empresa: fEmp.value.trim(), problema: fProb.value === '__nova__' ? '' : fProb.value, complexidade: fCompl.value, prazo: fPrazo.value,
+                      responsavel: fResp.value.trim(), executor: fExec.value.trim(), status: fSta.value, contexto: fCtx.value };
+      if (!atual) {
+        if (!dados.empresa || !dados.problema) { mSaved.textContent = 'Informe empresa e problema para salvar.'; return; }
+        atual = { id: novoId('m'), ...dados, criadoEm: today, atualizadoEm: today, concluidoEm: '' };
+        mapa.push(atual);
+      } else {
+        Object.assign(atual, dados, { atualizadoEm: today });
+      }
+      atual.concluidoEm = atual.status === 'concluida' ? (atual.concluidoEm || today) : '';
+      document.getElementById('mTitulo').textContent = atual.empresa;
+      document.getElementById('mSubtitulo').textContent = atual.problema;
+      mSaved.textContent = `Salvo automaticamente às ${horaAgora()}`;
+      atualizarBotao();
+      mRender();
+    }
+
+    function preencher(m) {
+      opcoesPessoas();
+      opcoesProblema(m ? m.problema : '');
+      fEmp.value = m ? m.empresa : ''; fCompl.value = m ? m.complexidade : 'normal'; fPrazo.value = m ? m.prazo : '';
+      fResp.value = m ? m.responsavel : ''; fExec.value = m ? m.executor : ''; fSta.value = m ? m.status : 'pendente'; fCtx.value = m ? m.contexto : '';
+      respAuto = false;
+      aplicarCadastro(false);
+      if (m && !empresaPorNome(m.empresa)) fExec.value = m.executor;
+      mSaved.textContent = '';
+      atualizarBotao();
+      document.getElementById('mNovaCat').hidden = true;
+    }
+
+    function abrirPainel(id) {
+      atual = mapa.find(x => x.id === id) || null;
+      preencher(atual);
+      document.getElementById('mTitulo').textContent = atual ? atual.empresa : 'Novo problema';
+      document.getElementById('mSubtitulo').textContent = atual ? atual.problema : 'Escolha a empresa e o problema — o que você digita é salvo automaticamente.';
+      mPanel.classList.add('open'); mBackdrop.classList.add('open');
+      if (!atual) fEmp.focus();
+    }
+    function fecharPainel() { mPanel.classList.remove('open'); mBackdrop.classList.remove('open'); atual = null; }
+
+    document.getElementById('mBtnNovo').addEventListener('click', () => abrirPainel(null));
+    document.getElementById('mFechar').addEventListener('click', fecharPainel);
+    mBackdrop.addEventListener('click', fecharPainel);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') fecharPainel(); });
+
+    fEmp.addEventListener('input', () => { aplicarCadastro(true); salvarPainel(); });
+    fResp.addEventListener('input', () => { respAuto = false; salvarPainel(); });
+    [fCompl, fPrazo, fExec, fSta, fCtx].forEach(el => { el.addEventListener('input', salvarPainel); el.addEventListener('change', salvarPainel); });
+
+    fProb.addEventListener('change', () => {
+      if (fProb.value === '__nova__') {
+        document.getElementById('mNovaCat').hidden = false;
+        document.getElementById('mNovaCatNome').focus();
+        fProb.value = atual ? atual.problema : '';
+        return;
+      }
+      salvarPainel();
+    });
+    function adicionarNovaCategoria() {
+      const campo = document.getElementById('mNovaCatNome');
+      const nome = adicionarCategoria(campo.value);
+      if (!nome) { campo.focus(); return; }
+      campo.value = '';
+      document.getElementById('mNovaCat').hidden = true;
+      opcoesProblema(nome);
+      salvarPainel();
+    }
+    document.getElementById('mNovaCatOk').addEventListener('click', adicionarNovaCategoria);
+    document.getElementById('mNovaCatNome').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); adicionarNovaCategoria(); } });
+
+    document.getElementById('mPanelPdf').addEventListener('click', () => {
+      if (!atual) { mSaved.textContent = 'Informe empresa e problema para gerar o PDF.'; return; }
+      baixarProblema(atual);
+    });
+    btnConcl.addEventListener('click', () => {
+      if (!atual) { mSaved.textContent = 'Informe empresa e problema antes de resolver.'; return; }
+      const reabrir = atual.status === 'concluida';
+      definirStatus(atual, reabrir ? 'andamento' : 'concluida');
+      fecharPainel();
+      mRender();
+      flash(document.getElementById('mNote'), reabrir ? 'Problema reaberto (Em andamento).' : 'Problema resolvido. Ele fica oculto da lista — filtre por Status para vê-lo.', mRender);
+    });
+
+    hRender();
+    mRender();
+  </script>
+</body>
+</html>

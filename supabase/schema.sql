@@ -738,6 +738,106 @@ create index if not exists notificacoes_nao_lidas_idx on public.notificacoes (us
 
 
 -- ---------------------------------------------------------------------
+-- 8b. CONHECIMENTO, MAPEAMENTO FISCAL E RELATÓRIOS DIÁRIOS
+-- ---------------------------------------------------------------------
+
+-- Responsável e executor da empresa: de onde o app deduz "quem errou".
+alter table public.empresas add column if not exists responsavel_id uuid references public.perfis (id) on delete set null;
+alter table public.empresas add column if not exists executor_id    uuid references public.perfis (id) on delete set null;
+
+-- Validações: justificativa (obrigatória para encerrar o mês se não concluída),
+-- retificadora (aponta a original, que nunca é alterada) e datas.
+alter table public.validacoes add column if not exists justificativa text;
+alter table public.validacoes add column if not exists retifica_arquivo_id uuid;   -- FK abaixo, depois de validacao_arquivos
+alter table public.validacoes add column if not exists retifica_item_ref   text;   -- item do arquivo que está sendo refeito
+
+-- Catálogo de categorias de problema, montado pela experiência da equipe.
+-- Vale para as validações e para o mapeamento fiscal; nova categoria vira opção padrão.
+create table if not exists public.categorias_problema (
+  id          uuid primary key default gen_random_uuid(),
+  equipe_id   uuid not null references public.equipes (id) on delete cascade,
+  nome        text not null check (length(btrim(nome)) > 0),
+  criado_por  uuid references public.perfis (id) on delete set null default auth.uid(),
+  criado_em   timestamptz not null default now(),
+  unique (id, equipe_id)
+);
+create unique index if not exists categorias_problema_nome_idx on public.categorias_problema (equipe_id, lower(btrim(nome)));
+
+-- Virada de mês: uma linha por empresa e competência, com a foto da validação
+-- (itens, pontos, justificativas). Imutável: o app só insere e lê.
+create table if not exists public.validacao_arquivos (
+  id            uuid primary key default gen_random_uuid(),
+  equipe_id     uuid not null references public.equipes (id) on delete cascade,
+  empresa_id    uuid not null,
+  competencia   date not null check (extract(day from competencia) = 1),
+  resumo        jsonb not null,        -- contagem por status, analistas
+  itens         jsonb not null,        -- validações do mês com status, justificativa, pontos, datas
+  encerrado_em  timestamptz not null default now(),
+  encerrado_por uuid references public.perfis (id) on delete set null default auth.uid(),
+  unique (id, equipe_id),
+  unique (equipe_id, empresa_id, competencia),
+  foreign key (empresa_id, equipe_id) references public.empresa_equipes (empresa_id, equipe_id)
+);
+create index if not exists validacao_arquivos_comp_idx on public.validacao_arquivos (equipe_id, competencia desc);
+
+do $$ begin
+  if not exists (select 1 from pg_constraint where conname = 'validacoes_retifica_arquivo_fk') then
+    alter table public.validacoes add constraint validacoes_retifica_arquivo_fk
+      foreign key (retifica_arquivo_id) references public.validacao_arquivos (id) on delete set null;
+  end if;
+end $$;
+
+create or replace function private.bloquear_alteracao_arquivo() returns trigger
+language plpgsql as $$
+begin
+  raise exception 'Arquivo de virada de mês não pode ser alterado nem apagado (use uma retificadora).';
+end $$;
+drop trigger if exists arquivo_imutavel on public.validacao_arquivos;
+create trigger arquivo_imutavel before update or delete on public.validacao_arquivos
+  for each row execute function private.bloquear_alteracao_arquivo();
+
+-- Mapeamento fiscal: problemas por empresa, para a inteligência gerencial.
+create table if not exists public.mapeamento_fiscal (
+  id            uuid primary key default gen_random_uuid(),
+  equipe_id     uuid not null references public.equipes (id) on delete cascade,
+  empresa_id    uuid not null,
+  categoria_id  uuid,                                    -- tipo do problema
+  problema      text not null,
+  complexidade  text not null default 'normal' check (complexidade in ('critica','alta','normal','baixa')),  -- baixa = "Melhoria"
+  status        text not null default 'pendente' check (status in ('pendente','andamento','impedimento','concluida','cancelada')),
+  prazo         date,
+  responsavel_id uuid references public.perfis (id) on delete set null,   -- copiado do cadastro da empresa
+  executor_id    uuid references public.perfis (id) on delete set null,   -- origem do erro, copiado do cadastro
+  contexto      text,                                    -- o que aconteceu, como e o que precisa ser feito
+  concluido_em  timestamptz,
+  criado_por    uuid references public.perfis (id) on delete set null default auth.uid(),
+  criado_em     timestamptz not null default now(),
+  atualizado_em timestamptz not null default now(),
+  unique (id, equipe_id),
+  foreign key (empresa_id, equipe_id)   references public.empresa_equipes (empresa_id, equipe_id),
+  foreign key (categoria_id, equipe_id) references public.categorias_problema (id, equipe_id)
+);
+create index if not exists mapeamento_fiscal_idx on public.mapeamento_fiscal (equipe_id, status, prazo);
+create index if not exists mapeamento_fiscal_empresa_idx on public.mapeamento_fiscal (equipe_id, empresa_id);
+
+-- Relatórios do início (08:00) e do fim (17:00) do dia, gerados por rotina
+-- agendada (Fase 3) ou manualmente. O PDF é refeito a partir de `conteudo`.
+create table if not exists public.relatorios_diarios (
+  id          uuid primary key default gen_random_uuid(),
+  equipe_id   uuid not null references public.equipes (id) on delete cascade,
+  tipo        text not null check (tipo in ('inicio','fim')),
+  data        date not null,
+  origem      text not null default 'agendado' check (origem in ('agendado','manual')),
+  resumo      jsonb not null,
+  conteudo    jsonb not null,
+  gerado_em   timestamptz not null default now(),
+  gerado_por  uuid references public.perfis (id) on delete set null,
+  unique (id, equipe_id)
+);
+create index if not exists relatorios_diarios_idx on public.relatorios_diarios (equipe_id, data desc, tipo);
+
+
+-- ---------------------------------------------------------------------
 -- 9. RLS
 -- ---------------------------------------------------------------------
 
@@ -775,6 +875,10 @@ call private.aplicar_rls_equipe('validacao_itens',     array['gestor_fiscal','an
 call private.aplicar_rls_equipe('achados',             array['gestor_fiscal','analista','revisor'], array['gestor_fiscal']);
 call private.aplicar_rls_equipe('checklist_modelos',   array['gestor_fiscal'],                      array['gestor_fiscal']);
 call private.aplicar_rls_equipe('checklist_itens',     array['gestor_fiscal'],                      array['gestor_fiscal']);
+call private.aplicar_rls_equipe('categorias_problema', array['gestor_fiscal','analista','revisor'], array['gestor_fiscal']);
+call private.aplicar_rls_equipe('validacao_arquivos',  array['gestor_fiscal','analista','revisor'], array['gestor_fiscal']);  -- imutável por trigger
+call private.aplicar_rls_equipe('mapeamento_fiscal',   array['gestor_fiscal','analista','revisor'], array['gestor_fiscal']);
+call private.aplicar_rls_equipe('relatorios_diarios',  array['gestor_fiscal','analista','revisor'], array['gestor_fiscal']);
 
 -- perfis -----------------------------------------------------------------
 alter table public.perfis enable row level security;
@@ -885,7 +989,7 @@ do $$
 declare t text;
 begin
   foreach t in array array['perfis','equipes','empresas','tarefas','checklist_modelos','validacoes',
-                           'achados','projetos','projeto_etapas','eventos_calendario']
+                           'achados','projetos','projeto_etapas','eventos_calendario','mapeamento_fiscal']
   loop
     execute format('drop trigger if exists set_atualizado_em on public.%I', t);
     execute format('create trigger set_atualizado_em before update on public.%I for each row execute function private.set_atualizado_em()', t);
@@ -898,7 +1002,7 @@ declare t text;
 begin
   foreach t in array array['membros_equipe','empresas','empresa_equipes','inscricoes_estaduais','tarefas',
                            'checklist_modelos','validacoes','achados','projetos','projeto_etapas',
-                           'projeto_historico','eventos_calendario','obrigacoes_oficiais']
+                           'projeto_historico','eventos_calendario','obrigacoes_oficiais','mapeamento_fiscal','categorias_problema']
   loop
     execute format('drop trigger if exists auditoria on public.%I', t);
     execute format('create trigger auditoria after insert or update or delete on public.%I for each row execute function private.registrar_auditoria()', t);

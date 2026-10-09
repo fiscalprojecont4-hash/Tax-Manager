@@ -30,13 +30,13 @@
             <h4>Validações</h4>
             <p>Checklists por empresa, achados, revisão e aprovação.</p>
           </a>
-          <a class="nav-dropdown-item" href="#" role="menuitem">
+          <a class="nav-dropdown-item" href="conhecimento.html" role="menuitem">
             <h4>Conhecimento</h4>
-            <p>Histórico, padrões aprovados, incidentes e playbooks.</p>
+            <p>Histórico mensal das validações e mapeamento fiscal por empresa.</p>
           </a>
-          <a class="nav-dropdown-item" href="#" role="menuitem">
+          <a class="nav-dropdown-item" href="administracao.html" role="menuitem">
             <h4>Administração</h4>
-            <p>Usuários, equipes, permissões e configurações.</p>
+            <p>Categorias, empresas, responsáveis e executores.</p>
           </a>
         </div>
       </div>
@@ -169,7 +169,7 @@
         <div>
           <label for="fPrioridade">Prioridade</label>
           <select id="fPrioridade">
-            <option value="baixa">Baixa</option>
+            <option value="baixa">Melhoria</option>
             <option value="normal" selected>Normal</option>
             <option value="alta">Alta</option>
             <option value="critica">Crítica</option>
@@ -223,6 +223,8 @@
     import { STATUS_ORDER, STATUS_LABEL, STATUS_OCULTOS, statusVisivel, esc, norm, fmtBR, downloadFile, csvCell,
              createMultiSelect, abrirStatusMenu, statusPillHtml } from './js/lista-ui.js';
     import { gerarPdf } from './js/relatorio-pdf.js';
+    import { carregar, gravar, novoId, tarefasExemplo } from './js/dados-teste.js';
+    import { instalarRelatoriosNoSino } from './js/relatorio-diario.js';
 
     const supabase = createSupabaseClient(true);
     const emailEl = document.getElementById('userEmail');
@@ -368,6 +370,7 @@
     });
 
     renderNotifications();
+    instalarRelatoriosNoSino();
 
     // ======================================================================
     // Tarefas — dados mock (pendente: persistência real via Supabase/RLS,
@@ -385,38 +388,15 @@
     }
 
     const today = isoToday();
-    let seq = 1;
-    function nextId() { return `t${seq++}`; }
-
-    function mk(tarefa, tipo, requerente, delegadoPara, prazoOffset, prioridade, status, criadoOffset) {
-      return { id: nextId(), tarefa, tipo, requerente, delegadoPara, prazo: addDays(today, prazoOffset),
-               prioridade, status, criadoEm: addDays(today, criadoOffset), observacoes: '', notificar: '' };
-    }
-
-    let tasks = [
-      mk('Validar notas fiscais — Empresa Alfa', 'operacional', 'Empresa Alfa', 'Wendel', -2, 'critica', 'pendente', -9),
-      mk('Conferir guias de ICMS recolhidas', 'operacional', 'Rembraz', 'Wendel', -1, 'alta', 'pendente', -8),
-      mk('Calcular invoice da Tecnoradio (mensal)', 'processual', 'Tecnoradio', 'Wendel', -9, 'alta', 'impedimento', -12),
-      mk('Enviar DCTF do mês', 'operacional', 'Disbral', 'Equipe Fiscal', 0, 'alta', 'pendente', -6),
-      mk('Reunião de alinhamento com Wendel', 'processual', 'Interno', 'Wendel', 0, 'normal', 'andamento', -3),
-      mk('Revisão de checklist — Empresa Beta', 'operacional', 'Empresa Beta', 'Equipe Fiscal', 2, 'normal', 'pendente', -2),
-      mk('Apuração mensal de ICMS/AM', 'operacional', 'Tecnoradio', 'Wendel', 4, 'normal', 'pendente', -2),
-      mk('Levantar empresas sem procuração ou certificado digital', 'estrategico', 'Interno', 'Sem delegado', 5, 'alta', 'pendente', -1),
-      mk('Planejamento semanal da equipe', 'processual', 'Interno', 'Wendel', 6, 'baixa', 'pendente', -1),
-      mk('Aguardar retorno da SEFAZ sobre o processo de restituição', 'processual', 'Rembraz', 'Analista A', 8, 'critica', 'impedimento', -4),
-      mk('Organizar pasta de documentação — Lusitano', 'operacional', 'Lusitano', 'Equipe Fiscal', 10, 'baixa', 'pendente', 0),
-      mk('Simulação de regime tributário 2027 — Tecnoradio', 'estrategico', 'Tecnoradio', 'Sem delegado', 14, 'normal', 'andamento', 0),
-      mk('Fechamento parcial do mês anterior', 'operacional', 'Interno', 'Wendel', -5, 'normal', 'concluida', -12),
-      mk('Protocolar DAS — Simples Nacional', 'operacional', 'Rembraz', 'Wendel', -3, 'alta', 'concluida', -11),
-      mk('Reemitir guia de INSS (cliente desistiu do parcelamento)', 'processual', 'Disbral', 'Analista B', -6, 'normal', 'cancelada', -10),
-    ];
+    const nextId = () => novoId('t');
+    let tasks = carregar('tarefas', tarefasExemplo);
 
     let editingId = null;
     const filters = { q: '', tipo: [], prioridade: [], status: [], requerente: [], delegado: [], prazo: [] };
     const selected = new Set();
     const SEM_DELEGADO = 'Sem delegado';
 
-    const PRIORIDADE_LABEL = { critica: 'Crítica', alta: 'Alta', normal: 'Normal', baixa: 'Baixa' };
+    const PRIORIDADE_LABEL = { critica: 'Crítica', alta: 'Alta', normal: 'Normal', baixa: 'Melhoria' };
     const PRIORIDADE_BADGE = { critica: 'badge-danger', alta: 'badge-warning', normal: 'badge-accent', baixa: 'badge-neutral' };
     const PRIORIDADE_FAIXA = { critica: 'var(--danger)', alta: 'var(--warning)', normal: 'transparent', baixa: 'transparent' };
     const TIPO_LABEL = { operacional: 'Operacional', estrategico: 'Estratégico', processual: 'Processual' };
@@ -637,6 +617,9 @@
     });
 
     function render() {
+      // data de conclusão acompanha o status (usada no relatório de fim do dia)
+      tasks.forEach(x => { x.concluidaEm = x.status === 'concluida' ? (x.concluidaEm || today) : ''; });
+      gravar('tarefas', tasks);
       refreshDynamicOptions();
       renderKpis();
       document.getElementById('btnLimpar').hidden = !filtrosAtivos();

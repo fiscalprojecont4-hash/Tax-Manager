@@ -186,9 +186,11 @@
     function openDropdown() { positionPanel(); dropdown.classList.add('open'); }
     function closeDropdown() { dropdown.classList.remove('open'); }
 
-    dropdown.addEventListener('mouseenter', openDropdown);
-    dropdown.addEventListener('mouseleave', closeDropdown);
-    trigger.addEventListener('click', (e) => { e.stopPropagation(); dropdown.classList.toggle('open'); });
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (dropdown.classList.contains('open')) closeDropdown();
+      else openDropdown();
+    });
     document.addEventListener('click', (e) => { if (!dropdown.contains(e.target)) closeDropdown(); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeDropdown(); closeDayPanel(); } });
 

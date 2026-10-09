@@ -91,32 +91,29 @@
     </div>
     <div class="side-panel-body">
       <div class="form-row">
-        <label for="fTitle">Título</label>
-        <input type="text" id="fTitle" placeholder="Ex.: Validar notas fiscais — Empresa Alfa" />
-      </div>
-      <div class="form-row">
-        <label for="fEmpresa">Empresa / cliente</label>
-        <input type="text" id="fEmpresa" placeholder="Opcional" />
+        <label for="fTarefa">Tarefa</label>
+        <textarea id="fTarefa" placeholder="Descreva a tarefa..."></textarea>
       </div>
       <div class="form-row form-row-split">
         <div>
-          <label for="fResponsavel">Responsável</label>
-          <input type="text" id="fResponsavel" placeholder="Nome" />
+          <label for="fTipo">Tipo</label>
+          <select id="fTipo">
+            <option value="operacional" selected>Operacional</option>
+            <option value="estrategico">Estratégico</option>
+            <option value="administrativo">Administrativo</option>
+          </select>
         </div>
-        <div>
-          <label for="fPrazo">Prazo</label>
-          <input type="date" id="fPrazo" />
-        </div>
-      </div>
-      <div class="form-row form-row-split">
         <div>
           <label for="fPrioridade">Prioridade</label>
           <select id="fPrioridade">
             <option value="baixa">Baixa</option>
-            <option value="media" selected>Média</option>
+            <option value="normal" selected>Normal</option>
             <option value="alta">Alta</option>
+            <option value="critica">Crítica</option>
           </select>
         </div>
+      </div>
+      <div class="form-row form-row-split">
         <div>
           <label for="fStatus">Status</label>
           <select id="fStatus">
@@ -125,10 +122,29 @@
             <option value="concluida">Concluída</option>
           </select>
         </div>
+        <div>
+          <label for="fRequerente">Requerente</label>
+          <input type="text" id="fRequerente" placeholder="Cliente, empresa ou 'Interno'" />
+        </div>
+      </div>
+      <div class="form-row form-row-split">
+        <div>
+          <label for="fPrazo">Prazo</label>
+          <input type="date" id="fPrazo" />
+        </div>
+        <div>
+          <label for="fDelegado">Delegado para</label>
+          <input type="text" id="fDelegado" placeholder="Nome de quem vai executar (opcional)" />
+        </div>
       </div>
       <div class="form-row">
-        <label for="fDescricao">Descrição</label>
-        <textarea id="fDescricao" placeholder="Detalhes, observações, achados..."></textarea>
+        <label for="fObservacoes">Observações / contexto</label>
+        <textarea id="fObservacoes" placeholder="Anotações sobre a tarefa, visíveis só aqui ao detalhar (opcional)"></textarea>
+      </div>
+      <div class="form-row">
+        <label for="fNotificar">Notificar / vincular à agenda de</label>
+        <input type="text" id="fNotificar" placeholder="Opcional — deixe em branco para usar todos os e-mails cadastrados" />
+        <p class="form-row-hint">Nenhum e-mail cadastrado ainda. Adicione em Administração → Google Agenda.</p>
       </div>
     </div>
     <div class="side-panel-footer">
@@ -194,23 +210,23 @@
     function nextId() { return `t${seq++}`; }
 
     let tasks = [
-      { id: nextId(), title: 'Validar notas fiscais — Empresa Alfa', empresa: 'Empresa Alfa', responsavel: 'Wendel', prazo: addDays(today, -2), prioridade: 'alta', status: 'pendente', descricao: '' },
-      { id: nextId(), title: 'Conferir guias de ICMS recolhidas', empresa: 'Rembraz', responsavel: 'Wendel', prazo: addDays(today, -1), prioridade: 'alta', status: 'pendente', descricao: '' },
-      { id: nextId(), title: 'Enviar DCTF do mês', empresa: 'Disbral', responsavel: 'Equipe Fiscal', prazo: today, prioridade: 'alta', status: 'pendente', descricao: '' },
-      { id: nextId(), title: 'Reunião de alinhamento com Wendel', empresa: '', responsavel: 'Wendel', prazo: today, prioridade: 'media', status: 'andamento', descricao: '' },
-      { id: nextId(), title: 'Revisão de checklist — Empresa Beta', empresa: 'Empresa Beta', responsavel: 'Equipe Fiscal', prazo: addDays(today, 2), prioridade: 'media', status: 'pendente', descricao: '' },
-      { id: nextId(), title: 'Apuração mensal de ICMS/AM', empresa: 'Tecnoradio', responsavel: 'Wendel', prazo: addDays(today, 4), prioridade: 'media', status: 'pendente', descricao: '' },
-      { id: nextId(), title: 'Planejamento semanal da equipe', empresa: '', responsavel: 'Wendel', prazo: addDays(today, 6), prioridade: 'baixa', status: 'pendente', descricao: '' },
-      { id: nextId(), title: 'Organizar pasta de documentação — Lusitano', empresa: 'Lusitano', responsavel: 'Equipe Fiscal', prazo: addDays(today, 10), prioridade: 'baixa', status: 'pendente', descricao: '' },
-      { id: nextId(), title: 'Fechamento parcial do mês anterior', empresa: '', responsavel: 'Wendel', prazo: addDays(today, -5), prioridade: 'media', status: 'concluida', descricao: '' },
-      { id: nextId(), title: 'Protocolar DAS — Simples Nacional', empresa: 'Rembraz', responsavel: 'Wendel', prazo: addDays(today, -3), prioridade: 'alta', status: 'concluida', descricao: '' },
+      { id: nextId(), tarefa: 'Validar notas fiscais — Empresa Alfa', tipo: 'operacional', requerente: 'Empresa Alfa', delegadoPara: 'Wendel', prazo: addDays(today, -2), prioridade: 'alta', status: 'pendente', observacoes: '', notificar: '' },
+      { id: nextId(), tarefa: 'Conferir guias de ICMS recolhidas', tipo: 'operacional', requerente: 'Rembraz', delegadoPara: 'Wendel', prazo: addDays(today, -1), prioridade: 'alta', status: 'pendente', observacoes: '', notificar: '' },
+      { id: nextId(), tarefa: 'Enviar DCTF do mês', tipo: 'operacional', requerente: 'Disbral', delegadoPara: 'Equipe Fiscal', prazo: today, prioridade: 'alta', status: 'pendente', observacoes: '', notificar: '' },
+      { id: nextId(), tarefa: 'Reunião de alinhamento com Wendel', tipo: 'administrativo', requerente: 'Interno', delegadoPara: 'Wendel', prazo: today, prioridade: 'normal', status: 'andamento', observacoes: '', notificar: '' },
+      { id: nextId(), tarefa: 'Revisão de checklist — Empresa Beta', tipo: 'operacional', requerente: 'Empresa Beta', delegadoPara: 'Equipe Fiscal', prazo: addDays(today, 2), prioridade: 'normal', status: 'pendente', observacoes: '', notificar: '' },
+      { id: nextId(), tarefa: 'Apuração mensal de ICMS/AM', tipo: 'operacional', requerente: 'Tecnoradio', delegadoPara: 'Wendel', prazo: addDays(today, 4), prioridade: 'normal', status: 'pendente', observacoes: '', notificar: '' },
+      { id: nextId(), tarefa: 'Planejamento semanal da equipe', tipo: 'administrativo', requerente: 'Interno', delegadoPara: 'Wendel', prazo: addDays(today, 6), prioridade: 'baixa', status: 'pendente', observacoes: '', notificar: '' },
+      { id: nextId(), tarefa: 'Organizar pasta de documentação — Lusitano', tipo: 'administrativo', requerente: 'Lusitano', delegadoPara: 'Equipe Fiscal', prazo: addDays(today, 10), prioridade: 'baixa', status: 'pendente', observacoes: '', notificar: '' },
+      { id: nextId(), tarefa: 'Fechamento parcial do mês anterior', tipo: 'operacional', requerente: 'Interno', delegadoPara: 'Wendel', prazo: addDays(today, -5), prioridade: 'normal', status: 'concluida', observacoes: '', notificar: '' },
+      { id: nextId(), tarefa: 'Protocolar DAS — Simples Nacional', tipo: 'operacional', requerente: 'Rembraz', delegadoPara: 'Wendel', prazo: addDays(today, -3), prioridade: 'alta', status: 'concluida', observacoes: '', notificar: '' },
     ];
 
     let currentFilter = 'abertas';
     let editingId = null;
 
-    const PRIORIDADE_LABEL = { alta: 'Alta', media: 'Média', baixa: 'Baixa' };
-    const PRIORIDADE_BADGE = { alta: 'badge-danger', media: 'badge-warning', baixa: 'badge-neutral' };
+    const PRIORIDADE_LABEL = { critica: 'Crítica', alta: 'Alta', normal: 'Normal', baixa: 'Baixa' };
+    const PRIORIDADE_BADGE = { critica: 'badge-danger', alta: 'badge-warning', normal: 'badge-accent', baixa: 'badge-neutral' };
     const STATUS_LABEL = { pendente: 'Pendente', andamento: 'Em andamento', concluida: 'Concluída' };
 
     function initials(name) {
@@ -250,7 +266,7 @@
 
       const overdue = taskIsOverdue(t);
       const metaBits = [];
-      if (t.empresa) metaBits.push(`<span>${t.empresa}</span>`);
+      if (t.requerente && t.requerente !== 'Interno') metaBits.push(`<span>${t.requerente}</span>`);
       metaBits.push(`<span class="due${overdue ? ' overdue' : ''}">${overdue ? 'Atrasada · ' : ''}${formatDue(t.prazo)}</span>`);
 
       row.innerHTML = `
@@ -258,12 +274,12 @@
           ${t.status === 'concluida' ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
         </span>
         <div class="list-row-main">
-          <p class="list-row-title">${t.title}</p>
+          <p class="list-row-title">${t.tarefa}</p>
           <div class="list-row-meta">${metaBits.join('<span>·</span>')}</div>
         </div>
         <div class="list-row-side">
           <span class="badge ${PRIORIDADE_BADGE[t.prioridade]}">${PRIORIDADE_LABEL[t.prioridade]}</span>
-          <span class="avatar-chip" title="${t.responsavel}">${initials(t.responsavel)}</span>
+          <span class="avatar-chip" title="${t.delegadoPara}">${initials(t.delegadoPara)}</span>
         </div>
       `;
 
@@ -334,13 +350,15 @@
     const panelSubtitle = document.getElementById('panelSubtitle');
     const panelDelete = document.getElementById('panelDelete');
 
-    const fTitle = document.getElementById('fTitle');
-    const fEmpresa = document.getElementById('fEmpresa');
-    const fResponsavel = document.getElementById('fResponsavel');
-    const fPrazo = document.getElementById('fPrazo');
+    const fTarefa = document.getElementById('fTarefa');
+    const fTipo = document.getElementById('fTipo');
     const fPrioridade = document.getElementById('fPrioridade');
     const fStatus = document.getElementById('fStatus');
-    const fDescricao = document.getElementById('fDescricao');
+    const fRequerente = document.getElementById('fRequerente');
+    const fPrazo = document.getElementById('fPrazo');
+    const fDelegado = document.getElementById('fDelegado');
+    const fObservacoes = document.getElementById('fObservacoes');
+    const fNotificar = document.getElementById('fNotificar');
 
     function openPanel(id) {
       editingId = id;
@@ -348,13 +366,15 @@
       panelTitle.textContent = 'Editar tarefa';
       panelSubtitle.textContent = 'Altere os campos e salve.';
       panelDelete.style.display = '';
-      fTitle.value = t.title;
-      fEmpresa.value = t.empresa;
-      fResponsavel.value = t.responsavel;
-      fPrazo.value = t.prazo;
+      fTarefa.value = t.tarefa;
+      fTipo.value = t.tipo;
       fPrioridade.value = t.prioridade;
       fStatus.value = t.status;
-      fDescricao.value = t.descricao || '';
+      fRequerente.value = t.requerente;
+      fPrazo.value = t.prazo;
+      fDelegado.value = t.delegadoPara;
+      fObservacoes.value = t.observacoes || '';
+      fNotificar.value = t.notificar || '';
       show();
     }
 
@@ -363,20 +383,22 @@
       panelTitle.textContent = 'Nova tarefa';
       panelSubtitle.textContent = 'Preencha os campos e salve.';
       panelDelete.style.display = 'none';
-      fTitle.value = '';
-      fEmpresa.value = '';
-      fResponsavel.value = '';
-      fPrazo.value = today;
-      fPrioridade.value = 'media';
+      fTarefa.value = '';
+      fTipo.value = 'operacional';
+      fPrioridade.value = 'normal';
       fStatus.value = 'pendente';
-      fDescricao.value = '';
+      fRequerente.value = '';
+      fPrazo.value = today;
+      fDelegado.value = '';
+      fObservacoes.value = '';
+      fNotificar.value = '';
       show();
     }
 
     function show() {
       taskPanel.classList.add('open');
       panelBackdrop.classList.add('open');
-      fTitle.focus();
+      fTarefa.focus();
     }
 
     function closePanel() {
@@ -390,15 +412,17 @@
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closePanel(); closeDropdown(); } });
 
     document.getElementById('panelSave').addEventListener('click', () => {
-      if (!fTitle.value.trim()) { fTitle.focus(); return; }
+      if (!fTarefa.value.trim()) { fTarefa.focus(); return; }
       const data = {
-        title: fTitle.value.trim(),
-        empresa: fEmpresa.value.trim(),
-        responsavel: fResponsavel.value.trim() || 'Sem responsável',
-        prazo: fPrazo.value || today,
+        tarefa: fTarefa.value.trim(),
+        tipo: fTipo.value,
         prioridade: fPrioridade.value,
         status: fStatus.value,
-        descricao: fDescricao.value.trim(),
+        requerente: fRequerente.value.trim() || 'Interno',
+        prazo: fPrazo.value || today,
+        delegadoPara: fDelegado.value.trim() || 'Sem delegado',
+        observacoes: fObservacoes.value.trim(),
+        notificar: fNotificar.value.trim(),
       };
       if (editingId) {
         const t = tasks.find(x => x.id === editingId);

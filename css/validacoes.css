@@ -147,20 +147,25 @@ html, body {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 0.6rem 0.75rem;
+  padding: 0.7rem 0.85rem;
 }
 
-.vd-achado .data {
-  font-size: 0.7rem;
-  color: var(--muted);
-  font-weight: 600;
-  margin-bottom: 0.2rem;
+.vd-achado-top {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.4rem;
 }
 
 .vd-achado .texto {
-  font-size: 0.84rem;
+  font-size: 0.86rem;
   color: var(--text);
   line-height: 1.4;
+  margin-bottom: 0.3rem;
+}
+
+.vd-achado .meta {
+  font-size: 0.74rem;
+  color: var(--muted);
 }
 
 .vd-achado-empty {
@@ -170,34 +175,9 @@ html, body {
 }
 
 .vd-achado-add {
-  display: flex;
-  gap: 0.5rem;
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+  margin-top: 0.2rem;
 }
 
-.vd-achado-add textarea {
-  flex: 1;
-  min-height: 42px;
-  resize: vertical;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  color: var(--text);
-  font-size: 0.84rem;
-  padding: 0.55rem 0.7rem;
-  font-family: inherit;
-}
-
-.vd-achado-add button {
-  background: var(--accent);
-  color: #ffffff;
-  border: none;
-  border-radius: 10px;
-  padding: 0 0.9rem;
-  font-weight: 600;
-  font-size: 0.82rem;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: background 0.15s ease;
-}
-
-.vd-achado-add button:hover { background: var(--accent-hover); }
+.vd-achado-add .form-row { margin-bottom: 0.85rem; }

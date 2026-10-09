@@ -193,6 +193,12 @@ html, body {
   border-left-color: var(--accent);
 }
 
+.cal-pill.evento {
+  background: var(--warning-soft);
+  color: var(--warning);
+  border-left-color: var(--warning);
+}
+
 .cal-pill-more {
   font-size: 0.68rem;
   color: var(--muted);
@@ -259,6 +265,7 @@ html, body {
 
 .cal-dot.oficial { background: var(--success); }
 .cal-dot.tarefa { background: var(--accent); }
+.cal-dot.evento { background: var(--warning); }
 
 .cal-schedule-event .when {
   font-size: 0.74rem;
@@ -369,58 +376,42 @@ html, body {
 
 .day-event-chip.oficial { background: var(--success-soft); color: var(--success); }
 .day-event-chip.tarefa { background: var(--accent-soft); color: var(--accent); }
+.day-event-chip.evento { background: var(--warning-soft); color: var(--warning); }
 
 .day-panel-footer {
   padding: 1rem 1.5rem;
   border-top: 1px solid var(--border);
+  max-height: 64vh;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.day-panel-footer .form-row { margin-bottom: 0.8rem; }
+
+.day-panel-footer .form-row-check {
+  display: flex;
+  align-items: center;
+}
+
+.day-panel-footer .form-row-check label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.day-panel-footer .form-row-check input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+.day-panel-footer-actions {
   display: flex;
   gap: 0.5rem;
 }
 
-.day-panel-footer input[type="text"],
-.day-panel-footer input[type="time"] {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  color: var(--text);
-  font-size: 0.85rem;
-  padding: 0.55rem 0.7rem;
-  font-family: inherit;
-}
-
-.day-panel-footer input[type="text"] { flex: 1; }
-.day-panel-footer input[type="time"] { width: 100px; }
-
-.day-panel-footer button {
-  background: var(--accent);
-  color: #ffffff;
-  border: none;
-  border-radius: 10px;
-  padding: 0.55rem 0.9rem;
-  font-weight: 600;
-  font-size: 0.85rem;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: background 0.15s ease;
-}
-
-.day-panel-footer button:hover { background: var(--accent-hover); }
-
-@media (max-width: 480px) {
-  .day-panel-footer {
-    flex-wrap: wrap;
-  }
-  .day-panel-footer input[type="text"] {
-    flex: 1 1 100%;
-    order: 1;
-  }
-  .day-panel-footer input[type="time"] {
-    order: 2;
-    flex: 1;
-    width: auto;
-  }
-  .day-panel-footer button {
-    order: 3;
-    flex: 1;
-  }
-}
+.day-panel-footer-actions .btn-fill { flex: 1; }

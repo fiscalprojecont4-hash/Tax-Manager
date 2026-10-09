@@ -98,9 +98,74 @@
 
       <div class="panel-section-title">Achados</div>
       <div class="vd-achados-list" id="achadosList"></div>
+
       <div class="vd-achado-add">
-        <textarea id="novoAchado" placeholder="Registrar um achado desta validação..."></textarea>
-        <button type="button" id="addAchadoBtn">Adicionar</button>
+        <div class="form-row">
+          <label for="aTarefa">Tarefa</label>
+          <textarea id="aTarefa" placeholder="Descreva o achado..."></textarea>
+        </div>
+        <div class="form-row form-row-split">
+          <div>
+            <label for="aTipo">Tipo</label>
+            <select id="aTipo">
+              <option value="operacional" selected>Operacional</option>
+              <option value="estrategico">Estratégico</option>
+              <option value="administrativo">Administrativo</option>
+            </select>
+          </div>
+          <div>
+            <label for="aPrioridade">Prioridade</label>
+            <select id="aPrioridade">
+              <option value="baixa">Baixa</option>
+              <option value="normal" selected>Normal</option>
+              <option value="alta">Alta</option>
+              <option value="critica">Crítica</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row form-row-split">
+          <div>
+            <label for="aStatus">Status</label>
+            <select id="aStatus">
+              <option value="pendente" selected>Pendente</option>
+              <option value="revisao">Em revisão</option>
+              <option value="aprovado">Aprovado</option>
+              <option value="reprovado">Reprovado</option>
+            </select>
+          </div>
+          <div>
+            <label for="aRequerente">Requerente</label>
+            <input type="text" id="aRequerente" placeholder="Cliente, empresa ou 'Interno'" />
+          </div>
+        </div>
+        <div class="form-row form-row-split">
+          <div>
+            <label for="aPrazo">Prazo</label>
+            <input type="date" id="aPrazo" />
+          </div>
+          <div>
+            <label for="aDelegado">Delegado para</label>
+            <input type="text" id="aDelegado" placeholder="Nome de quem vai executar (opcional)" />
+          </div>
+        </div>
+        <div class="form-row">
+          <label for="aDataCriacao">Data de criação</label>
+          <input type="text" id="aDataCriacao" readonly />
+          <p class="form-row-hint">Preenchida automaticamente na criação da tarefa.</p>
+        </div>
+        <div class="form-row">
+          <label for="aObservacoes">Observações / contexto</label>
+          <textarea id="aObservacoes" placeholder="Anotações sobre o achado (opcional)"></textarea>
+        </div>
+        <div class="form-row">
+          <label for="aNotificar">Notificar / vincular à agenda de</label>
+          <input type="text" id="aNotificar" placeholder="Opcional — deixe em branco para usar todos os e-mails cadastrados" />
+          <p class="form-row-hint">Nenhum e-mail cadastrado ainda. Adicione em Administração → Google Agenda.</p>
+        </div>
+        <button type="button" class="btn-new" id="addAchadoBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Adicionar achado
+        </button>
       </div>
     </div>
     <div class="side-panel-footer">
@@ -169,19 +234,27 @@
       return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
     }
 
+    function addDaysBR(n) {
+      const d = new Date();
+      d.setDate(d.getDate() + n);
+      return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+    }
+
+    function hojeBR() { return addDaysBR(0); }
+
     let achadoSeq = 1;
 
     let empresas = [
       { id: 'e1', nome: 'Rembraz', atividade: 'Indústria — Zona Franca', status: 'pendente', checklist: makeChecklist([]), atualizadoEm: addDays(-6), achados: [] },
       { id: 'e2', nome: 'Disbral', atividade: 'Comércio atacadista', status: 'pendente', checklist: makeChecklist([0]), atualizadoEm: addDays(-4), achados: [
-        { id: `a${achadoSeq++}`, data: addDays(-4), texto: 'Nota fiscal nº 4521 com CFOP divergente da operação declarada.' },
+        { id: `a${achadoSeq++}`, tarefa: 'Nota fiscal nº 4521 com CFOP divergente da operação declarada.', tipo: 'operacional', prioridade: 'alta', status: 'pendente', requerente: 'Disbral', prazo: '', delegadoPara: 'Sem delegado', dataCriacao: addDaysBR(-4), observacoes: '', notificar: '' },
       ] },
       { id: 'e3', nome: 'Tecnoradio', atividade: 'Indústria — Zona Franca', status: 'revisao', checklist: makeChecklist([0, 1, 2]), atualizadoEm: addDays(-2), achados: [] },
       { id: 'e4', nome: 'Lusitano', atividade: 'Comércio varejista', status: 'revisao', checklist: makeChecklist([0, 1]), atualizadoEm: addDays(-1), achados: [
-        { id: `a${achadoSeq++}`, data: addDays(-1), texto: 'Guia de ICMS de setembro recolhida com um dia de atraso — verificar multa.' },
+        { id: `a${achadoSeq++}`, tarefa: 'Guia de ICMS de setembro recolhida com um dia de atraso — verificar multa.', tipo: 'operacional', prioridade: 'normal', status: 'revisao', requerente: 'Lusitano', prazo: '', delegadoPara: 'Sem delegado', dataCriacao: addDaysBR(-1), observacoes: '', notificar: '' },
       ] },
       { id: 'e5', nome: 'Empresa Alfa', atividade: 'Prestação de serviços', status: 'reprovado', checklist: makeChecklist([0, 2]), atualizadoEm: addDays(-3), achados: [
-        { id: `a${achadoSeq++}`, data: addDays(-3), texto: 'SPED Fiscal do período anterior não localizado — solicitar reenvio à empresa.' },
+        { id: `a${achadoSeq++}`, tarefa: 'SPED Fiscal do período anterior não localizado — solicitar reenvio à empresa.', tipo: 'estrategico', prioridade: 'critica', status: 'pendente', requerente: 'Empresa Alfa', prazo: '', delegadoPara: 'Sem delegado', dataCriacao: addDaysBR(-3), observacoes: '', notificar: '' },
       ] },
       { id: 'e6', nome: 'Empresa Beta', atividade: 'Comércio atacadista', status: 'aprovado', checklist: makeChecklist([0, 1, 2, 3, 4]), atualizadoEm: addDays(-8), achados: [] },
       { id: 'e7', nome: 'Nortec', atividade: 'Indústria — Zona Franca', status: 'aprovado', checklist: makeChecklist([0, 1, 2, 3, 4]), atualizadoEm: addDays(-10), achados: [] },
@@ -192,6 +265,8 @@
 
     const STATUS_LABEL = { pendente: 'Pendente', revisao: 'Em revisão', aprovado: 'Aprovado', reprovado: 'Reprovado' };
     const STATUS_BADGE = { pendente: 'badge-neutral', revisao: 'badge-warning', aprovado: 'badge-success', reprovado: 'badge-danger' };
+    const PRIORIDADE_LABEL = { critica: 'Crítica', alta: 'Alta', normal: 'Normal', baixa: 'Baixa' };
+    const PRIORIDADE_BADGE = { critica: 'badge-danger', alta: 'badge-warning', normal: 'badge-accent', baixa: 'badge-neutral' };
 
     function checklistProgress(e) {
       const done = e.checklist.filter(c => c.done).length;
@@ -262,7 +337,17 @@
     const fStatus = document.getElementById('fStatus');
     const checklistBody = document.getElementById('checklistBody');
     const achadosList = document.getElementById('achadosList');
-    const novoAchado = document.getElementById('novoAchado');
+
+    const aTarefa = document.getElementById('aTarefa');
+    const aTipo = document.getElementById('aTipo');
+    const aPrioridade = document.getElementById('aPrioridade');
+    const aStatus = document.getElementById('aStatus');
+    const aRequerente = document.getElementById('aRequerente');
+    const aPrazo = document.getElementById('aPrazo');
+    const aDelegado = document.getElementById('aDelegado');
+    const aDataCriacao = document.getElementById('aDataCriacao');
+    const aObservacoes = document.getElementById('aObservacoes');
+    const aNotificar = document.getElementById('aNotificar');
 
     function renderChecklist(e) {
       checklistBody.innerHTML = '';
@@ -292,9 +377,37 @@
       e.achados.slice().reverse().forEach(a => {
         const div = document.createElement('div');
         div.className = 'vd-achado';
-        div.innerHTML = `<div class="data">${a.data}</div><div class="texto">${a.texto}</div>`;
+        const metaBits = [a.requerente, `Criado em ${a.dataCriacao}`];
+        if (a.prazo) metaBits.push(`Prazo ${formatPrazo(a.prazo)}`);
+        if (a.delegadoPara && a.delegadoPara !== 'Sem delegado') metaBits.push(a.delegadoPara);
+        div.innerHTML = `
+          <div class="vd-achado-top">
+            <span class="badge ${PRIORIDADE_BADGE[a.prioridade]}">${PRIORIDADE_LABEL[a.prioridade]}</span>
+            <span class="badge ${STATUS_BADGE[a.status]}">${STATUS_LABEL[a.status]}</span>
+          </div>
+          <div class="texto">${a.tarefa}</div>
+          <div class="meta">${metaBits.join(' · ')}</div>
+        `;
         achadosList.appendChild(div);
       });
+    }
+
+    function formatPrazo(iso) {
+      const [y, m, d] = iso.split('-');
+      return `${d}/${m}/${y}`;
+    }
+
+    function resetAchadoForm(e) {
+      aTarefa.value = '';
+      aTipo.value = 'operacional';
+      aPrioridade.value = 'normal';
+      aStatus.value = 'pendente';
+      aRequerente.value = e.nome;
+      aPrazo.value = '';
+      aDelegado.value = '';
+      aDataCriacao.value = hojeBR();
+      aObservacoes.value = '';
+      aNotificar.value = '';
     }
 
     function openPanel(id) {
@@ -305,7 +418,7 @@
       fStatus.value = e.status;
       renderChecklist(e);
       renderAchados(e);
-      novoAchado.value = '';
+      resetAchadoForm(e);
       vdPanel.classList.add('open');
       panelBackdrop.classList.add('open');
     }
@@ -320,11 +433,23 @@
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closePanel(); closeDropdown(); } });
 
     document.getElementById('addAchadoBtn').addEventListener('click', () => {
-      const texto = novoAchado.value.trim();
-      if (!texto || !activeId) return;
+      const tarefa = aTarefa.value.trim();
+      if (!tarefa || !activeId) return;
       const e = empresas.find(x => x.id === activeId);
-      e.achados.push({ id: `a${achadoSeq++}`, data: 'Hoje', texto });
-      novoAchado.value = '';
+      e.achados.push({
+        id: `a${achadoSeq++}`,
+        tarefa,
+        tipo: aTipo.value,
+        prioridade: aPrioridade.value,
+        status: aStatus.value,
+        requerente: aRequerente.value.trim() || e.nome,
+        prazo: aPrazo.value,
+        delegadoPara: aDelegado.value.trim() || 'Sem delegado',
+        dataCriacao: hojeBR(),
+        observacoes: aObservacoes.value.trim(),
+        notificar: aNotificar.value.trim(),
+      });
+      resetAchadoForm(e);
       renderAchados(e);
     });
 

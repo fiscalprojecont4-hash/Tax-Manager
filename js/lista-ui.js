@@ -31,6 +31,12 @@ export function statusVisivel(status, statusFiltrados) {
   return !STATUS_OCULTOS.includes(status);
 }
 
+// Prioridade / complexidade: mesmo padrão em todos os módulos.
+// (O valor interno "baixa" aparece para o usuário como "Melhoria".)
+export const PRIORIDADE_ORDER = ['critica', 'alta', 'normal', 'baixa'];
+export const PRIORIDADE_LABEL = { critica: 'Crítica', alta: 'Alta', normal: 'Normal', baixa: 'Melhoria' };
+export const PRIORIDADE_BADGE = { critica: 'badge-danger', alta: 'badge-warning', normal: 'badge-accent', baixa: 'badge-neutral' };
+
 // Todo texto digitado pelo usuário passa por esc() antes de ir para innerHTML.
 export function esc(v) {
   return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

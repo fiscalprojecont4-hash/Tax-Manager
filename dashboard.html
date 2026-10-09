@@ -30,13 +30,13 @@
             <h4>Validações</h4>
             <p>Checklists por empresa, achados, revisão e aprovação.</p>
           </a>
-          <a class="nav-dropdown-item" href="#" role="menuitem">
+          <a class="nav-dropdown-item" href="conhecimento.html" role="menuitem">
             <h4>Conhecimento</h4>
-            <p>Histórico, padrões aprovados, incidentes e playbooks.</p>
+            <p>Histórico mensal das validações e mapeamento fiscal por empresa.</p>
           </a>
-          <a class="nav-dropdown-item" href="#" role="menuitem">
+          <a class="nav-dropdown-item" href="administracao.html" role="menuitem">
             <h4>Administração</h4>
-            <p>Usuários, equipes, permissões e configurações.</p>
+            <p>Categorias, empresas, responsáveis e executores.</p>
           </a>
         </div>
       </div>
@@ -118,6 +118,7 @@
 
   <script type="module">
     import { createSupabaseClient } from './js/supabase-client.js';
+    import { instalarRelatoriosNoSino } from './js/relatorio-diario.js';
 
     const supabase = createSupabaseClient(true);
     const emailEl = document.getElementById('userEmail');
@@ -315,6 +316,7 @@
     });
 
     renderNotifications();
+    instalarRelatoriosNoSino();
   </script>
 </body>
 </html>

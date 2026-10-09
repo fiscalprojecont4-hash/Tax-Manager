@@ -48,6 +48,7 @@ function dataHoraBR(d = new Date()) {
  * @param {string[]} [o.filtros]        descrições dos filtros aplicados
  * @param {string[]} [o.colunas]
  * @param {Array<Array<string>>} [o.linhas]
+ * @param {Array<{titulo?:string,colunas:string[],linhas:string[][],estilosColunas?:object,vazio?:string}>} [o.tabelas]  tabelas extras, em sequência
  * @param {Array<{titulo:string, campos:Array<{rotulo:string,texto:string}>}>} [o.blocos]
  * @param {Array<{rotulo:string,valor:string}>} [o.identificacao]  ficha no topo (relatório de uma validação)
  */
@@ -138,29 +139,43 @@ export async function gerarPdf(o) {
     y += txt.length * 4 + 2;
   }
 
-  // Tabela
-  if (o.colunas && o.linhas) {
-    if (o.linhas.length === 0) {
+  // Tabelas: a principal (colunas/linhas) e, se houver, outras com título próprio (tabelas).
+  const tabelas = [];
+  if (o.colunas && o.linhas) tabelas.push({ colunas: o.colunas, linhas: o.linhas, estilosColunas: o.estilosColunas });
+  (o.tabelas || []).forEach(t => tabelas.push(t));
+  tabelas.forEach(t => {
+    if (t.titulo) {
+      garantir(18);
+      doc.setFillColor(...AZUL);
+      doc.rect(M, y - 4, 1.2, 6.2, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10.5);
+      doc.setTextColor(...TEXTO);
+      doc.text(t.titulo, M + 3.5, y);
+      y += 4;
+    }
+    if (t.linhas.length === 0) {
+      doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
       doc.setTextColor(...MUDO);
-      doc.text('Nenhum registro com os filtros atuais.', M, y + 4);
+      doc.text(t.vazio || 'Nenhum registro com os filtros atuais.', M, y + 4);
       y += 10;
-    } else {
-      doc.autoTable({
-        head: [o.colunas],
-        body: o.linhas,
-        startY: y + 1,
-        margin: { top: TOPO, left: M, right: M, bottom: 18 },
-        theme: 'grid',
-        styles: { font: 'helvetica', fontSize: 8, cellPadding: 1.8, textColor: TEXTO, lineColor: [220, 231, 244], lineWidth: 0.15, overflow: 'linebreak', valign: 'top' },
-        headStyles: { fillColor: AZUL, textColor: 255, fontStyle: 'bold', halign: 'left' },
-        alternateRowStyles: { fillColor: [248, 251, 254] },
-        columnStyles: o.estilosColunas || {},
-        rowPageBreak: 'avoid',
-      });
-      y = doc.lastAutoTable.finalY + 6;
+      return;
     }
-  }
+    doc.autoTable({
+      head: [t.colunas],
+      body: t.linhas,
+      startY: y + 1,
+      margin: { top: TOPO, left: M, right: M, bottom: 18 },
+      theme: 'grid',
+      styles: { font: 'helvetica', fontSize: 8, cellPadding: 1.8, textColor: TEXTO, lineColor: [220, 231, 244], lineWidth: 0.15, overflow: 'linebreak', valign: 'top' },
+      headStyles: { fillColor: AZUL, textColor: 255, fontStyle: 'bold', halign: 'left' },
+      alternateRowStyles: { fillColor: [248, 251, 254] },
+      columnStyles: t.estilosColunas || {},
+      rowPageBreak: 'avoid',
+    });
+    y = doc.lastAutoTable.finalY + 6;
+  });
 
   // Blocos de texto (pontos identificados etc.)
   (o.blocos || []).forEach(bloco => {

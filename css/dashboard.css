@@ -14,7 +14,11 @@ body {
    módulo já tinham essa regra nos seus próprios CSS (por causa dos
    painéis laterais); dashboard.html usa este arquivo direto, sem CSS de
    módulo por cima, então precisa da regra aqui também. */
+/* login.css fixa html/body em height:100% (tela de login centralizada). Nas
+   páginas internas isso, somado ao overflow-x:hidden, fazia o <body> virar o
+   container de rolagem em vez da janela. height:auto devolve a rolagem à janela. */
 html, body {
+  height: auto;
   overflow-x: hidden;
 }
 
@@ -802,15 +806,16 @@ html, body {
   width: min(460px, 100vw);
   background: var(--panel);
   border-left: 1px solid var(--border);
-  box-shadow: -16px 0 40px rgba(22, 35, 58, 0.1);
+  /* a sombra só existe com o painel aberto: fechado, ela vazava ~50px para dentro da tela */
+  box-shadow: none;
   transform: translateX(100%);
-  transition: transform 0.22s ease;
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
   z-index: 41;
   display: flex;
   flex-direction: column;
 }
 
-.side-panel.open { transform: translateX(0); }
+.side-panel.open { transform: translateX(0); box-shadow: -16px 0 40px rgba(22, 35, 58, 0.1); }
 
 .side-panel-header {
   padding: 1.25rem 1.5rem;
@@ -990,4 +995,258 @@ html, body {
 
 @media (max-width: 480px) {
   .form-row-split { grid-template-columns: 1fr; }
+}
+
+/* =====================================================================
+   Componentes de listagem compartilhados (Tarefas, Validações):
+   cards de totais, barra de filtros e tabela
+   ===================================================================== */
+
+/* ---------- Cards de totais ---------- */
+
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.9rem;
+  margin-bottom: 1.1rem;
+}
+
+.kpi-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 12px;
+  padding: 0.9rem 1.1rem;
+}
+
+.kpi-card .kpi-value {
+  display: block;
+  font-size: 1.7rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--text);
+}
+
+.kpi-card .kpi-label {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.kpi-card.warning { border-left-color: var(--warning); }
+.kpi-card.danger  { border-left-color: var(--danger); }
+.kpi-card.success { border-left-color: var(--success); }
+.kpi-card.neutral { border-left-color: var(--muted); }
+
+/* ---------- Barra de filtros e ações ---------- */
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.1rem;
+}
+
+.filter-bar .filter-search {
+  flex: 1 1 220px;
+  min-width: 0;
+  max-width: 320px;
+  position: relative;
+}
+
+.filter-bar .filter-search svg {
+  position: absolute;
+  left: 0.7rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.filter-bar input[type="search"],
+.filter-bar select {
+  font-family: inherit;
+  font-size: 0.82rem;
+  color: var(--text);
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.5rem 0.7rem;
+  height: 36px;
+  max-width: 100%;
+}
+
+.filter-bar input[type="search"] {
+  width: 100%;
+  padding-left: 2rem;
+}
+
+.filter-bar input[type="search"]:focus,
+.filter-bar select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.filter-bar .filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 36px;
+  background: #ffffff;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0 0.85rem;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-outline:hover { background: var(--surface); border-color: #c3d7fa; }
+
+.filter-note {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin: -0.4rem 0 1rem;
+  min-height: 1.1em;
+}
+
+.filter-note button {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* ---------- Tabela ---------- */
+
+.table-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  min-width: 920px;
+}
+
+.data-table th {
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--muted);
+  padding: 0.75rem 0.7rem;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.data-table td {
+  padding: 0.85rem 0.7rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+  color: var(--text);
+}
+
+.data-table tbody tr:last-child td { border-bottom: none; }
+.data-table tbody tr:hover { background: #f8fbff; }
+
+.data-table .col-check { width: 34px; padding-right: 0; }
+.data-table .col-main  { min-width: 240px; font-weight: 500; }
+.data-table .col-actions { white-space: nowrap; text-align: right; }
+
+/* faixa de cor à esquerda da linha (prioridade) */
+.data-table tbody td:first-child { box-shadow: inset 4px 0 0 var(--row-accent, transparent); }
+.data-table tbody tr.is-done td { color: var(--muted); }
+
+.data-table .muted { color: var(--muted); }
+.data-table .overdue { color: var(--danger); font-weight: 600; }
+.data-table .overdue small { font-weight: 500; }
+
+.row-check {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-left: 0.15rem;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.icon-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: #c3d7fa; }
+.icon-btn.danger:hover,
+.icon-btn.armed { background: var(--danger-soft); color: var(--danger); border-color: #f3c6c2; }
+
+.dot-label { display: inline-flex; align-items: center; gap: 0.4rem; white-space: nowrap; }
+.dot-label::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--dot, var(--accent));
+}
+
+/* Em telas estreitas a tabela vira uma lista de cartões */
+@media (max-width: 760px) {
+  .filter-bar .filter-search { max-width: none; flex-basis: 100%; }
+  .filter-bar .filter-actions { margin-left: 0; }
+  .data-table { min-width: 0; }
+  .data-table thead { display: none; }
+  .data-table, .data-table tbody, .data-table tr, .data-table td { display: block; width: 100%; }
+  .data-table tbody tr { border-bottom: 1px solid var(--border); padding: 0.7rem 0.9rem; position: relative; }
+  .data-table tbody tr:last-child { border-bottom: none; }
+  .data-table td { border: none; padding: 0.2rem 0; box-shadow: none !important; }
+  .data-table td[data-label]::before {
+    content: attr(data-label) ': ';
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  .data-table td.col-main::before { content: none; }
+  .data-table td.col-check { position: absolute; top: 0.7rem; right: 0.9rem; width: auto; }
+  .data-table td.col-main { padding-right: 1.8rem; min-width: 0; }
+  .data-table td.col-actions { text-align: left; padding-top: 0.5rem; }
+  .data-table tbody tr { border-left: 4px solid var(--row-accent, transparent); }
+}
+
+/* Impressão ("Gerar PDF"): só o conteúdo da listagem */
+@media print {
+  .topnav, .data-note, .filter-bar, .filter-note, .side-panel, .side-panel-backdrop,
+  .col-check, .col-actions, .notif-panel { display: none !important; }
+  body { background: #ffffff; }
+  .table-card { border: none; overflow: visible; }
+  .data-table { min-width: 0; font-size: 0.75rem; }
+  .data-table tbody tr { break-inside: avoid; }
+  .kpi-card { break-inside: avoid; }
 }

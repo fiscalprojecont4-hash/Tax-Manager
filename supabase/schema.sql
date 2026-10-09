@@ -389,6 +389,8 @@ create table if not exists public.validacoes (
   modelo_id     uuid not null,
   status        text not null default 'pendente'
                   check (status in ('pendente','revisao','aprovado','reprovado')),
+  atividade     text not null default 'Geral',          -- ex.: EFD ICMS/IPI, EFD Contribuições, DCTF
+  analista_id   uuid references public.perfis (id) on delete set null,   -- "Analista responsável"
   revisor_id    uuid references public.perfis (id) on delete set null,
   observacoes   text,
   aprovado_em   timestamptz,
@@ -396,7 +398,6 @@ create table if not exists public.validacoes (
   criado_em     timestamptz not null default now(),
   atualizado_em timestamptz not null default now(),
   unique (id, equipe_id),
-  unique (equipe_id, empresa_id, competencia),
   foreign key (empresa_id, equipe_id) references public.empresa_equipes (empresa_id, equipe_id),
   foreign key (modelo_id, equipe_id)  references public.checklist_modelos (id, equipe_id)
 );
@@ -422,6 +423,9 @@ create table if not exists public.achados (
   equipe_id       uuid not null,
   titulo          text not null,
   categoria       text,
+  identificado    text,                                  -- "O que foi identificado"
+  motivo          text,                                  -- "Por que isso não pode ocorrer"
+  orientacao      text,                                  -- "Orientação / solução recomendada"
   tipo            text not null default 'operacional'
                     check (tipo in ('operacional','estrategico','administrativo')),
   prioridade      text not null default 'normal'
@@ -440,6 +444,18 @@ create table if not exists public.achados (
   foreign key (validacao_id, equipe_id) references public.validacoes (id, equipe_id) on delete cascade,
   foreign key (tarefa_id, equipe_id)    references public.tarefas (id, equipe_id) on delete set null (tarefa_id)
 );
+-- Caminho de atualização (bancos criados com versões anteriores deste arquivo)
+alter table public.validacoes add column if not exists atividade   text not null default 'Geral';
+alter table public.validacoes add column if not exists analista_id uuid references public.perfis (id) on delete set null;
+alter table public.achados    add column if not exists identificado text;
+alter table public.achados    add column if not exists motivo       text;
+alter table public.achados    add column if not exists orientacao   text;
+alter table public.validacoes drop constraint if exists validacoes_equipe_id_empresa_id_competencia_key;
+
+-- Uma validação por empresa, competência e atividade (a mesma empresa pode ter várias atividades no mês)
+create unique index if not exists validacoes_unica_idx
+  on public.validacoes (equipe_id, empresa_id, competencia, atividade);
+
 create index if not exists achados_validacao_idx  on public.achados (validacao_id);
 create index if not exists achados_categoria_idx  on public.achados (equipe_id, categoria) where categoria is not null;
 

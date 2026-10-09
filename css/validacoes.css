@@ -6,16 +6,6 @@ html, body {
 
 .data-note { margin-bottom: 1.25rem; }
 
-/* ---------- Toolbar ---------- */
-
-.vd-toolbar {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-bottom: 1.25rem;
-}
-
 /* ---------- Linha de empresa ---------- */
 
 .vd-row {
@@ -181,3 +171,56 @@ html, body {
 }
 
 .vd-achado-add .form-row { margin-bottom: 0.85rem; }
+
+/* ---------- Pontos identificados ---------- */
+
+.vd-achado-top { flex-wrap: wrap; }
+
+.vd-ponto-titulo {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.45rem;
+  overflow-wrap: anywhere;
+}
+
+.vd-ponto-campo { margin-bottom: 0.5rem; }
+
+.vd-ponto-campo .rotulo {
+  display: block;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 0.1rem;
+}
+
+.vd-ponto-campo p {
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: var(--text);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.vd-achado .meta { overflow-wrap: anywhere; }
+
+.vd-more {
+  margin: 0.2rem 0 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.vd-more > summary {
+  cursor: pointer;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.vd-more[open] > summary { border-bottom: 1px solid var(--border); }
+.vd-more-body { padding: 0.85rem; }
+.vd-more-body .form-row:last-child { margin-bottom: 0; }
+
+#addAchadoBtn { width: 100%; justify-content: center; }

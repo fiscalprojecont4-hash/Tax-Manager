@@ -74,13 +74,38 @@
       e o fluxo de aprovação serão substituídos por dados reais assim que o schema estiver pronto.
     </div>
 
-    <div class="vd-toolbar">
-      <div class="segmented" id="statusFilter">
-        <button type="button" class="segmented-btn active" data-filter="pendentes">Pendentes</button>
-        <button type="button" class="segmented-btn" data-filter="aprovadas">Aprovadas</button>
-        <button type="button" class="segmented-btn" data-filter="todas">Todas</button>
+    <section class="kpi-row" aria-label="Resumo das validações">
+      <div class="kpi-card"><span class="kpi-value" id="kpiTotal">0</span><span class="kpi-label">Empresas / atividades</span></div>
+      <div class="kpi-card neutral"><span class="kpi-value" id="kpiPendentes">0</span><span class="kpi-label">Pendentes</span></div>
+      <div class="kpi-card warning"><span class="kpi-value" id="kpiRevisao">0</span><span class="kpi-label">Em revisão</span></div>
+      <div class="kpi-card danger"><span class="kpi-value" id="kpiReprovadas">0</span><span class="kpi-label">Reprovadas</span></div>
+      <div class="kpi-card success"><span class="kpi-value" id="kpiAprovadas">0</span><span class="kpi-label">Aprovadas</span></div>
+    </section>
+
+    <div class="filter-bar" role="search">
+      <div class="filter-search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="search" id="fltSearch" placeholder="Buscar empresa ou atividade" aria-label="Buscar empresa ou atividade" autocomplete="off" />
+      </div>
+      <select id="fltStatus" aria-label="Filtrar por status">
+        <option value="abertas" selected>Em aberto</option>
+        <option value="">Todo status</option>
+        <option value="pendente">Pendente</option>
+        <option value="revisao">Em revisão</option>
+        <option value="reprovado">Reprovado</option>
+        <option value="aprovado">Aprovado</option>
+      </select>
+      <select id="fltAtividade" aria-label="Filtrar por atividade"></select>
+      <select id="fltAnalista" aria-label="Filtrar por analista"></select>
+      <div class="filter-actions">
+        <button type="button" class="btn-outline" id="btnCsv"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exportar CSV</button>
+        <button type="button" class="btn-new" id="newValidacaoBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nova validação
+        </button>
       </div>
     </div>
+    <p class="filter-note" id="filterNote" role="status" aria-live="polite"></p>
 
     <div class="list-card" id="empresaList"></div>
   </main>
@@ -96,88 +121,136 @@
       <button type="button" class="side-panel-close" id="panelClose" aria-label="Fechar">✕</button>
     </div>
     <div class="side-panel-body">
-      <div class="form-row">
-        <label for="fStatus">Status da validação</label>
-        <select id="fStatus">
-          <option value="pendente">Pendente</option>
-          <option value="revisao">Em revisão</option>
-          <option value="aprovado">Aprovado</option>
-          <option value="reprovado">Reprovado</option>
-        </select>
+      <div class="form-row form-row-split">
+        <div>
+          <label for="fEmpresa">Empresa</label>
+          <input type="text" id="fEmpresa" placeholder="Nome da empresa" />
+        </div>
+        <div>
+          <label for="fAtividade">Atividade</label>
+          <input type="text" id="fAtividade" list="atividadesSugeridas" placeholder="Ex.: EFD Contribuições" />
+          <datalist id="atividadesSugeridas">
+            <option value="EFD ICMS/IPI"></option>
+            <option value="EFD Contribuições"></option>
+            <option value="Apuração de ICMS"></option>
+            <option value="DCTF"></option>
+            <option value="DAS — Simples Nacional"></option>
+          </datalist>
+        </div>
+      </div>
+      <div class="form-row form-row-split">
+        <div>
+          <label for="fAnalista">Analista responsável</label>
+          <input type="text" id="fAnalista" placeholder="Quem está validando" />
+        </div>
+        <div>
+          <label for="fStatus">Status</label>
+          <select id="fStatus">
+            <option value="pendente">Pendente</option>
+            <option value="revisao">Em revisão</option>
+            <option value="aprovado">Aprovado</option>
+            <option value="reprovado">Reprovado</option>
+          </select>
+        </div>
       </div>
 
       <div class="panel-section-title">Checklist</div>
       <div class="vd-checklist" id="checklistBody"></div>
 
-      <div class="panel-section-title">Achados</div>
+      <div class="panel-section-title">Pontos identificados</div>
       <div class="vd-achados-list" id="achadosList"></div>
 
       <div class="vd-achado-add">
-        <div class="form-row">
-          <label for="aTarefa">Tarefa</label>
-          <textarea id="aTarefa" placeholder="Descreva o achado..."></textarea>
-        </div>
         <div class="form-row form-row-split">
           <div>
-            <label for="aTipo">Tipo</label>
-            <select id="aTipo">
-              <option value="operacional" selected>Operacional</option>
-              <option value="estrategico">Estratégico</option>
-              <option value="administrativo">Administrativo</option>
-            </select>
+            <label for="pCategoria">Categoria</label>
+            <select id="pCategoria"></select>
           </div>
           <div>
-            <label for="aPrioridade">Prioridade</label>
-            <select id="aPrioridade">
-              <option value="baixa">Baixa</option>
-              <option value="normal" selected>Normal</option>
-              <option value="alta">Alta</option>
-              <option value="critica">Crítica</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-row form-row-split">
-          <div>
-            <label for="aStatus">Status</label>
-            <select id="aStatus">
-              <option value="pendente" selected>Pendente</option>
-              <option value="revisao">Em revisão</option>
-              <option value="aprovado">Aprovado</option>
-              <option value="reprovado">Reprovado</option>
-            </select>
-          </div>
-          <div>
-            <label for="aRequerente">Requerente</label>
-            <input type="text" id="aRequerente" placeholder="Cliente, empresa ou 'Interno'" />
-          </div>
-        </div>
-        <div class="form-row form-row-split">
-          <div>
-            <label for="aPrazo">Prazo</label>
-            <input type="date" id="aPrazo" />
-          </div>
-          <div>
-            <label for="aDelegado">Delegado para</label>
-            <input type="text" id="aDelegado" placeholder="Nome de quem vai executar (opcional)" />
+            <label for="pTitulo">Título do ponto</label>
+            <input type="text" id="pTitulo" placeholder="Ex: Classificação de produtos ST x Tributados" />
           </div>
         </div>
         <div class="form-row">
-          <label for="aDataCriacao">Data de criação</label>
-          <input type="text" id="aDataCriacao" readonly />
-          <p class="form-row-hint">Preenchida automaticamente na criação da tarefa.</p>
+          <label for="pIdentificado">O que foi identificado</label>
+          <textarea id="pIdentificado"></textarea>
         </div>
         <div class="form-row">
-          <label for="aObservacoes">Observações / contexto</label>
-          <textarea id="aObservacoes" placeholder="Anotações sobre o achado (opcional)"></textarea>
+          <label for="pMotivo">Por que isso não pode ocorrer</label>
+          <textarea id="pMotivo"></textarea>
         </div>
         <div class="form-row">
-          <label for="aNotificar">Notificar / vincular à agenda de</label>
-          <input type="text" id="aNotificar" placeholder="Opcional — deixe em branco para usar todos os e-mails cadastrados" />
-          <p class="form-row-hint">Nenhum e-mail cadastrado ainda. Adicione em Administração → Google Agenda.</p>
+          <label for="pOrientacao">Orientação / solução recomendada</label>
+          <textarea id="pOrientacao"></textarea>
         </div>
-        <button type="button" class="btn-new" id="addAchadoBtn">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Adicionar achado
+
+        <details class="vd-more">
+          <summary>Mais detalhes do ponto (prioridade, prazo, delegado…)</summary>
+          <div class="vd-more-body">
+            <div class="form-row form-row-split">
+              <div>
+                <label for="aTipo">Tipo</label>
+                <select id="aTipo">
+                  <option value="operacional" selected>Operacional</option>
+                  <option value="estrategico">Estratégico</option>
+                  <option value="administrativo">Administrativo</option>
+                </select>
+              </div>
+              <div>
+                <label for="aPrioridade">Prioridade</label>
+                <select id="aPrioridade">
+                  <option value="baixa">Baixa</option>
+                  <option value="normal" selected>Normal</option>
+                  <option value="alta">Alta</option>
+                  <option value="critica">Crítica</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row form-row-split">
+              <div>
+                <label for="aStatus">Status do ponto</label>
+                <select id="aStatus">
+                  <option value="pendente" selected>Pendente</option>
+                  <option value="revisao">Em revisão</option>
+                  <option value="aprovado">Aprovado</option>
+                  <option value="reprovado">Reprovado</option>
+                </select>
+              </div>
+              <div>
+                <label for="aRequerente">Requerente</label>
+                <input type="text" id="aRequerente" placeholder="Cliente, empresa ou 'Interno'" />
+              </div>
+            </div>
+            <div class="form-row form-row-split">
+              <div>
+                <label for="aPrazo">Prazo</label>
+                <input type="date" id="aPrazo" />
+              </div>
+              <div>
+                <label for="aDelegado">Delegado para</label>
+                <input type="text" id="aDelegado" placeholder="Quem vai executar (opcional)" />
+              </div>
+            </div>
+            <div class="form-row">
+              <label for="aDataCriacao">Data de criação</label>
+              <input type="text" id="aDataCriacao" readonly />
+              <p class="form-row-hint">Preenchida automaticamente ao adicionar o ponto.</p>
+            </div>
+            <div class="form-row">
+              <label for="aObservacoes">Observações / contexto</label>
+              <textarea id="aObservacoes" placeholder="Anotações sobre o ponto (opcional)"></textarea>
+            </div>
+            <div class="form-row">
+              <label for="aNotificar">Notificar / vincular à agenda de</label>
+              <input type="text" id="aNotificar" placeholder="Opcional — deixe em branco para usar todos os e-mails cadastrados" />
+              <p class="form-row-hint">Nenhum e-mail cadastrado ainda. Adicione em Administração → Google Agenda.</p>
+            </div>
+          </div>
+        </details>
+
+        <button type="button" class="btn-outline" id="addAchadoBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Adicionar ponto manualmente
         </button>
       </div>
     </div>
@@ -348,6 +421,9 @@
       'Pendências do mês anterior resolvidas',
     ];
 
+    const CATEGORIAS = ['NCM / CST', 'ICMS', 'ICMS-ST', 'PIS / COFINS', 'Simples Nacional', 'Notas fiscais',
+                        'Obrigações acessórias', 'Cadastro', 'Outros'];
+
     function makeChecklist(doneIdx) {
       return CHECKLIST_PADRAO.map((label, i) => ({ id: `c${i}`, label, done: doneIdx.includes(i) }));
     }
@@ -366,26 +442,43 @@
 
     function hojeBR() { return addDaysBR(0); }
 
+    // Todo texto digitado pelo usuário passa por esc() antes de ir para innerHTML.
+    function esc(v) {
+      return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+    function norm(v) {
+      return String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+    }
+
     let achadoSeq = 1;
+    let empresaSeq = 1;
+
+    function ponto(o) {
+      return { id: `a${achadoSeq++}`, categoria: 'Outros', titulo: '', identificado: '', motivo: '', orientacao: '',
+               tipo: 'operacional', prioridade: 'normal', status: 'pendente', requerente: '', prazo: '',
+               delegadoPara: 'Sem delegado', dataCriacao: hojeBR(), observacoes: '', notificar: '', ...o };
+    }
 
     let empresas = [
-      { id: 'e1', nome: 'Rembraz', atividade: 'Indústria — Zona Franca', status: 'pendente', checklist: makeChecklist([]), atualizadoEm: addDays(-6), achados: [] },
-      { id: 'e2', nome: 'Disbral', atividade: 'Comércio atacadista', status: 'pendente', checklist: makeChecklist([0]), atualizadoEm: addDays(-4), achados: [
-        { id: `a${achadoSeq++}`, tarefa: 'Nota fiscal nº 4521 com CFOP divergente da operação declarada.', tipo: 'operacional', prioridade: 'alta', status: 'pendente', requerente: 'Disbral', prazo: '', delegadoPara: 'Sem delegado', dataCriacao: addDaysBR(-4), observacoes: '', notificar: '' },
+      { id: 'e1', nome: 'Rembraz', atividade: 'EFD ICMS/IPI', analista: 'Wendel', status: 'pendente', checklist: makeChecklist([]), atualizadoEm: addDays(-6), achados: [] },
+      { id: 'e2', nome: 'Disbral', atividade: 'EFD Contribuições', analista: 'Equipe Fiscal', status: 'pendente', checklist: makeChecklist([0]), atualizadoEm: addDays(-4), achados: [
+        ponto({ categoria: 'Notas fiscais', titulo: 'CFOP divergente na NF 4521', identificado: 'Nota fiscal nº 4521 com CFOP divergente da operação declarada.', motivo: 'CFOP incorreto distorce a apuração de ICMS e pode gerar autuação.', orientacao: 'Corrigir o CFOP (nota complementar ou carta de correção) e reapurar o período.', prioridade: 'alta', requerente: 'Disbral', dataCriacao: addDaysBR(-4) }),
       ] },
-      { id: 'e3', nome: 'Tecnoradio', atividade: 'Indústria — Zona Franca', status: 'revisao', checklist: makeChecklist([0, 1, 2]), atualizadoEm: addDays(-2), achados: [] },
-      { id: 'e4', nome: 'Lusitano', atividade: 'Comércio varejista', status: 'revisao', checklist: makeChecklist([0, 1]), atualizadoEm: addDays(-1), achados: [
-        { id: `a${achadoSeq++}`, tarefa: 'Guia de ICMS de setembro recolhida com um dia de atraso — verificar multa.', tipo: 'operacional', prioridade: 'normal', status: 'revisao', requerente: 'Lusitano', prazo: '', delegadoPara: 'Sem delegado', dataCriacao: addDaysBR(-1), observacoes: '', notificar: '' },
+      { id: 'e3', nome: 'Tecnoradio', atividade: 'EFD ICMS/IPI', analista: 'Wendel', status: 'revisao', checklist: makeChecklist([0, 1, 2]), atualizadoEm: addDays(-2), achados: [] },
+      { id: 'e4', nome: 'Lusitano', atividade: 'Apuração de ICMS', analista: 'Equipe Fiscal', status: 'revisao', checklist: makeChecklist([0, 1]), atualizadoEm: addDays(-1), achados: [
+        ponto({ categoria: 'ICMS', titulo: 'Guia de setembro recolhida com atraso', identificado: 'Guia de ICMS de setembro recolhida com um dia de atraso.', motivo: 'Recolhimento fora do prazo gera multa e juros.', orientacao: 'Verificar a multa, atualizar o valor devido e criar lembrete de vencimento.', status: 'revisao', requerente: 'Lusitano', dataCriacao: addDaysBR(-1) }),
       ] },
-      { id: 'e5', nome: 'Empresa Alfa', atividade: 'Prestação de serviços', status: 'reprovado', checklist: makeChecklist([0, 2]), atualizadoEm: addDays(-3), achados: [
-        { id: `a${achadoSeq++}`, tarefa: 'SPED Fiscal do período anterior não localizado — solicitar reenvio à empresa.', tipo: 'estrategico', prioridade: 'critica', status: 'pendente', requerente: 'Empresa Alfa', prazo: '', delegadoPara: 'Sem delegado', dataCriacao: addDaysBR(-3), observacoes: '', notificar: '' },
+      { id: 'e5', nome: 'Empresa Alfa', atividade: 'EFD Contribuições', analista: '', status: 'reprovado', checklist: makeChecklist([0, 2]), atualizadoEm: addDays(-3), achados: [
+        ponto({ categoria: 'Obrigações acessórias', titulo: 'SPED Fiscal anterior não localizado', identificado: 'SPED Fiscal do período anterior não localizado.', motivo: 'Sem a escrituração anterior não há como conferir o saldo; omissão gera multa.', orientacao: 'Solicitar o reenvio do arquivo à empresa e transmitir antes de validar o período atual.', tipo: 'estrategico', prioridade: 'critica', requerente: 'Empresa Alfa', dataCriacao: addDaysBR(-3) }),
       ] },
-      { id: 'e6', nome: 'Empresa Beta', atividade: 'Comércio atacadista', status: 'aprovado', checklist: makeChecklist([0, 1, 2, 3, 4]), atualizadoEm: addDays(-8), achados: [] },
-      { id: 'e7', nome: 'Nortec', atividade: 'Indústria — Zona Franca', status: 'aprovado', checklist: makeChecklist([0, 1, 2, 3, 4]), atualizadoEm: addDays(-10), achados: [] },
+      { id: 'e6', nome: 'Empresa Beta', atividade: 'DCTF', analista: 'Wendel', status: 'aprovado', checklist: makeChecklist([0, 1, 2, 3, 4]), atualizadoEm: addDays(-8), achados: [] },
+      { id: 'e7', nome: 'Nortec', atividade: 'EFD ICMS/IPI', analista: 'Equipe Fiscal', status: 'aprovado', checklist: makeChecklist([0, 1, 2, 3, 4]), atualizadoEm: addDays(-10), achados: [] },
     ];
+    empresaSeq = empresas.length + 1;
 
-    let currentFilter = 'pendentes';
-    let activeId = null;
+    let activeId = null;           // null + painel aberto = nova validação
+    const filters = { q: '', status: 'abertas', atividade: '', analista: '' };
+    const SEM_ANALISTA = 'Sem analista';
 
     const STATUS_LABEL = { pendente: 'Pendente', revisao: 'Em revisão', aprovado: 'Aprovado', reprovado: 'Reprovado' };
     const STATUS_BADGE = { pendente: 'badge-neutral', revisao: 'badge-warning', aprovado: 'badge-success', reprovado: 'badge-danger' };
@@ -397,25 +490,65 @@
       return { done, total: e.checklist.length, pct: Math.round((done / e.checklist.length) * 100) };
     }
 
+    function analistaDe(e) { return e.analista || SEM_ANALISTA; }
+
+    // ---------- lista, totais e filtros ----------
+
+    function matches(e) {
+      if (filters.q && !norm(`${e.nome} ${e.atividade} ${e.analista}`).includes(norm(filters.q))) return false;
+      if (filters.status === 'abertas') { if (e.status === 'aprovado') return false; }
+      else if (filters.status && e.status !== filters.status) return false;
+      if (filters.atividade && e.atividade !== filters.atividade) return false;
+      if (filters.analista && analistaDe(e) !== filters.analista) return false;
+      return true;
+    }
+
+    function fillSelect(id, valorTodos, valores, atual) {
+      const sel = document.getElementById(id);
+      const lista = [['', valorTodos], ...valores.map(v => [v, v])];
+      sel.innerHTML = lista.map(([v, l]) => `<option value="${esc(v)}">${esc(l)}</option>`).join('');
+      sel.value = lista.some(o => o[0] === atual) ? atual : '';
+      return sel.value;
+    }
+
+    function refreshFilterOptions() {
+      const atividades = [...new Set(empresas.map(e => e.atividade).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+      filters.atividade = fillSelect('fltAtividade', 'Toda atividade', atividades, filters.atividade);
+      const analistas = [...new Set(empresas.map(analistaDe).filter(n => n !== SEM_ANALISTA))].sort((a, b) => a.localeCompare(b));
+      if (empresas.some(e => !e.analista)) analistas.push(SEM_ANALISTA);
+      filters.analista = fillSelect('fltAnalista', 'Todo analista', analistas, filters.analista);
+    }
+
+    function renderKpis() {
+      const n = (st) => empresas.filter(e => e.status === st).length;
+      document.getElementById('kpiTotal').textContent = empresas.length;
+      document.getElementById('kpiPendentes').textContent = n('pendente');
+      document.getElementById('kpiRevisao').textContent = n('revisao');
+      document.getElementById('kpiReprovadas').textContent = n('reprovado');
+      document.getElementById('kpiAprovadas').textContent = n('aprovado');
+    }
+
     function renderRow(e) {
       const row = document.createElement('div');
       row.className = 'vd-row';
       row.dataset.id = e.id;
       const prog = checklistProgress(e);
       const fillClass = e.status === 'reprovado' ? 'danger' : (e.status === 'aprovado' ? 'success' : '');
+      const pontos = e.achados.length;
 
       row.innerHTML = `
         <div class="vd-row-main">
-          <p class="vd-row-name">${e.nome}</p>
-          <p class="vd-row-activity">${e.atividade}</p>
+          <p class="vd-row-name">${esc(e.nome)}</p>
+          <p class="vd-row-activity">${esc(e.atividade || 'Sem atividade')} · ${esc(analistaDe(e))}</p>
         </div>
         <div class="vd-row-progress">
           <div class="progress-track"><div class="progress-fill ${fillClass}" style="width:${prog.pct}%"></div></div>
           <span class="count">${prog.done}/${prog.total}</span>
         </div>
         <div class="vd-row-side">
+          ${pontos ? `<span class="badge badge-neutral" title="Pontos identificados">${pontos} ${pontos === 1 ? 'ponto' : 'pontos'}</span>` : ''}
           <span class="badge ${STATUS_BADGE[e.status]}">${STATUS_LABEL[e.status]}</span>
-          <span class="vd-row-updated">${e.atualizadoEm}</span>
+          <span class="vd-row-updated">${esc(e.atualizadoEm)}</span>
         </div>
       `;
       row.addEventListener('click', () => openPanel(e.id));
@@ -423,46 +556,76 @@
     }
 
     function render() {
+      refreshFilterOptions();
+      renderKpis();
       const container = document.getElementById('empresaList');
       container.innerHTML = '';
-
-      const filtered = empresas.filter(e => {
-        if (currentFilter === 'pendentes') return e.status === 'pendente' || e.status === 'revisao' || e.status === 'reprovado';
-        if (currentFilter === 'aprovadas') return e.status === 'aprovado';
-        return true;
-      });
+      const filtered = empresas.filter(matches);
 
       if (filtered.length === 0) {
-        container.innerHTML = '<div class="empty-state">Nenhuma empresa nesta visão.</div>';
+        container.innerHTML = '<div class="empty-state">Nenhuma empresa com esses filtros.</div>';
         return;
       }
-
       filtered
         .slice()
         .sort((a, b) => a.nome.localeCompare(b.nome))
         .forEach(e => container.appendChild(renderRow(e)));
     }
 
-    document.getElementById('statusFilter').addEventListener('click', (e) => {
-      const btn = e.target.closest('.segmented-btn');
-      if (!btn) return;
-      document.querySelectorAll('#statusFilter .segmented-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      currentFilter = btn.dataset.filter;
-      render();
+    const bind = (id, key) => document.getElementById(id).addEventListener(key === 'q' ? 'input' : 'change', (ev) => { filters[key] = ev.target.value; render(); });
+    bind('fltSearch', 'q'); bind('fltStatus', 'status'); bind('fltAtividade', 'atividade'); bind('fltAnalista', 'analista');
+
+    // ---------- exportar CSV ----------
+
+    function csvCell(v) {
+      let t = String(v ?? '');
+      if (/^[=+\-@\t\r]/.test(t)) t = `'${t}`;
+      return /[";\r\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+    }
+
+    let flashTimer = null;
+    function flash(msg) {
+      const note = document.getElementById('filterNote');
+      note.textContent = msg;
+      clearTimeout(flashTimer);
+      flashTimer = setTimeout(() => { note.textContent = ''; }, 6000);
+    }
+
+    document.getElementById('btnCsv').addEventListener('click', () => {
+      const lista = empresas.filter(matches).sort((a, b) => a.nome.localeCompare(b.nome));
+      if (!lista.length) { flash('Nada para exportar com os filtros atuais.'); return; }
+      const linhas = [['Empresa', 'Atividade', 'Analista responsável', 'Status', 'Checklist', 'Pontos identificados', 'Atualizado em'].join(';')];
+      lista.forEach(e => {
+        const prog = checklistProgress(e);
+        linhas.push([e.nome, e.atividade, e.analista, STATUS_LABEL[e.status], `${prog.done}/${prog.total}`, e.achados.length, e.atualizadoEm].map(csvCell).join(';'));
+      });
+      const blob = new Blob(['﻿' + linhas.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'validacoes.csv';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      flash(`${lista.length} ${lista.length === 1 ? 'validação exportada' : 'validações exportadas'} em CSV.`);
     });
 
-    // ---------- Painel lateral ----------
+    // ---------- painel lateral ----------
 
     const vdPanel = document.getElementById('vdPanel');
     const panelBackdrop = document.getElementById('panelBackdrop');
     const panelTitle = document.getElementById('panelTitle');
     const panelSubtitle = document.getElementById('panelSubtitle');
+    const fEmpresa = document.getElementById('fEmpresa');
+    const fAtividade = document.getElementById('fAtividade');
+    const fAnalista = document.getElementById('fAnalista');
     const fStatus = document.getElementById('fStatus');
     const checklistBody = document.getElementById('checklistBody');
     const achadosList = document.getElementById('achadosList');
 
-    const aTarefa = document.getElementById('aTarefa');
+    const pCategoria = document.getElementById('pCategoria');
+    const pTitulo = document.getElementById('pTitulo');
+    const pIdentificado = document.getElementById('pIdentificado');
+    const pMotivo = document.getElementById('pMotivo');
+    const pOrientacao = document.getElementById('pOrientacao');
     const aTipo = document.getElementById('aTipo');
     const aPrioridade = document.getElementById('aPrioridade');
     const aStatus = document.getElementById('aStatus');
@@ -473,6 +636,8 @@
     const aObservacoes = document.getElementById('aObservacoes');
     const aNotificar = document.getElementById('aNotificar');
 
+    pCategoria.innerHTML = CATEGORIAS.map(c => `<option value="${esc(c)}"${c === 'Outros' ? ' selected' : ''}>${esc(c)}</option>`).join('');
+
     function renderChecklist(e) {
       checklistBody.innerHTML = '';
       e.checklist.forEach(item => {
@@ -482,7 +647,7 @@
           <span class="list-row-check${item.done ? ' checked' : ''}">
             ${item.done ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
           </span>
-          <span class="label">${item.label}</span>
+          <span class="label">${esc(item.label)}</span>
         `;
         row.addEventListener('click', () => {
           item.done = !item.done;
@@ -492,59 +657,97 @@
       });
     }
 
-    function renderAchados(e) {
-      achadosList.innerHTML = '';
-      if (e.achados.length === 0) {
-        achadosList.innerHTML = '<p class="vd-achado-empty">Nenhum achado registrado ainda.</p>';
-        return;
-      }
-      e.achados.slice().reverse().forEach(a => {
-        const div = document.createElement('div');
-        div.className = 'vd-achado';
-        const metaBits = [a.requerente, `Criado em ${a.dataCriacao}`];
-        if (a.prazo) metaBits.push(`Prazo ${formatPrazo(a.prazo)}`);
-        if (a.delegadoPara && a.delegadoPara !== 'Sem delegado') metaBits.push(a.delegadoPara);
-        div.innerHTML = `
-          <div class="vd-achado-top">
-            <span class="badge ${PRIORIDADE_BADGE[a.prioridade]}">${PRIORIDADE_LABEL[a.prioridade]}</span>
-            <span class="badge ${STATUS_BADGE[a.status]}">${STATUS_LABEL[a.status]}</span>
-          </div>
-          <div class="texto">${a.tarefa}</div>
-          <div class="meta">${metaBits.join(' · ')}</div>
-        `;
-        achadosList.appendChild(div);
-      });
-    }
-
     function formatPrazo(iso) {
       const [y, m, d] = iso.split('-');
       return `${d}/${m}/${y}`;
     }
 
-    function resetAchadoForm(e) {
-      aTarefa.value = '';
+    function campoPonto(rotulo, texto) {
+      return texto ? `<div class="vd-ponto-campo"><span class="rotulo">${rotulo}</span><p>${esc(texto)}</p></div>` : '';
+    }
+
+    function renderAchados(e) {
+      achadosList.innerHTML = '';
+      if (!e || e.achados.length === 0) {
+        achadosList.innerHTML = '<p class="vd-achado-empty">Nenhum ponto registrado ainda.</p>';
+        return;
+      }
+      e.achados.slice().reverse().forEach(a => {
+        const div = document.createElement('div');
+        div.className = 'vd-achado';
+        const metaBits = [];
+        if (a.requerente) metaBits.push(a.requerente);
+        metaBits.push(`Criado em ${a.dataCriacao}`);
+        if (a.prazo) metaBits.push(`Prazo ${formatPrazo(a.prazo)}`);
+        if (a.delegadoPara && a.delegadoPara !== 'Sem delegado') metaBits.push(a.delegadoPara);
+        div.innerHTML = `
+          <div class="vd-achado-top">
+            <span class="badge badge-neutral">${esc(a.categoria)}</span>
+            <span class="badge ${PRIORIDADE_BADGE[a.prioridade]}">${PRIORIDADE_LABEL[a.prioridade]}</span>
+            <span class="badge ${STATUS_BADGE[a.status]}">${STATUS_LABEL[a.status]}</span>
+          </div>
+          <div class="vd-ponto-titulo">${esc(a.titulo)}</div>
+          ${campoPonto('O que foi identificado', a.identificado)}
+          ${campoPonto('Por que isso não pode ocorrer', a.motivo)}
+          ${campoPonto('Orientação / solução recomendada', a.orientacao)}
+          ${campoPonto('Observações', a.observacoes)}
+          <div class="meta">${metaBits.map(esc).join(' · ')}</div>
+        `;
+        achadosList.appendChild(div);
+      });
+    }
+
+    function resetPontoForm(nomeEmpresa) {
+      pCategoria.value = 'Outros';
+      pTitulo.value = '';
+      pIdentificado.value = '';
+      pMotivo.value = '';
+      pOrientacao.value = '';
       aTipo.value = 'operacional';
       aPrioridade.value = 'normal';
       aStatus.value = 'pendente';
-      aRequerente.value = e.nome;
+      aRequerente.value = nomeEmpresa || '';
       aPrazo.value = '';
       aDelegado.value = '';
       aDataCriacao.value = hojeBR();
       aObservacoes.value = '';
       aNotificar.value = '';
+      document.querySelector('.vd-more').open = false;
+    }
+
+    function showPanel() {
+      vdPanel.classList.add('open');
+      panelBackdrop.classList.add('open');
     }
 
     function openPanel(id) {
       activeId = id;
       const e = empresas.find(x => x.id === id);
       panelTitle.textContent = e.nome;
-      panelSubtitle.textContent = e.atividade;
+      panelSubtitle.textContent = e.atividade || 'Sem atividade';
+      fEmpresa.value = e.nome;
+      fAtividade.value = e.atividade;
+      fAnalista.value = e.analista;
       fStatus.value = e.status;
       renderChecklist(e);
       renderAchados(e);
-      resetAchadoForm(e);
-      vdPanel.classList.add('open');
-      panelBackdrop.classList.add('open');
+      resetPontoForm(e.nome);
+      showPanel();
+    }
+
+    function openPanelNew() {
+      activeId = null;
+      panelTitle.textContent = 'Nova validação';
+      panelSubtitle.textContent = 'Preencha a empresa e a atividade e salve.';
+      fEmpresa.value = '';
+      fAtividade.value = '';
+      fAnalista.value = '';
+      fStatus.value = 'pendente';
+      renderChecklist({ checklist: makeChecklist([]) });
+      renderAchados(null);
+      resetPontoForm('');
+      showPanel();
+      fEmpresa.focus();
     }
 
     function closePanel() {
@@ -552,17 +755,22 @@
       panelBackdrop.classList.remove('open');
     }
 
+    document.getElementById('newValidacaoBtn').addEventListener('click', openPanelNew);
     document.getElementById('panelClose').addEventListener('click', closePanel);
     panelBackdrop.addEventListener('click', closePanel);
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closePanel(); closeDropdown(); } });
 
     document.getElementById('addAchadoBtn').addEventListener('click', () => {
-      const tarefa = aTarefa.value.trim();
-      if (!tarefa || !activeId) return;
+      if (!activeId) { flashInPanel('Salve a validação antes de adicionar pontos.'); return; }
+      const titulo = pTitulo.value.trim();
+      if (!titulo) { pTitulo.focus(); return; }
       const e = empresas.find(x => x.id === activeId);
-      e.achados.push({
-        id: `a${achadoSeq++}`,
-        tarefa,
+      e.achados.push(ponto({
+        categoria: pCategoria.value,
+        titulo,
+        identificado: pIdentificado.value.trim(),
+        motivo: pMotivo.value.trim(),
+        orientacao: pOrientacao.value.trim(),
         tipo: aTipo.value,
         prioridade: aPrioridade.value,
         status: aStatus.value,
@@ -572,16 +780,25 @@
         dataCriacao: hojeBR(),
         observacoes: aObservacoes.value.trim(),
         notificar: aNotificar.value.trim(),
-      });
-      resetAchadoForm(e);
+      }));
+      resetPontoForm(e.nome);
       renderAchados(e);
+      render();
     });
 
+    function flashInPanel(msg) {
+      achadosList.innerHTML = `<p class="vd-achado-empty">${esc(msg)}</p>`;
+    }
+
     document.getElementById('panelSave').addEventListener('click', () => {
-      if (!activeId) return;
-      const e = empresas.find(x => x.id === activeId);
-      e.status = fStatus.value;
-      e.atualizadoEm = 'Hoje';
+      const nome = fEmpresa.value.trim();
+      if (!nome) { fEmpresa.focus(); return; }
+      const dados = { nome, atividade: fAtividade.value.trim(), analista: fAnalista.value.trim(), status: fStatus.value, atualizadoEm: 'Hoje' };
+      if (activeId) {
+        Object.assign(empresas.find(x => x.id === activeId), dados);
+      } else {
+        empresas.push({ id: `e${empresaSeq++}`, checklist: makeChecklist([]), achados: [], ...dados });
+      }
       closePanel();
       render();
     });

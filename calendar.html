@@ -414,14 +414,19 @@
       try {
         await gerarPdf({
           titulo: `Calendário fiscal — ${MESES[viewMonth]} de ${viewYear}`,
-          subtitulo: 'Obrigações, datas oficiais e tarefas do mês.',
+          subtitulo: 'Calendário do mês e programação de obrigações, datas oficiais e tarefas.',
           arquivo: `calendario-${viewYear}-${String(viewMonth + 1).padStart(2, '0')}`,
-          orientacao: 'portrait',
+          orientacao: 'landscape',
           geradoPor: session ? session.user.email : '',
           resumo: [{ label: 'Eventos', valor: linhas.length }, { label: 'Oficiais / fiscais', valor: oficiais }, { label: 'Tarefas', valor: linhas.length - oficiais }],
-          colunas: ['Data', 'Dia', 'Horário', 'Evento', 'Tipo'],
-          linhas,
-          estilosColunas: { 0: { cellWidth: 24 }, 1: { cellWidth: 22 }, 2: { cellWidth: 22 }, 4: { cellWidth: 30 } },
+          calendario: { ano: viewYear, mes: viewMonth, eventos: events, hoje: todayIso },
+          tabelas: [{
+            titulo: 'Programação do mês',
+            colunas: ['Data', 'Dia', 'Horário', 'Evento', 'Tipo'],
+            linhas,
+            estilosColunas: { 0: { cellWidth: 28 }, 1: { cellWidth: 26 }, 2: { cellWidth: 26 }, 4: { cellWidth: 36 } },
+            vazio: 'Nenhum evento marcado ou entrega fiscal neste mês.',
+          }],
         });
       } catch (err) { /* sem biblioteca de PDF: nada a fazer além de não quebrar a tela */ }
     });

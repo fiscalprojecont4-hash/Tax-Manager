@@ -1171,8 +1171,8 @@ html, body {
 .data-table .col-main  { min-width: 240px; font-weight: 500; }
 .data-table .col-actions { white-space: nowrap; text-align: right; }
 
-/* faixa de cor à esquerda da linha (prioridade) */
-.data-table tbody td:first-child { box-shadow: inset 4px 0 0 var(--row-accent, transparent); }
+/* caixa de seleção só aparece no modo "Selecionar várias" (menu Ações) */
+.data-table:not(.modo-sel) .col-check { display: none; }
 .data-table tbody tr.is-done td { color: var(--muted); }
 
 .data-table .muted { color: var(--muted); }
@@ -1234,7 +1234,6 @@ html, body {
   .data-table td.col-check { position: absolute; top: 0.7rem; right: 0.9rem; width: auto; }
   .data-table td.col-main { padding-right: 1.8rem; min-width: 0; }
   .data-table td.col-actions { text-align: left; padding-top: 0.5rem; }
-  .data-table tbody tr { border-left: 4px solid var(--row-accent, transparent); }
 }
 
 /* o atributo hidden precisa vencer os display definidos nos componentes */

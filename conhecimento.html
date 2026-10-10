@@ -149,7 +149,7 @@
         </div>
       </div>          <button type="button" class="btn-new" id="mBtnNovo">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Novo problema
+            Nova situação
           </button>
         </div>
       </div>
@@ -183,13 +183,13 @@
         <table class="data-table" id="mTable">
           <thead>
             <tr>
-              <th>Empresa</th><th>Problema</th><th>Complexidade</th><th>Prazo</th><th>Responsável</th><th>Executor</th>
-              <th>Status</th><th>Registrado em</th><th class="col-actions">Ações</th>
+              <th>Empresa</th><th>Situações</th><th>Em aberto</th><th>Prioridade</th><th>Próximo prazo</th><th>Responsável</th><th>Executor</th>
+              <th class="col-actions">Ações</th>
             </tr>
           </thead>
           <tbody id="mRows"></tbody>
         </table>
-        <div class="empty-state" id="mEmpty" hidden>Nenhum problema com esses filtros.</div>
+        <div class="empty-state" id="mEmpty" hidden>Nenhuma empresa com situações para esses filtros.</div>
       </div>
     </section>
   </main>
@@ -199,7 +199,7 @@
   <aside class="side-panel" id="mPanel">
     <div class="side-panel-header">
       <div>
-        <h3 id="mTitulo">Novo problema</h3>
+        <h3 id="mTitulo">Nova situação</h3>
         <p id="mSubtitulo">Escolha a empresa e o problema — o que você digita é salvo automaticamente.</p>
       </div>
       <button type="button" class="side-panel-close" id="mFechar" aria-label="Fechar">✕</button>
@@ -613,34 +613,74 @@
       ['empresa', 'problema', 'resp', 'exec'].forEach(k => { mf[k] = mMs[k].values(); });
     }
 
-    function mRowHtml(m) {
-      const prazo = !m.prazo ? '<span class="muted">Sem prazo</span>'
-        : (vencido(m) ? `<span class="kn-row-vencido">${fmtBR(m.prazo)} <small>(vencido)</small></span>` : fmtBR(m.prazo));
-      const classe = m.status === 'concluida' ? 'is-done' : (m.status === 'cancelada' ? 'is-cancelled' : '');
-      return `
-        <tr data-id="${esc(m.id)}" class="${classe}" style="--row-accent:${FAIXA[m.complexidade]}">
-          <td class="col-main">${esc(m.empresa)}</td>
-          <td data-label="Problema">${esc(m.problema)}</td>
-          <td data-label="Complexidade"><span class="badge ${PRIORIDADE_BADGE[m.complexidade]}">${esc(PRIORIDADE_LABEL[m.complexidade])}</span></td>
-          <td data-label="Prazo">${prazo}</td>
-          <td data-label="Responsável">${m.responsavel ? esc(m.responsavel) : '<span class="muted">—</span>'}</td>
-          <td data-label="Executor">${m.executor ? esc(m.executor) : '<span class="muted">—</span>'}</td>
-          <td data-label="Status">${statusPillHtml(m.status)}</td>
-          <td data-label="Registrado em" class="muted">${fmtBR(m.criadoEm)}</td>
-          <td class="col-actions">
-            <button type="button" class="icon-btn" data-act="pdf" title="Baixar PDF do problema" aria-label="Baixar PDF">${svg(ICON.pdf)}</button>
+    const mAbertos = new Set();   // empresas com as situações expandidas
+
+    // Cartão de uma situação (problema) dentro da empresa.
+    function mSituacaoHtml(m) {
+      const prazo = !m.prazo ? 'Sem prazo' : (vencido(m) ? `${fmtBR(m.prazo)} (vencido)` : fmtBR(m.prazo));
+      const classe = m.status === 'concluida' ? ' is-done' : (m.status === 'cancelada' ? ' is-cancelled' : '');
+      const meta = [`Prazo: ${prazo}`, `Responsável: ${m.responsavel || '—'}`, `Executor: ${m.executor || '—'}`, `Registrado em ${fmtBR(m.criadoEm)}`,
+                    m.concluidoEm ? `Resolvido em ${fmtBR(m.concluidoEm)}` : ''].filter(Boolean).join(' · ');
+      return `<div class="kn-item kn-sit${classe}" data-id="${esc(m.id)}">
+        <div class="kn-item-head">
+          <strong>${esc(m.problema)}</strong>
+          <span class="badge ${PRIORIDADE_BADGE[m.complexidade]}">${esc(PRIORIDADE_LABEL[m.complexidade])}</span>
+          ${statusPillHtml(m.status)}
+          <span class="kn-sit-acoes">
+            <button type="button" class="icon-btn" data-act="pdf" title="Baixar PDF da situação" aria-label="Baixar PDF">${svg(ICON.pdf)}</button>
             <button type="button" class="icon-btn" data-act="edit" title="Editar" aria-label="Editar">${svg(ICON.edit)}</button>
             <button type="button" class="icon-btn danger" data-act="del" title="Excluir" aria-label="Excluir">${svg(ICON.trash)}</button>
+          </span>
+        </div>
+        <p class="kn-item-meta${vencido(m) ? ' kn-meta-vencido' : ''}">${esc(meta)}</p>
+        ${m.contexto ? `<p><span class="kn-label">Contexto:</span> ${esc(m.contexto)}</p>` : ''}
+      </div>`;
+    }
+
+    function mGrupos(lista) {
+      const por = new Map();
+      lista.forEach(m => { if (!por.has(m.empresa)) por.set(m.empresa, []); por.get(m.empresa).push(m); });
+      return [...por.entries()].map(([empresa, itens]) => {
+        const abertas = itens.filter(emAberto);
+        const prazos = abertas.map(m => m.prazo).filter(Boolean).sort();
+        return { empresa, itens, abertas, proximo: prazos[0] || '', venc: abertas.filter(vencido).length };
+      }).sort((a, b) => (a.proximo || '9999').localeCompare(b.proximo || '9999') || a.empresa.localeCompare(b.empresa));
+    }
+    const nomes = (itens, campo) => [...new Set(itens.map(m => m[campo]).filter(Boolean))].join(', ');
+
+    function mEmpresaHtml(g) {
+      const aberto = mAbertos.has(g.empresa) || !!mf.q || mf.empresa.length > 0;
+      const crit = g.abertas.filter(m => m.complexidade === 'critica').length, alta = g.abertas.filter(m => m.complexidade === 'alta').length;
+      const prio = [crit ? `<span class="badge ${PRIORIDADE_BADGE.critica}">${crit} ${crit === 1 ? 'crítica' : 'críticas'}</span>` : '',
+                    alta ? `<span class="badge ${PRIORIDADE_BADGE.alta}">${alta} ${alta === 1 ? 'alta' : 'altas'}</span>` : ''].join('');
+      const prazo = !g.proximo ? '<span class="muted">—</span>'
+        : (g.proximo < today ? `<span class="kn-row-vencido">${fmtBR(g.proximo)} <small>(vencido)</small></span>` : fmtBR(g.proximo));
+      const cad = empresaPorNome(g.empresa);
+      let html = `
+        <tr class="kn-arq${aberto ? ' is-open' : ''}" data-emp="${esc(g.empresa)}">
+          <td class="col-main"><span class="kn-seta" aria-hidden="true">▸</span>${esc(g.empresa)}</td>
+          <td data-label="Situações"><strong>${g.itens.length}</strong></td>
+          <td data-label="Em aberto">${g.abertas.length ? `<strong>${g.abertas.length}</strong>` : '<span class="muted">0</span>'}</td>
+          <td data-label="Prioridade"><div class="kn-badges">${prio || '<span class="muted">—</span>'}</div></td>
+          <td data-label="Próximo prazo">${prazo}</td>
+          <td data-label="Responsável">${esc((cad && cad.responsavel) || nomes(g.itens, 'responsavel')) || '<span class="muted">—</span>'}</td>
+          <td data-label="Executor">${esc((cad && cad.executor) || nomes(g.itens, 'executor')) || '<span class="muted">—</span>'}</td>
+          <td class="col-actions">
+            <button type="button" class="icon-btn" data-act="nova" title="Nova situação nesta empresa" aria-label="Nova situação para ${esc(g.empresa)}">${svg('<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>')}</button>
+            <button type="button" class="icon-btn" data-act="pdf-emp" title="Baixar PDF da empresa" aria-label="Baixar PDF de ${esc(g.empresa)}">${svg(ICON.pdf)}</button>
           </td>
         </tr>`;
+      if (aberto) html += `<tr class="kn-detail"><td colspan="8"><div class="kn-itens">${g.itens.map(mSituacaoHtml).join('')}</div></td></tr>`;
+      return html;
     }
 
     function mNota(lista) {
       const nota = document.getElementById('mNote');
       if (nota.dataset.flash) return;
       const ocultos = mf.status.length ? 0 : mapa.filter(m => STATUS_OCULTOS.includes(m.status) && mMatch(m, true)).length;
-      nota.textContent = `${lista.length} de ${mapa.length} problemas` +
-        (ocultos ? ` · ${ocultos} resolvido(s)/cancelado(s) oculto(s) — use o filtro Status para vê-los.` : '.');
+      const emps = new Set(lista.map(m => m.empresa)).size;
+      nota.textContent = `${emps} ${emps === 1 ? 'empresa' : 'empresas'} · ${lista.length} de ${mapa.length} situações` +
+        (ocultos ? ` · ${ocultos} resolvida(s)/cancelada(s) oculta(s) — use o filtro Status para vê-las.` : '.');
     }
 
     function mRender() {
@@ -648,7 +688,7 @@
       mOpcoes();
       document.getElementById('mLimpar').hidden = !mFiltrosAtivos();
       const lista = mLista();
-      document.getElementById('mRows').innerHTML = lista.map(mRowHtml).join('');
+      document.getElementById('mRows').innerHTML = mGrupos(lista).map(mEmpresaHtml).join('');
       document.getElementById('mEmpty').hidden = lista.length > 0;
       document.getElementById('mTable').hidden = lista.length === 0;
       mNota(lista);
@@ -656,18 +696,27 @@
     }
 
     document.getElementById('mRows').addEventListener('click', (e) => {
-      const tr = e.target.closest('tr');
-      if (!tr) return;
-      const m = mapa.find(x => x.id === tr.dataset.id);
+      const linhaEmp = e.target.closest('tr[data-emp]');
+      if (linhaEmp) {
+        const emp = linhaEmp.dataset.emp;
+        const b = e.target.closest('[data-act]');
+        if (b && b.dataset.act === 'nova') { abrirPainel(null, emp); return; }
+        if (b && b.dataset.act === 'pdf-emp') { baixarEmpresa(emp); return; }
+        if (e.target.closest('.col-main')) { if (mAbertos.has(emp)) mAbertos.delete(emp); else mAbertos.add(emp); mRender(); }
+        return;
+      }
+      const card = e.target.closest('[data-id]');
+      if (!card) return;
+      const m = mapa.find(x => x.id === card.dataset.id);
       if (!m) return;
       const btn = e.target.closest('[data-act]');
-      if (!btn) { if (e.target.closest('.col-main')) abrirPainel(m.id); return; }
+      if (!btn) return;
       const act = btn.dataset.act;
       if (act === 'status') {
         abrirStatusMenu(btn, m.status, (novo) => {
           definirStatus(m, novo); mRender();
           if (STATUS_OCULTOS.includes(novo) && !mf.status.includes(novo)) {
-            flash(document.getElementById('mNote'), `Problema marcado como ${STATUS_LABEL[novo].toLowerCase()} e ocultado da lista. Filtre por Status para vê-lo.`, mRender);
+            flash(document.getElementById('mNote'), `Situação marcada como ${STATUS_LABEL[novo].toLowerCase()} e ocultada da lista. Filtre por Status para vê-la.`, mRender);
           }
         });
       }
@@ -765,21 +814,56 @@
       try {
         await gerarPdf({
           titulo: 'Mapeamento fiscal',
-          subtitulo: 'Problemas registrados por empresa que precisam ficar no radar do analista.',
+          subtitulo: 'Situações registradas por empresa que precisam ficar no radar do analista.',
           arquivo: `mapeamento-fiscal-${today}`,
           orientacao: 'landscape',
           geradoPor,
-          resumo: [{ label: 'Problemas', valor: lista.length }, { label: 'Vencidos', valor: lista.filter(vencido).length },
+          resumo: [{ label: 'Empresas', valor: new Set(lista.map(m => m.empresa)).size }, { label: 'Situações', valor: lista.length }, { label: 'Vencidas', valor: lista.filter(vencido).length },
                    ...PRIORIDADE_ORDER.filter(c => lista.some(m => m.complexidade === c)).map(c => ({ label: PRIORIDADE_LABEL[c], valor: lista.filter(m => m.complexidade === c).length }))],
           filtros: mDescricaoFiltros(),
-          colunas: ['Empresa', 'Problema', 'Complexidade', 'Prazo', 'Responsável', 'Executor', 'Status'],
-          linhas: lista.map(m => [m.empresa, m.problema, PRIORIDADE_LABEL[m.complexidade], m.prazo ? fmtBR(m.prazo) + (vencido(m) ? ' (vencido)' : '') : 'Sem prazo',
-            m.responsavel || '-', m.executor || '-', STATUS_LABEL[m.status]]),
-          estilosColunas: { 2: { cellWidth: 26 }, 3: { cellWidth: 34 }, 6: { cellWidth: 28 } },
+          tabelas: mGrupos(lista).map(g => ({
+            titulo: `${g.empresa} — ${g.itens.length} ${g.itens.length === 1 ? 'situação' : 'situações'}`,
+            colunas: ['Problema', 'Complexidade', 'Prazo', 'Responsável', 'Executor', 'Status', 'Registrado em'],
+            linhas: g.itens.map(m => [m.problema, PRIORIDADE_LABEL[m.complexidade], m.prazo ? fmtBR(m.prazo) + (vencido(m) ? ' (vencido)' : '') : 'Sem prazo',
+              m.responsavel || '-', m.executor || '-', STATUS_LABEL[m.status], fmtBR(m.criadoEm)]),
+            estilosColunas: { 1: { cellWidth: 26 }, 2: { cellWidth: 32 }, 5: { cellWidth: 28 }, 6: { cellWidth: 26 } },
+          })),
         });
         flash(document.getElementById('mNote'), 'PDF gerado.', mRender);
       } catch (err) { flash(document.getElementById('mNote'), 'Não foi possível gerar o PDF. Tente novamente.', mRender); }
     });
+
+    async function baixarEmpresa(empresa) {
+      const itens = mapa.filter(m => m.empresa === empresa).sort((a, b) => (a.prazo || '9999').localeCompare(b.prazo || '9999'));
+      if (!itens.length) return;
+      const cad = empresaPorNome(empresa);
+      try {
+        await gerarPdf({
+          titulo: 'Mapeamento fiscal',
+          subtitulo: empresa,
+          arquivo: `mapeamento-${slug(empresa)}-${today}`,
+          orientacao: 'portrait',
+          geradoPor,
+          identificacao: [
+            { rotulo: 'Empresa', valor: empresa },
+            { rotulo: 'Responsável', valor: (cad && cad.responsavel) || nomes(itens, 'responsavel') },
+            { rotulo: 'Executor', valor: (cad && cad.executor) || nomes(itens, 'executor') },
+            { rotulo: 'Situações', valor: `${itens.length} (${itens.filter(emAberto).length} em aberto)` },
+          ],
+          blocos: itens.map(m => ({
+            titulo: `${m.problema} — ${PRIORIDADE_LABEL[m.complexidade]}`,
+            campos: [
+              { rotulo: 'Prazo', texto: m.prazo ? fmtBR(m.prazo) + (vencido(m) ? ' (vencido)' : '') : 'Sem prazo' },
+              { rotulo: 'Responsável / Executor', texto: `${m.responsavel || '-'} / ${m.executor || '-'}` },
+              { rotulo: 'Status', texto: STATUS_LABEL[m.status] + (m.concluidoEm ? ` (resolvido em ${fmtBR(m.concluidoEm)})` : '') },
+              { rotulo: 'Registrado em', texto: fmtBR(m.criadoEm) },
+              { rotulo: 'Contexto', texto: m.contexto || '(sem contexto registrado)' },
+            ],
+          })),
+        });
+        flash(document.getElementById('mNote'), 'PDF da empresa gerado.', mRender);
+      } catch (err) { flash(document.getElementById('mNote'), 'Não foi possível gerar o PDF. Tente novamente.', mRender); }
+    }
 
     async function baixarProblema(m) {
       try {
@@ -861,6 +945,7 @@
         if (!dados.empresa || !dados.problema) { mSaved.textContent = 'Informe empresa e problema para salvar.'; return; }
         atual = { id: novoId('m'), ...dados, criadoEm: today, atualizadoEm: today, concluidoEm: '' };
         mapa.push(atual);
+        mAbertos.add(atual.empresa);
       } else {
         Object.assign(atual, dados, { atualizadoEm: today });
       }
@@ -885,13 +970,14 @@
       document.getElementById('mNovaCat').hidden = true;
     }
 
-    function abrirPainel(id) {
+    function abrirPainel(id, empresa) {
       atual = mapa.find(x => x.id === id) || null;
       preencher(atual);
-      document.getElementById('mTitulo').textContent = atual ? atual.empresa : 'Novo problema';
-      document.getElementById('mSubtitulo').textContent = atual ? atual.problema : 'Escolha a empresa e o problema — o que você digita é salvo automaticamente.';
+      if (!atual && empresa) { fEmp.value = empresa; aplicarCadastro(true); }
+      document.getElementById('mTitulo').textContent = atual ? atual.empresa : (empresa ? `Nova situação — ${empresa}` : 'Nova situação');
+      document.getElementById('mSubtitulo').textContent = atual ? atual.problema : 'Escolha a empresa e o problema; o que você digita é salvo automaticamente.';
       mPanel.classList.add('open'); mBackdrop.classList.add('open');
-      if (!atual) fEmp.focus();
+      if (!atual) (empresa ? fProb : fEmp).focus();
     }
     function fecharPainel() { mPanel.classList.remove('open'); mBackdrop.classList.remove('open'); atual = null; }
 

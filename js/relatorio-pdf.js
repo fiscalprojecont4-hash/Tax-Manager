@@ -50,6 +50,7 @@ function dataHoraBR(d = new Date()) {
  * @param {Array<Array<string>>} [o.linhas]
  * @param {Array<{titulo?:string,colunas:string[],linhas:string[][],estilosColunas?:object,vazio?:string}>} [o.tabelas]  tabelas extras, em sequência
  * @param {Array<{titulo:string, campos:Array<{rotulo:string,texto:string}>}>} [o.blocos]
+ * @param {{ano:number,mes:number,eventos:object,hoje?:string}} [o.calendario]  grade do mês (mes 0-11; eventos por data ISO)
  * @param {Array<{rotulo:string,valor:string}>} [o.identificacao]  ficha no topo (relatório de uma validação)
  */
 export async function gerarPdf(o) {
@@ -137,6 +138,64 @@ export async function gerarPdf(o) {
     garantir(txt.length * 4 + 2);
     doc.text(txt, M, y);
     y += txt.length * 4 + 2;
+  }
+
+  // Grade de calendário do mês (eventos por data ISO: [{title,type,time?}])
+  if (o.calendario) {
+    const { ano, mes, eventos, hoje } = o.calendario;
+    const DOWS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    const primeiro = new Date(ano, mes, 1).getDay();
+    const dias = new Date(ano, mes + 1, 0).getDate();
+    const semanas = Math.ceil((primeiro + dias) / 7);
+    const cw = (W - 2 * M) / 7;
+    const cab = 6.5;
+    const ch = Math.min(30, (BASE - y - cab - 8) / semanas);
+    const COR_OFICIAL = AZUL, COR_TAREFA = [180, 83, 9];
+    // cabeçalho dos dias da semana
+    doc.setFillColor(...AZUL);
+    doc.rect(M, y, W - 2 * M, cab, 'F');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(255, 255, 255);
+    DOWS.forEach((d, i) => doc.text(d, M + i * cw + cw / 2, y + 4.5, { align: 'center' }));
+    const topo = y + cab;
+    for (let n = 0; n < semanas * 7; n++) {
+      const col = n % 7, lin = Math.floor(n / 7);
+      const dia = n - primeiro + 1;
+      const x = M + col * cw, cy = topo + lin * ch;
+      const valido = dia >= 1 && dia <= dias;
+      doc.setDrawColor(...CIANO); doc.setLineWidth(0.2);
+      doc.setFillColor(...(valido ? [255, 255, 255] : FAIXA));
+      doc.rect(x, cy, cw, ch, 'FD');
+      if (!valido) continue;
+      const iso = `${ano}-${String(mes + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+      if (iso === hoje) { doc.setFillColor(...AZUL); doc.circle(x + 4, cy + 3.6, 2.6, 'F'); doc.setTextColor(255, 255, 255); }
+      else doc.setTextColor(...TEXTO);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(8);
+      doc.text(String(dia), x + 4, cy + 4.5, { align: 'center' });
+      const evs = [...(eventos[iso] || [])].sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+      const maxEv = Math.max(1, Math.floor((ch - 8) / 3.4));
+      const mostrar = evs.length > maxEv ? evs.slice(0, maxEv - 1) : evs;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(6.3);
+      mostrar.forEach((ev, k) => {
+        const ey = cy + 8.4 + k * 3.4;
+        doc.setFillColor(...(ev.type === 'oficial' ? COR_OFICIAL : COR_TAREFA));
+        doc.circle(x + 2.2, ey - 0.9, 0.75, 'F');
+        doc.setTextColor(...TEXTO);
+        let txt = (ev.time ? ev.time + ' ' : '') + ev.title;
+        const larg = cw - 5;
+        if (doc.getTextWidth(txt) > larg) { while (txt.length > 1 && doc.getTextWidth(txt + '…') > larg) txt = txt.slice(0, -1); txt += '…'; }
+        doc.text(txt, x + 3.6, ey);
+      });
+      if (evs.length > mostrar.length) {
+        doc.setTextColor(...MUDO);
+        doc.text(`+${evs.length - mostrar.length} mais`, x + 3.6, cy + 8.4 + mostrar.length * 3.4);
+      }
+    }
+    y = topo + semanas * ch + 5;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...MUDO);
+    doc.setFillColor(...COR_OFICIAL); doc.circle(M + 1.2, y - 0.9, 0.9, 'F'); doc.text('Oficial / fiscal', M + 3.4, y);
+    doc.setFillColor(...COR_TAREFA); doc.circle(M + 31, y - 0.9, 0.9, 'F'); doc.text('Tarefa', M + 33.2, y);
+    y += 4;
+    if ((o.tabelas && o.tabelas.length) || (o.colunas && o.linhas)) novaPagina();
   }
 
   // Tabelas: a principal (colunas/linhas) e, se houver, outras com título próprio (tabelas).

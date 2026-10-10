@@ -55,3 +55,8 @@ html, body { overflow-x: hidden; }
 .kn-saved { flex: 1; text-align: center; font-size: 0.8rem; color: var(--muted); min-width: 0; }
 .kn-row-vencido { color: var(--danger); font-weight: 600; }
 .kn-row-vencido small { font-weight: 400; }
+
+/* Mapeamento fiscal agrupado por empresa: situações dentro da empresa */
+.kn-sit .kn-sit-acoes { margin-left: auto; display: inline-flex; gap: 0.15rem; }
+.kn-sit.is-done, .kn-sit.is-cancelled { opacity: 0.75; }
+.kn-sit .kn-item-meta.kn-meta-vencido { color: var(--danger); }

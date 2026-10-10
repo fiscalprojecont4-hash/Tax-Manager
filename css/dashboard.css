@@ -1520,3 +1520,21 @@ html, body {
 .nr-msg { margin: 0; font-size: .8rem; color: var(--success); }
 .nr-hist summary { cursor: pointer; font-size: .8rem; color: var(--muted); }
 .nr-linha { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: .8rem; padding: 6px 0; }
+
+/* Menu "Ações" (importar, exportar, PDF, agenda) */
+.acoes-menu { position: relative; display: inline-flex; }
+.acoes-trigger[aria-expanded="true"] { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-line); }
+.acoes-trigger .acoes-seta { flex-shrink: 0; transition: transform .15s ease; }
+.acoes-menu.open .acoes-seta { transform: rotate(180deg); }
+.acoes-pop {
+  display: none; position: absolute; right: 0; top: calc(100% + 6px); z-index: 60; min-width: 190px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 6px;
+  box-shadow: 0 10px 28px rgba(22, 35, 58, .14); flex-direction: column; gap: 2px;
+}
+.acoes-menu.open .acoes-pop { display: flex; }
+.acoes-item {
+  display: flex; align-items: center; gap: .55rem; width: 100%; text-align: left; background: none; border: 0; border-radius: 8px;
+  padding: .55rem .7rem; font-family: inherit; font-size: .84rem; font-weight: 500; color: var(--text); cursor: pointer; white-space: nowrap;
+}
+.acoes-item:hover, .acoes-item:focus-visible { background: var(--accent-soft); color: var(--accent); outline: none; }
+.acoes-item svg { flex-shrink: 0; margin: 0 !important; vertical-align: 0 !important; }

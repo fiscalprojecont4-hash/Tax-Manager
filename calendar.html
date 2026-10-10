@@ -84,10 +84,18 @@
         <h1 class="cal-title" id="calTitle">—</h1>
       </div>
       <div class="cal-toolbar-end">
-        <button type="button" class="cal-btn" id="btnPdf">
+<div class="acoes-menu">
+        <button type="button" class="btn-outline acoes-trigger" aria-haspopup="true" aria-expanded="false">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+          Ações
+          <svg class="acoes-seta" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="acoes-pop" role="menu">
+        <button type="button" class="acoes-item" role="menuitem" id="btnPdf">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Gerar PDF
         </button>
-        <div class="cal-toolbar-right">
+        </div>
+      </div>        <div class="cal-toolbar-right">
           <button type="button" class="cal-view-btn active" id="viewMesBtn">Mês</button>
           <button type="button" class="cal-view-btn" id="viewProgBtn">Programação</button>
         </div>
@@ -171,6 +179,7 @@
 
   <script type="module">
     import { createSupabaseClient } from './js/supabase-client.js';
+    import { iniciarMenusAcoes } from './js/acoes-menu.js';
     import { gerarPdf } from './js/relatorio-pdf.js';
     import { carregar, gravar, eventosExemplo } from './js/dados-teste.js';
     import { instalarRelatoriosNoSino } from './js/relatorio-diario.js';
@@ -320,6 +329,7 @@
     });
 
     renderNotifications();
+    iniciarMenusAcoes();
     instalarRelatoriosNoSino();
 
     // ======================================================================

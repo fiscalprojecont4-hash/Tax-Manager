@@ -79,15 +79,23 @@
       </button>
       <span class="vd-comp" id="compChip" title="Competência em andamento"></span>
       <div class="vd-toolbar-right">
-        <button type="button" class="btn-outline" id="btnCsv">
+<div class="acoes-menu">
+        <button type="button" class="btn-outline acoes-trigger" aria-haspopup="true" aria-expanded="false">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+          Ações
+          <svg class="acoes-seta" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="acoes-pop" role="menu">
+        <button type="button" class="acoes-item" role="menuitem" id="btnCsv">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Exportar CSV
         </button>
-        <button type="button" class="btn-outline" id="btnPdf">
+        <button type="button" class="acoes-item" role="menuitem" id="btnPdf">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           Gerar PDF
         </button>
-        <button type="button" class="btn-outline" id="btnEncerrar">
+        </div>
+      </div>        <button type="button" class="btn-outline" id="btnEncerrar">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9 16 11 18 15 14"/></svg>
           Encerrar mês
         </button>
@@ -212,6 +220,7 @@
 
   <script type="module">
     import { createSupabaseClient } from './js/supabase-client.js';
+    import { iniciarMenusAcoes } from './js/acoes-menu.js';
     import { instalarRelatoriosNoSino } from './js/relatorio-diario.js';
     import { carregar, gravar, restaurarExemplos, hojeIso, somarDias, novoId, novoChecklist, novoPonto, categorias, adicionarCategoria,
              empresas as listarEmpresas, empresaPorNome, competenciaVigente, definirCompetencia, proximaCompetencia, competenciaExtenso,
@@ -364,6 +373,7 @@
     });
 
     renderNotifications();
+    iniciarMenusAcoes();
     instalarRelatoriosNoSino();
 
     // ======================================================================

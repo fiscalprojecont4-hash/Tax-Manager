@@ -2,6 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://debwbmbhmtimozhkeyql.supabase.co wss://debwbmbhmtimozhkeyql.supabase.co https://cdn.jsdelivr.net; object-src 'none'; base-uri 'self'; form-action 'self'" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Projetos — Tax Manager Projecont</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -161,6 +162,7 @@
     import { createSupabaseClient } from './js/supabase-client.js';
     import { carregar, gravar, novoId, projetosExemplo } from './js/dados-teste.js';
     import { instalarRelatoriosNoSino } from './js/relatorio-diario.js';
+    import { esc } from './js/lista-ui.js';
 
     const supabase = createSupabaseClient(true);
     const emailEl = document.getElementById('userEmail');
@@ -376,8 +378,8 @@
       card.innerHTML = `
         <div class="pj-card-top">
           <div>
-            <p class="pj-card-title">${p.titulo}</p>
-            <p class="pj-card-client">${p.cliente || 'Interno'}</p>
+            <p class="pj-card-title">${esc(p.titulo)}</p>
+            <p class="pj-card-client">${esc(p.cliente || 'Interno')}</p>
           </div>
           <span class="badge ${STATUS_BADGE[status]}">${STATUS_LABEL[status]}</span>
         </div>
@@ -468,8 +470,8 @@
         row.className = 'pj-etapa' + (et.status === 'concluida' || et.status === 'cancelada' ? ' is-done' : '');
         row.innerHTML = `
           <div class="pj-etapa-main">
-            <p class="pj-etapa-nome">${et.nome}</p>
-            <p class="pj-etapa-meta">${et.responsavel || 'Sem responsável'} · <span class="${overdue ? 'overdue' : ''}">${overdue ? 'Atrasada · ' : ''}${formatDue(et.prazo)}</span></p>
+            <p class="pj-etapa-nome">${esc(et.nome)}</p>
+            <p class="pj-etapa-meta">${esc(et.responsavel || 'Sem responsável')} · <span class="${overdue ? 'overdue' : ''}">${overdue ? 'Atrasada · ' : ''}${formatDue(et.prazo)}</span></p>
           </div>
           <button type="button" class="badge pj-etapa-status ${ETAPA_BADGE[et.status]}" title="Clique para avançar o status">${ETAPA_LABEL[et.status]}</button>
           <button type="button" class="pj-etapa-remove" title="Remover etapa">✕</button>
@@ -507,7 +509,7 @@
       p.historico.slice().reverse().forEach(h => {
         const div = document.createElement('div');
         div.className = 'pj-historico-item';
-        div.innerHTML = `<div class="data">${h.data}</div><div class="texto">${h.texto}</div>`;
+        div.innerHTML = `<div class="data">${esc(h.data)}</div><div class="texto">${esc(h.texto)}</div>`;
         historicoList.appendChild(div);
       });
     }

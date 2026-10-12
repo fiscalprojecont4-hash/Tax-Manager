@@ -6,7 +6,7 @@
 // isolamento multiusuário vem das políticas de Row-Level Security no banco
 // (ver supabase/schema.sql), não do sigilo desta chave.
 
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/+esm';
 
 export const SUPABASE_URL = 'https://debwbmbhmtimozhkeyql.supabase.co';
 

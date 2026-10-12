@@ -1,4 +1,4 @@
-@import url('login.css');
+@import url('login.css?v=20261012a');
 
 /* login.css define body { display:flex } para o layout de duas colunas do
    login — não se aplica aqui, então reseta para o fluxo normal de blocos. */

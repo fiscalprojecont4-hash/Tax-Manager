@@ -172,10 +172,14 @@ html, body {
 
 .pj-etapa-add {
   display: grid;
-  grid-template-columns: 1fr 1fr auto auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 150px) auto;
   gap: 0.5rem;
   align-items: center;
 }
+
+/* nome da etapa ocupa a linha toda; responsável, prazo e botão ficam na linha de baixo */
+.pj-etapa-add input:first-child { grid-column: 1 / -1; }
+.pj-etapa-add input[type="date"] { min-width: 0; }
 
 .pj-etapa-add input {
   background: var(--surface);
@@ -186,6 +190,8 @@ html, body {
   padding: 0.5rem 0.65rem;
   font-family: inherit;
   width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .pj-etapa-add button {
@@ -204,7 +210,7 @@ html, body {
 .pj-etapa-add button:hover { background: var(--accent-hover); }
 
 @media (max-width: 480px) {
-  .pj-etapa-add { grid-template-columns: 1fr 1fr; }
+  .pj-etapa-add { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .pj-etapa-add button { grid-column: 1 / -1; }
 }
 
@@ -250,6 +256,8 @@ html, body {
 
 .pj-historico-add textarea {
   flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
   min-height: 42px;
   resize: vertical;
   background: var(--surface);

@@ -1537,3 +1537,14 @@ html, body {
 }
 .acoes-item:hover, .acoes-item:focus-visible { background: var(--accent-soft); color: var(--accent); outline: none; }
 .acoes-item svg { flex-shrink: 0; margin: 0 !important; vertical-align: 0 !important; }
+
+/* Nada pode vazar da caixa: textos longos quebram dentro do próprio bloco */
+.topnav-tabs .nav-dropdown-item, .topnav-tabs .nav-dropdown-item * { white-space: normal; }
+.nav-dropdown-item h4, .nav-dropdown-item p,
+.data-table td, .data-table th,
+.kn-item p, .kn-item-head strong, .kn-card p,
+.notif-item, .notif-item *, .nr-card, .nr-linha span,
+.side-panel-body, .side-panel-header h3, .side-panel-header p,
+.pj-card p, .pj-etapa-nome, .pj-etapa-meta, .pj-historico-item .texto,
+.empty-state, .filter-note { overflow-wrap: anywhere; }
+.form-row input, .form-row select, .form-row textarea { min-width: 0; max-width: 100%; box-sizing: border-box; }

@@ -67,10 +67,9 @@
 
   <main class="cal-wrap">
     <div class="data-note">
-      ⚠ Dados de exemplo — o preenchimento automático com o calendário oficial
-      da SEFAZ-AM e da Receita Federal depende de uma rotina de backend
-      (Fase 3 do plano) ainda não implementada. Os eventos abaixo são mock
-      para validar o layout e a interação.
+      ⚠ Dados de exemplo — a leitura automática da Agenda Tributária da Receita Federal já está pronta
+      (rascunhos em Administração › Calendário oficial); as obrigações <strong>aprovadas</strong> aparecem aqui como
+      oficiais. A SEFAZ-AM ainda não está ligada. Os demais eventos são mock para validar o layout.
     </div>
 
     <div class="cal-toolbar">
@@ -182,7 +181,7 @@
     import { createSupabaseClient } from './js/supabase-client.js';
     import { iniciarMenusAcoes } from './js/acoes-menu.js';
     import { gerarPdf } from './js/relatorio-pdf.js';
-    import { carregar, gravar, eventosExemplo } from './js/dados-teste.js';
+    import { carregar, gravar, eventosExemplo, eventosOficiais } from './js/dados-teste.js';
     import { instalarRelatoriosNoSino } from './js/relatorio-diario.js';
     import { esc } from './js/lista-ui.js';
 
@@ -352,13 +351,17 @@
 
     // eventos: chave = data ISO, valor = lista de { title, type: 'oficial'|'tarefa', time? }
     // 'time' omitido = evento de dia inteiro (feriados/obrigações sem horário fixo)
-    const events = Object.assign({}, carregar('eventos', eventosExemplo));
+    // 'base' é o que o usuário cadastrou; 'events' soma as obrigações oficiais aprovadas (não são regravadas em 'base').
+    const base = Object.assign({}, carregar('eventos', eventosExemplo));
+    const events = {};
+    Object.entries(base).forEach(([k, l]) => { events[k] = [...l]; });
+    Object.entries(eventosOficiais()).forEach(([k, l]) => { events[k] = (events[k] || []).concat(l); });
 
     function addEvent(y, m, d, ev) {
       const key = iso(y, m, d);
-      if (!events[key]) events[key] = [];
-      events[key].push(ev);
-      gravar('eventos', events);
+      (events[key] = events[key] || []).push(ev);
+      (base[key] = base[key] || []).push(ev);
+      gravar('eventos', base);
     }
 
     let viewYear = today.getFullYear();

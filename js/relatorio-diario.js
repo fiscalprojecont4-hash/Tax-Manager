@@ -9,7 +9,7 @@
 // banco ligado (Fase 3), uma rotina agendada passa a gerar nos horários certos
 // e o PDF fica guardado no Storage.
 
-import { carregar, gravar, hojeIso, somarDias, isoDe, novoId, tarefasExemplo, eventosExemplo, projetosExemplo, validacoesExemplo,
+import { carregar, gravar, hojeIso, somarDias, isoDe, novoId, tarefasExemplo, eventosExemplo, eventosOficiais, projetosExemplo, validacoesExemplo,
          mapeamento, competenciaVigente, competenciaExtenso } from './dados-teste.js';
 import { fmtBR, esc, STATUS_LABEL, PRIORIDADE_LABEL } from './lista-ui.js';
 import { gerarPdf } from './relatorio-pdf.js';
@@ -25,7 +25,8 @@ const diasEntre = (de, ate) => Math.round((new Date(ate + 'T00:00:00') - new Dat
 function fontes() {
   return {
     tarefas: carregar('tarefas', tarefasExemplo),
-    eventos: carregar('eventos', eventosExemplo),
+    eventos: (() => { const e = {}; const b = carregar('eventos', eventosExemplo); Object.keys(b).forEach(k => { e[k] = [...b[k]]; });
+      Object.entries(eventosOficiais()).forEach(([k, l]) => { e[k] = (e[k] || []).concat(l); }); return e; })(),
     projetos: carregar('projetos', projetosExemplo),
     validacoes: carregar('validacoes', validacoesExemplo),
     problemas: mapeamento(),

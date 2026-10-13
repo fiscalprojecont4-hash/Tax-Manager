@@ -1,0 +1,43 @@
+name: Ingestão do calendário oficial
+
+# Lê a Agenda Tributária da Receita Federal e grava RASCUNHOS no Supabase.
+# Nada vai para o calendário dos usuários sem aprovação do gestor fiscal.
+# Requer os Secrets SUPABASE_URL e SUPABASE_SERVICE_KEY (Settings > Secrets and variables > Actions).
+on:
+  schedule:
+    - cron: '0 9 * * *'   # todo dia, 06:00 em Brasília
+  workflow_dispatch:
+    inputs:
+      ano: { description: 'Ano (opcional)', required: false }
+      mes: { description: 'Mês 1-12 (opcional)', required: false }
+
+permissions:
+  contents: read
+
+jobs:
+  ingestao:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Testes do parser
+        run: node scripts/ingestao-receita.test.mjs
+      - name: Mês informado
+        if: ${{ inputs.mes != '' }}
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: node scripts/ingestao-receita.mjs --ano "${{ inputs.ano || '' }}" --mes "${{ inputs.mes }}" --enviar
+      - name: Mês atual e próximo
+        if: ${{ inputs.mes == '' }}
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          node scripts/ingestao-receita.mjs --enviar
+          # O próximo mês só existe quando a Receita publicar; a ausência não é erro.
+          y=$(date +%Y); m=$(date +%-m)
+          if [ "$m" -eq 12 ]; then y=$((y+1)); m=1; else m=$((m+1)); fi
+          node scripts/ingestao-receita.mjs --ano "$y" --mes "$m" --enviar || echo "Mês $m/$y ainda não publicado."

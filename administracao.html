@@ -9,6 +9,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/administracao.css?v=20261012a" />
+  <style>#paneObr .inline-form button.btn-primary { width: auto; padding: 0.6rem 1.1rem; font-size: 0.9rem; }
+  #paneObr .inline-form > .form-row { flex: 1 1 220px; }</style>
 </head>
 <body>
   <nav class="topnav">
@@ -75,6 +77,7 @@
     <div class="tab-bar" role="tablist" aria-label="Cadastros">
       <button type="button" role="tab" id="tabCat" aria-selected="true" aria-controls="paneCat">Categorias</button>
       <button type="button" role="tab" id="tabEmp" aria-selected="false" aria-controls="paneEmp">Empresas</button>
+      <button type="button" role="tab" id="tabObr" aria-selected="false" aria-controls="paneObr">Calendário oficial</button>
     </div>
 
     <section id="paneCat" role="tabpanel" aria-labelledby="tabCat">
@@ -115,20 +118,43 @@
         </table>
       </div>
     </section>
+
+    <section id="paneObr" role="tabpanel" aria-labelledby="tabObr" hidden>
+      <div class="form-card">
+        <h3>Calendário oficial — revisão</h3>
+        <p>Todo dia o sistema lê a Agenda Tributária da Receita Federal e cria <strong>rascunhos</strong>. Só o que for aprovado aqui aparece no Calendário de todos como obrigação oficial.
+           Se um prazo mudar na fonte, chega uma nova versão para você revisar.</p>
+        <div class="inline-form">
+          <div class="form-row"><label for="obrFiltro">Mostrar</label>
+            <select id="obrFiltro"><option value="rascunho">Aguardando revisão</option><option value="aprovado">Aprovadas</option><option value="rejeitado">Rejeitadas</option><option value="">Todas</option></select></div>
+          <div class="form-row"><label for="obrBusca">Buscar</label><input type="text" id="obrBusca" placeholder="Ex: DARF, EFD, IRRF" autocomplete="off" /></div>
+          <button type="button" class="btn-primary" id="obrAprovarTodas">Aprovar todas as exibidas</button>
+          <label class="btn-outline" for="obrArquivo" style="cursor:pointer">Carregar arquivo da ingestão</label>
+          <input type="file" id="obrArquivo" accept="application/json,.json" hidden />
+        </div>
+        <p class="field-hint" id="obrMsg" aria-live="polite"></p>
+      </div>
+      <div class="table-card">
+        <table class="data-table cad-table">
+          <thead><tr><th>Vencimento</th><th>Obrigação</th><th>Órgão</th><th>Situação</th><th></th></tr></thead>
+          <tbody id="obrRows"></tbody>
+        </table>
+      </div>
+    </section>
   </main>
 
   <script type="module">
     import { iniciarShell } from './js/shell.js';
     import { esc, norm } from './js/lista-ui.js';
     import { restaurarExemplos, categorias, salvarCategorias, adicionarCategoria, empresas, salvarEmpresas,
-             carregar } from './js/dados-teste.js';
+             carregar, obrigacoes, salvarObrigacoes, novoId } from './js/dados-teste.js';
 
     await iniciarShell();
 
     document.getElementById('btnRestaurar').addEventListener('click', () => { restaurarExemplos(); window.location.reload(); });
 
     // ---------- abas ----------
-    const abas = { cat: ['tabCat', 'paneCat'], emp: ['tabEmp', 'paneEmp'] };
+    const abas = { cat: ['tabCat', 'paneCat'], emp: ['tabEmp', 'paneEmp'], obr: ['tabObr', 'paneObr'] };
     function mostrar(qual) {
       Object.entries(abas).forEach(([k, [t, p]]) => {
         document.getElementById(t).setAttribute('aria-selected', String(k === qual));
@@ -138,6 +164,7 @@
     }
     Object.entries(abas).forEach(([k, [t]]) => document.getElementById(t).addEventListener('click', () => mostrar(k)));
     if (location.hash === '#emp') mostrar('emp');
+    if (location.hash === '#obr') mostrar('obr');
 
     const svg = (d) => `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
     const LIXEIRA = '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>';
@@ -227,8 +254,73 @@
       desenharEmpresas();
     });
 
+    // ---------- calendário oficial: revisão dos rascunhos ----------
+    const SIT = { rascunho: 'Aguardando revisão', aprovado: 'Aprovada', rejeitado: 'Rejeitada', substituido: 'Substituída' };
+    const brData = (iso) => iso.split('-').reverse().join('/');
+    function exibidas() {
+      const f = document.getElementById('obrFiltro').value;
+      const q = norm(document.getElementById('obrBusca').value);
+      return obrigacoes()
+        .filter(o => (!f || o.status === f) && (!q || norm(`${o.titulo} ${o.descricao || ''} ${o.orgao}`).includes(q)))
+        .sort((a, b) => a.vencimento.localeCompare(b.vencimento) || a.titulo.localeCompare(b.titulo));
+    }
+    function desenharObrigacoes() {
+      const lista = exibidas();
+      document.getElementById('obrAprovarTodas').disabled = !lista.some(o => o.status === 'rascunho');
+      document.getElementById('obrRows').innerHTML = lista.map(o => `
+        <tr data-id="${esc(o.id)}">
+          <td data-label="Vencimento">${brData(o.vencimento)}</td>
+          <td class="col-main">${esc(o.titulo)}<br><small class="muted">${esc(o.descricao || '')}${o.versao > 1 ? ` · versão ${o.versao}` : ''}</small></td>
+          <td data-label="Órgão">${esc(o.orgao)}</td>
+          <td data-label="Situação">${SIT[o.status] || esc(o.status)}</td>
+          <td class="col-actions">
+            ${o.status !== 'aprovado' ? '<button type="button" class="btn-outline" data-acao="aprovado">Aprovar</button>' : ''}
+            ${o.status === 'rascunho' ? '<button type="button" class="btn-outline" data-acao="rejeitado">Rejeitar</button>' : ''}
+            ${o.status === 'aprovado' ? '<button type="button" class="btn-outline" data-acao="rascunho">Desfazer</button>' : ''}
+          </td>
+        </tr>`).join('') || '<tr><td colspan="5" class="muted">Nada nesta lista.</td></tr>';
+    }
+    function mudar(ids, status) {
+      const set = new Set(ids);
+      const lista = obrigacoes();
+      lista.forEach(o => { if (set.has(o.id)) o.status = status; });
+      salvarObrigacoes(lista);
+      document.getElementById('obrMsg').textContent = `${ids.length} ${ids.length === 1 ? 'obrigação' : 'obrigações'}: ${SIT[status].toLowerCase()}.`;
+      desenharObrigacoes();
+    }
+    document.getElementById('obrRows').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-acao]');
+      if (b) mudar([b.closest('tr').dataset.id], b.dataset.acao);
+    });
+    document.getElementById('obrAprovarTodas').addEventListener('click', () => {
+      mudar(exibidas().filter(o => o.status === 'rascunho').map(o => o.id), 'aprovado');
+    });
+    ['obrFiltro', 'obrBusca'].forEach(id => document.getElementById(id).addEventListener('input', desenharObrigacoes));
+    // Arquivo gerado por scripts/ingestao-receita.mjs (data/agenda-receita-AAAA-MM.json): entra como rascunho.
+    document.getElementById('obrArquivo').addEventListener('change', async (e) => {
+      const msg = document.getElementById('obrMsg');
+      try {
+        const dados = JSON.parse(await e.target.files[0].text());
+        if (!Array.isArray(dados.registros)) throw new Error('formato');
+        const lista = obrigacoes();
+        const chave = (o) => `${o.orgao}|${o.titulo}|${o.vencimento}`;
+        const ja = new Set(lista.map(chave));
+        let novas = 0;
+        dados.registros.forEach(r => {
+          if (!r.titulo || !/^\d{4}-\d{2}-\d{2}$/.test(r.vencimento) || ja.has(chave(r))) return;
+          lista.push({ ...r, id: novoId('ob'), versao: 1, status: 'rascunho' }); novas++;
+        });
+        salvarObrigacoes(lista);
+        msg.textContent = `${novas} rascunhos novos importados (${dados.registros.length - novas} já existiam).`;
+        document.getElementById('obrFiltro').value = 'rascunho';
+        desenharObrigacoes();
+      } catch { msg.textContent = 'Arquivo inválido. Use o JSON gerado pela ingestão.'; }
+      e.target.value = '';
+    });
+
     desenharCategorias();
     desenharEmpresas();
+    desenharObrigacoes();
   </script>
 </body>
 </html>

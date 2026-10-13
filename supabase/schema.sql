@@ -1086,3 +1086,35 @@ grant execute on all functions in schema public to authenticated, service_role;
 --   from e, public.perfis p, unnest(array['gestor_fiscal','analista']) as papel
 --   where p.email = 'SEU_EMAIL_AQUI';
 -- ---------------------------------------------------------------------
+
+
+-- ---------------------------------------------------------------------
+-- 12. E-MAILS ENVIADOS (log + limite por hora da Edge Function enviar-email)
+-- ---------------------------------------------------------------------
+-- A função roda com o login do usuário: ele só grava/lê os próprios envios.
+-- O corpo do e-mail NÃO é guardado, só destinatários, assunto e a entidade (tarefa/validação).
+
+create table if not exists public.emails_enviados (
+  id          uuid primary key default gen_random_uuid(),
+  usuario_id  uuid not null default auth.uid() references public.perfis (id) on delete cascade,
+  para        text[] not null,
+  assunto     text not null,
+  entidade    text,
+  entidade_id text,
+  status      text not null check (status in ('enviado','erro')),
+  erro        text,
+  criado_em   timestamptz not null default now()
+);
+create index if not exists emails_enviados_usuario_idx on public.emails_enviados (usuario_id, criado_em desc);
+
+alter table public.emails_enviados enable row level security;
+drop policy if exists emails_select on public.emails_enviados;
+drop policy if exists emails_insert on public.emails_enviados;
+create policy emails_select on public.emails_enviados for select to authenticated
+  using (usuario_id = auth.uid() or private.eh_admin());
+create policy emails_insert on public.emails_enviados for insert to authenticated
+  with check (usuario_id = auth.uid());
+
+revoke all on public.emails_enviados from anon, authenticated;
+grant select, insert on public.emails_enviados to authenticated;
+grant all on public.emails_enviados to service_role;

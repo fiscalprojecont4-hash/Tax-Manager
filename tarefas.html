@@ -239,6 +239,7 @@
     import { gerarPdf } from './js/relatorio-pdf.js';
     import { carregar, gravar, novoId, tarefasExemplo } from './js/dados-teste.js';
     import { instalarRelatoriosNoSino } from './js/relatorio-diario.js';
+    import { emailsValidos, emailDoPerfil, enviarEmail } from './js/enviar-email.js';
 
     const supabase = createSupabaseClient(true);
     const emailEl = document.getElementById('userEmail');
@@ -474,11 +475,41 @@
       return tasks.filter(matches).sort((a, b) => peso[grupoDe(a)] - peso[grupoDe(b)] || byDefaultOrder(a, b));
     }
 
-    function mailtoFor(t) {
-      const to = String(t.notificar || '').split(/[,;\s]+/).filter(e => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)).join(',');
-      const corpo = [`Tarefa: ${t.tarefa}`, `Prazo: ${fmtBR(t.prazo)}`, `Prioridade: ${PRIORIDADE_LABEL[t.prioridade]}`,
-                     `Status: ${STATUS_LABEL[t.status]}`, `Requerente: ${t.requerente}`, `Delegado: ${t.delegadoPara}`].join('\n');
-      return `mailto:${to}?subject=${encodeURIComponent('Tarefa: ' + t.tarefa)}&body=${encodeURIComponent(corpo)}`;
+    function corpoEmail(t) {
+      return {
+        assunto: 'Tarefa: ' + t.tarefa,
+        texto: [`Tarefa: ${t.tarefa}`, `Prazo: ${fmtBR(t.prazo)}`, `Prioridade: ${PRIORIDADE_LABEL[t.prioridade]}`,
+                `Status: ${STATUS_LABEL[t.status]}`, `Requerente: ${t.requerente}`, `Delegado: ${t.delegadoPara}`].join('\n'),
+      };
+    }
+    // Plano B: se o envio automático ainda não estiver configurado no servidor, abre o programa de e-mail do usuário.
+    function mailtoFor(t, para = emailsValidos(t.notificar)) {
+      const c = corpoEmail(t);
+      return `mailto:${para.join(',')}?subject=${encodeURIComponent(c.assunto)}&body=${encodeURIComponent(c.texto)}`;
+    }
+    // Destinatários: os e-mails do campo "Notificar"; se estiver vazio, o e-mail do usuário a quem a tarefa foi delegada.
+    async function destinatarios(t) {
+      const lista = emailsValidos(t.notificar);
+      if (lista.length) return lista;
+      const e = await emailDoPerfil(t.delegadoPara);
+      return e ? [e] : [];
+    }
+    async function dispararEmail(t, btn) {
+      if (btn.disabled) return;
+      btn.disabled = true;
+      try {
+        const para = await destinatarios(t);
+        if (!para.length) { flash('Sem destinatário: preencha o campo "Notificar" da tarefa com um e-mail.'); return; }
+        flash('Enviando e-mail…');
+        const c = corpoEmail(t);
+        try {
+          await enviarEmail({ para, assunto: c.assunto, texto: c.texto, entidade: 'tarefa', entidadeId: t.id });
+          flash(`E-mail enviado para ${para.join(', ')}.`);
+        } catch (err) {
+          if (err.naoConfigurado) { flash('Envio automático ainda não configurado. Abrindo o seu programa de e-mail.'); window.location.href = mailtoFor(t, para); }
+          else flash(`Não foi possível enviar: ${err.message}`);
+        }
+      } finally { btn.disabled = false; }
     }
 
     // ---------- filtros (multisseleção) ----------
@@ -595,7 +626,7 @@
           <td data-label="Criada em" class="muted">${fmtBR(t.criadoEm)}</td>
           <td class="col-actions">
             <button type="button" class="icon-btn" data-act="ics" title="Adicionar à agenda (.ics)" aria-label="Adicionar à agenda">${svg(ICON.agenda)}</button>
-            <a class="icon-btn" href="${esc(mailtoFor(t))}" title="Enviar por e-mail" aria-label="Enviar por e-mail">${svg(ICON.mail)}</a>
+            <button type="button" class="icon-btn" data-act="email" title="Enviar e-mail ao destinatário" aria-label="Enviar e-mail ao destinatário">${svg(ICON.mail)}</button>
             <button type="button" class="icon-btn" data-act="edit" title="Editar" aria-label="Editar">${svg(ICON.edit)}</button>
             <button type="button" class="icon-btn danger" data-act="del" title="Excluir" aria-label="Excluir">${svg(ICON.trash)}</button>
           </td>
@@ -697,6 +728,7 @@
         });
       }
       if (act === 'edit') openPanel(t.id);
+      if (act === 'email') dispararEmail(t, btn);
       if (act === 'ics') downloadFile(`tarefa-${t.id}.ics`, toIcs([t]), 'text/calendar;charset=utf-8');
       if (act === 'del') {
         // exclusão em dois cliques (sem janela de confirmação do navegador)

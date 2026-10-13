@@ -1,4 +1,4 @@
-@import url('login.css?v=20261013a');
+@import url('login.css?v=20261013b');
 
 /* login.css define body { display:flex } para o layout de duas colunas do
    login — não se aplica aqui, então reseta para o fluxo normal de blocos. */
@@ -1549,3 +1549,51 @@ html, body {
 .pj-card p, .pj-etapa-nome, .pj-etapa-meta, .pj-historico-item .texto,
 .empty-state, .filter-note { overflow-wrap: anywhere; }
 .form-row input, .form-row select, .form-row textarea { min-width: 0; max-width: 100%; box-sizing: border-box; }
+
+
+/* ---------- Quadro AM PRO (dashboard) ----------
+   Estrutura em bento: hero grande + cartões de indicador. Valores em "—" até a integração. */
+.ap { margin-top: 1rem; }
+.ap-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; grid-auto-rows: minmax(170px, auto); }
+@media (min-width: 860px) {
+  .ap-grid { grid-template-columns: repeat(3, 1fr); grid-auto-rows: 200px; }
+  .ap-hero { grid-column: span 2; grid-row: span 2; }
+}
+.ap-hero, .ap-card { position: relative; overflow: hidden; border-radius: 20px; padding: 1.75rem; min-width: 0; }
+.ap-hero {
+  display: flex; flex-direction: column; justify-content: space-between; gap: 1.5rem; color: #fff;
+  background: linear-gradient(145deg, #1d4ed8 0%, #2f66e6 55%, #4d8bf0 100%);
+}
+.ap-hero::after {
+  content: ''; position: absolute; right: -90px; bottom: -90px; width: 320px; height: 320px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0) 70%); pointer-events: none;
+}
+.ap-tag {
+  position: relative; z-index: 1; align-self: flex-start; display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.35rem 0.85rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600;
+  background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.28);
+}
+.ap-dot { width: 8px; height: 8px; border-radius: 50%; background: #fbbf24; }
+.ap-hero-text { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 0.6rem; }
+.ap-hero h2 { margin: 0; font-size: clamp(1.7rem, 3.4vw, 2.5rem); line-height: 1.1; letter-spacing: -0.02em; text-wrap: balance; }
+.ap-hero p { margin: 0; max-width: 44ch; font-size: 1rem; line-height: 1.5; color: rgba(255,255,255,0.9); }
+
+.ap-card { display: flex; flex-direction: column; justify-content: space-between; gap: 1rem; }
+.ap-blue { color: #fff; background: linear-gradient(150deg, #3b7bf0 0%, #1d4ed8 100%); }
+.ap-dark { color: #fff; background: linear-gradient(150deg, #0f172a 0%, #1e293b 100%); }
+.ap-plain { background: var(--panel); border: 1px solid var(--border); color: var(--text); }
+.ap-plain h3 { margin: 0 0 0.35rem; font-size: 1.25rem; letter-spacing: -0.01em; }
+.ap-plain p { margin: 0; color: var(--muted); font-size: 0.92rem; line-height: 1.5; }
+.ap-icon {
+  width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center;
+  background: rgba(255,255,255,0.2); color: #fff;
+}
+.ap-icon-soft { background: var(--accent-soft); color: var(--accent); }
+.ap-value { margin: 0; font-size: 2.4rem; font-weight: 800; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.ap-label { margin: 0.45rem 0 0; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.85; }
+.ap-stat { justify-content: center; }
+.ap-pill {
+  align-self: flex-start; padding: 0.3rem 0.75rem; border-radius: 999px; font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase; background: rgba(255,255,255,0.16);
+}
+.ap-dark h3 { margin: 0; font-size: 1.45rem; line-height: 1.2; letter-spacing: -0.01em; }

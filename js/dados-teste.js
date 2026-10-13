@@ -34,7 +34,7 @@ export function carregar(chave, fabrica) {
   return valor;
 }
 
-const CHAVES = ['validacoes', 'arquivos', 'competencia', 'categorias', 'empresas', 'mapeamento', 'relatorios', 'tarefas', 'obrigacoes'];
+const CHAVES = ['validacoes', 'arquivos', 'competencia', 'categorias', 'empresas', 'mapeamento', 'relatorios', 'tarefas'];
 export function restaurarExemplos() {
   CHAVES.forEach(c => {
     delete memoria[c];
@@ -381,32 +381,9 @@ export function projetosExemplo() {
 }
 
 
-// ---------- Calendário oficial (rascunhos de ingestão + aprovados) ----------
-// Mesma forma da tabela obrigacoes_oficiais: { id, titulo, orgao, esfera, vencimento, descricao, fonte_url, versao, status }
-export function obrigacoesExemplo() {
-  const hoje = new Date();
-  const ym = `${hoje.getFullYear()}-${p2(hoje.getMonth() + 1)}`;
-  const mk = (dia, titulo, descricao, status) => ({
-    id: novoId('ob'), titulo, orgao: 'RFB', esfera: 'federal', uf: null, municipio: null, regimes: null,
-    vencimento: `${ym}-${p2(dia)}`, descricao, fonte_url: 'https://www.gov.br/receitafederal/pt-br/assuntos/agenda-tributaria',
-    versao: 1, status,
-  });
-  return [
-    mk(15, 'EFD-Reinf – Escrituração Fiscal Digital de Retenções e Outras informações Fiscais', 'Interessado: PJ/PF. Base normativa: IN RFB nº 2.043/2021.', 'rascunho'),
-    mk(15, 'EFD-Contribuições – Escrituração Fiscal Digital das Contribuições', 'Interessado: PJ. Base normativa: IN RFB nº 1.252/2012.', 'rascunho'),
-    mk(20, 'IRRF — DARF', 'Códigos de receita (3): 0561, 0588, 1708.', 'rascunho'),
-    mk(20, 'PIS/Pasep — DARF', 'Códigos de receita (2): 8109, 6912.', 'aprovado'),
-    mk(25, 'Cofins — DARF', 'Códigos de receita (2): 2172, 5856.', 'aprovado'),
-  ];
-}
-export function obrigacoes() { return carregar('obrigacoes', obrigacoesExemplo); }
-export function salvarObrigacoes(lista) { gravar('obrigacoes', lista); }
-
-/** Obrigações aprovadas como eventos do calendário: { 'AAAA-MM-DD': [{ title, type:'oficial', descricao, fonte }] } */
-export function eventosOficiais() {
-  const ev = {};
-  obrigacoes().filter(o => o.status === 'aprovado').forEach(o => {
-    (ev[o.vencimento] = ev[o.vencimento] || []).push({ title: `${o.orgao} — ${o.titulo}`, type: 'oficial', descricao: o.descricao, fonte: o.fonte_url });
-  });
-  return ev;
-}
+// ---------- Calendário oficial (vem do banco; aqui só o cache local) ----------
+// js/obrigacoes-db.js busca as obrigações APROVADAS no Supabase e guarda o resultado aqui,
+// para telas síncronas (relatórios diários) e para abrir o calendário sem esperar a rede.
+/** { 'AAAA-MM-DD': [{ title, type:'oficial', descricao, fonte }] } */
+export function eventosOficiais() { return carregar('oficiais', () => ({ eventos: {} })).eventos || {}; }
+export function salvarEventosOficiais(eventos) { gravar('oficiais', { eventos, atualizado: new Date().toISOString() }); }

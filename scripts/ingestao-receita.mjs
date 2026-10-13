@@ -151,7 +151,9 @@ export async function enviar({ fonte, registros }) {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_KEY;
   if (!url || !key) throw new Error('Defina SUPABASE_URL e SUPABASE_SERVICE_KEY para usar --enviar.');
-  const h = { apikey: key, authorization: `Bearer ${key}`, 'content-type': 'application/json' };
+  // Chaves novas (sb_secret_...) não são JWT: vão só em 'apikey'. Chaves legadas (eyJ...) também aceitam Bearer.
+  const h = { apikey: key, 'content-type': 'application/json' };
+  if (key.startsWith('eyJ')) h.authorization = `Bearer ${key}`;
   const rest = (p, init) => fetch(`${url}/rest/v1/${p}`, { ...init, headers: { ...h, ...(init?.headers || {}) } });
 
   const ing = await (await rest('obrigacoes_ingestoes', {

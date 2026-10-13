@@ -147,7 +147,7 @@ export async function ingerirMes(ano, mes) {
 
 // ---------- Supabase (rascunhos) ----------
 
-async function enviar({ fonte, registros }) {
+export async function enviar({ fonte, registros }) {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_KEY;
   if (!url || !key) throw new Error('Defina SUPABASE_URL e SUPABASE_SERVICE_KEY para usar --enviar.');

@@ -1,6 +1,6 @@
 name: Ingestão do calendário oficial
 
-# Lê a Agenda Tributária da Receita Federal e grava RASCUNHOS no Supabase.
+# Lê a Agenda Tributária da Receita Federal e da SEFAZ-AM (API pública do portal) e grava RASCUNHOS no Supabase.
 # Nada vai para o calendário dos usuários sem aprovação do gestor fiscal.
 # Requer os Secrets SUPABASE_URL e SUPABASE_SERVICE_KEY (Settings > Secrets and variables > Actions).
 on:
@@ -22,15 +22,35 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
-      - name: Testes do parser
-        run: node scripts/ingestao-receita.test.mjs
+      - name: Testes dos parsers
+        run: |
+          node scripts/ingestao-receita.test.mjs
+          node scripts/ingestao-sefaz-am.test.mjs
       - name: Mês informado
         if: ${{ inputs.mes != '' }}
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: node scripts/ingestao-receita.mjs --ano "${{ inputs.ano || '' }}" --mes "${{ inputs.mes }}" --enviar
-      - name: Mês atual e próximo
+      - name: SEFAZ-AM (mês informado)
+        if: ${{ inputs.mes != '' }}
+        continue-on-error: true   # uma fonte fora do ar não derruba a outra
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: node scripts/ingestao-sefaz-am.mjs --mes "${{ inputs.mes }}" --enviar
+      - name: SEFAZ-AM (mês atual e próximo)
+        if: ${{ inputs.mes == '' }}
+        continue-on-error: true
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          node scripts/ingestao-sefaz-am.mjs --enviar
+          # A API só serve o ano corrente: em dezembro não há "próximo mês" a buscar.
+          m=$(date +%-m)
+          if [ "$m" -lt 12 ]; then node scripts/ingestao-sefaz-am.mjs --mes $((m+1)) --enviar || echo "Mês seguinte da SEFAZ-AM ainda sem obrigações."; fi
+      - name: Receita Federal (mês atual e próximo)
         if: ${{ inputs.mes == '' }}
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

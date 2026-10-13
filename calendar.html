@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/calendar.css?v=20261012a" />
+  <link rel="stylesheet" href="css/calendar.css?v=20261013a" />
 </head>
 <body>
   <nav class="topnav">
@@ -67,9 +67,8 @@
 
   <main class="cal-wrap">
     <div class="data-note">
-      ⚠ Dados de exemplo — a leitura automática das Agendas Tributárias da Receita Federal e da SEFAZ-AM já está pronta
-      (rascunhos em Administração › Calendário oficial); as obrigações <strong>aprovadas</strong> aparecem aqui como
-      oficiais. A SEFAZ-AM segue a mesma lógica (API pública do portal). Os demais eventos são mock para validar o layout.
+      As obrigações oficiais (Receita Federal e SEFAZ-AM) vêm do banco e aparecem aqui depois de aprovadas em
+      Administração › Calendário oficial. Os demais eventos ainda são dados de exemplo.
     </div>
 
     <div class="cal-toolbar">
@@ -184,6 +183,7 @@
     import { carregar, gravar, eventosExemplo, eventosOficiais } from './js/dados-teste.js';
     import { instalarRelatoriosNoSino } from './js/relatorio-diario.js';
     import { esc } from './js/lista-ui.js';
+    import { atualizarOficiais } from './js/obrigacoes-db.js';
 
     const supabase = createSupabaseClient(true);
     const emailEl = document.getElementById('userEmail');
@@ -352,6 +352,8 @@
     // eventos: chave = data ISO, valor = lista de { title, type: 'oficial'|'tarefa', time? }
     // 'time' omitido = evento de dia inteiro (feriados/obrigações sem horário fixo)
     // 'base' é o que o usuário cadastrou; 'events' soma as obrigações oficiais aprovadas (não são regravadas em 'base').
+    // Obrigações aprovadas vêm do banco; se a rede falhar, vale o último cache local.
+    await atualizarOficiais().catch(() => {});
     const base = Object.assign({}, carregar('eventos', eventosExemplo));
     const events = {};
     Object.entries(base).forEach(([k, l]) => { events[k] = [...l]; });

@@ -11,6 +11,7 @@
 
 import { carregar, gravar, hojeIso, somarDias, isoDe, novoId, tarefasExemplo, eventosExemplo, eventosOficiais, projetosExemplo, validacoesExemplo,
          mapeamento, competenciaVigente, competenciaExtenso } from './dados-teste.js';
+import { atualizarOficiais } from './obrigacoes-db.js';
 import { fmtBR, esc, STATUS_LABEL, PRIORIDADE_LABEL } from './lista-ui.js';
 import { gerarPdf } from './relatorio-pdf.js';
 
@@ -156,6 +157,7 @@ export async function baixarPdfRelatorio(rel, geradoPor = '') {
 // ---------------------------------------------------------------------------
 
 export function instalarRelatoriosNoSino() {
+  atualizarOficiais().catch(() => {}); // renova em segundo plano o cache das obrigações oficiais aprovadas
   const painel = document.getElementById('notifPanel');
   const lista = document.getElementById('notifList');
   const sino = document.getElementById('notifBell');

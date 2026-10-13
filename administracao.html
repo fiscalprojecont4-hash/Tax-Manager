@@ -8,9 +8,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/administracao.css?v=20261012a" />
+  <link rel="stylesheet" href="css/administracao.css?v=20261013a" />
   <style>#paneObr .inline-form button.btn-primary { width: auto; padding: 0.6rem 1.1rem; font-size: 0.9rem; }
-  #paneObr .inline-form > .form-row { flex: 1 1 220px; }</style>
+  #paneObr .inline-form > .form-row { flex: 1 1 200px; }
+  #paneObr .field-hint { margin: 0.6rem 0 0; }</style>
 </head>
 <body>
   <nav class="topnav">
@@ -69,7 +70,7 @@
 
   <main class="wrap-fluid">
     <div class="data-note">
-      ⚠ Dados de exemplo — os cadastros ficam guardados só neste navegador até o banco (Supabase/PostgreSQL) ser ligado.
+      ⚠ Dados de exemplo — Categorias e Empresas ficam guardadas só neste navegador até serem ligadas ao banco. O Calendário oficial já usa o banco.
       Usuários, equipes e permissões entram nessa etapa.
       <button type="button" class="link-btn" id="btnRestaurar">Restaurar exemplos</button>
     </div>
@@ -125,13 +126,13 @@
         <p>Todo dia o sistema lê a Agenda Tributária da Receita Federal e cria <strong>rascunhos</strong>. Só o que for aprovado aqui aparece no Calendário de todos como obrigação oficial.
            Se um prazo mudar na fonte, chega uma nova versão para você revisar.</p>
         <div class="inline-form">
+          <div class="form-row"><label for="obrMes">Mês do vencimento</label><input type="month" id="obrMes" /></div>
           <div class="form-row"><label for="obrFiltro">Mostrar</label>
             <select id="obrFiltro"><option value="rascunho">Aguardando revisão</option><option value="aprovado">Aprovadas</option><option value="rejeitado">Rejeitadas</option><option value="">Todas</option></select></div>
           <div class="form-row"><label for="obrBusca">Buscar</label><input type="text" id="obrBusca" placeholder="Ex: DARF, EFD, IRRF" autocomplete="off" /></div>
           <button type="button" class="btn-primary" id="obrAprovarTodas">Aprovar todas as exibidas</button>
-          <label class="btn-outline" for="obrArquivo" style="cursor:pointer">Carregar arquivo da ingestão</label>
-          <input type="file" id="obrArquivo" accept="application/json,.json" hidden />
         </div>
+        <p class="field-hint" id="obrResumo" aria-live="polite"></p>
         <p class="field-hint" id="obrMsg" aria-live="polite"></p>
       </div>
       <div class="table-card">
@@ -147,7 +148,8 @@
     import { iniciarShell } from './js/shell.js';
     import { esc, norm } from './js/lista-ui.js';
     import { restaurarExemplos, categorias, salvarCategorias, adicionarCategoria, empresas, salvarEmpresas,
-             carregar, obrigacoes, salvarObrigacoes, novoId } from './js/dados-teste.js';
+             carregar } from './js/dados-teste.js';
+    import { listarObrigacoes, contarPorStatus, mudarStatus } from './js/obrigacoes-db.js';
 
     await iniciarShell();
 
@@ -254,15 +256,18 @@
       desenharEmpresas();
     });
 
-    // ---------- calendário oficial: revisão dos rascunhos ----------
+    // ---------- calendário oficial: revisão dos rascunhos (banco) ----------
     const SIT = { rascunho: 'Aguardando revisão', aprovado: 'Aprovada', rejeitado: 'Rejeitada', substituido: 'Substituída' };
     const brData = (iso) => iso.split('-').reverse().join('/');
+    const hoje = new Date();
+    document.getElementById('obrMes').value = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
+    let carregadas = []; // do banco, conforme mês e situação
+    let seq = 0;         // descarta respostas antigas se o usuário trocar o filtro rápido
+    const msgObr = (t) => { document.getElementById('obrMsg').textContent = t; };
+
     function exibidas() {
-      const f = document.getElementById('obrFiltro').value;
       const q = norm(document.getElementById('obrBusca').value);
-      return obrigacoes()
-        .filter(o => (!f || o.status === f) && (!q || norm(`${o.titulo} ${o.descricao || ''} ${o.orgao}`).includes(q)))
-        .sort((a, b) => a.vencimento.localeCompare(b.vencimento) || a.titulo.localeCompare(b.titulo));
+      return carregadas.filter(o => !q || norm(`${o.titulo} ${o.descricao || ''} ${o.orgao}`).includes(q));
     }
     function desenharObrigacoes() {
       const lista = exibidas();
@@ -280,47 +285,51 @@
           </td>
         </tr>`).join('') || '<tr><td colspan="5" class="muted">Nada nesta lista.</td></tr>';
     }
-    function mudar(ids, status) {
-      const set = new Set(ids);
-      const lista = obrigacoes();
-      lista.forEach(o => { if (set.has(o.id)) o.status = status; });
-      salvarObrigacoes(lista);
-      document.getElementById('obrMsg').textContent = `${ids.length} ${ids.length === 1 ? 'obrigação' : 'obrigações'}: ${SIT[status].toLowerCase()}.`;
-      desenharObrigacoes();
+    async function recarregar() {
+      const minha = ++seq;
+      const status = document.getElementById('obrFiltro').value;
+      const ym = document.getElementById('obrMes').value;
+      document.getElementById('obrRows').innerHTML = '<tr><td colspan="5" class="muted">Carregando…</td></tr>';
+      try {
+        const [lista, cont] = await Promise.all([listarObrigacoes({ status, ym }), contarPorStatus(ym)]);
+        if (minha !== seq) return;
+        carregadas = lista;
+        document.getElementById('obrResumo').textContent =
+          `Neste período: ${cont.rascunho} aguardando revisão · ${cont.aprovado} aprovadas · ${cont.rejeitado} rejeitadas.`;
+        desenharObrigacoes();
+      } catch (e) {
+        if (minha !== seq) return;
+        carregadas = [];
+        document.getElementById('obrRows').innerHTML = '<tr><td colspan="5" class="muted">Não foi possível carregar o calendário oficial.</td></tr>';
+        msgObr(`Erro ao consultar o banco: ${e.message || e}`);
+      }
+    }
+    async function mudar(lista, status) {
+      if (!lista.length) return;
+      msgObr('Salvando…');
+      try {
+        const n = await mudarStatus(lista, status);
+        msgObr(n === lista.length
+          ? `${n} ${n === 1 ? 'obrigação' : 'obrigações'}: ${SIT[status].toLowerCase()}.`
+          : `Só ${n} de ${lista.length} foram alteradas. Seu usuário precisa ser gestor fiscal de uma equipe para aprovar ou rejeitar.`);
+      } catch (e) { msgObr(`Não foi possível salvar: ${e.message || e}`); }
+      recarregar();
     }
     document.getElementById('obrRows').addEventListener('click', (e) => {
       const b = e.target.closest('[data-acao]');
-      if (b) mudar([b.closest('tr').dataset.id], b.dataset.acao);
+      if (!b) return;
+      const o = carregadas.find(x => x.id === b.closest('tr').dataset.id);
+      if (o) mudar([o], b.dataset.acao);
     });
     document.getElementById('obrAprovarTodas').addEventListener('click', () => {
-      mudar(exibidas().filter(o => o.status === 'rascunho').map(o => o.id), 'aprovado');
+      mudar(exibidas().filter(o => o.status === 'rascunho'), 'aprovado');
     });
-    ['obrFiltro', 'obrBusca'].forEach(id => document.getElementById(id).addEventListener('input', desenharObrigacoes));
-    // Arquivo gerado por scripts/ingestao-receita.mjs (data/agenda-receita-AAAA-MM.json): entra como rascunho.
-    document.getElementById('obrArquivo').addEventListener('change', async (e) => {
-      const msg = document.getElementById('obrMsg');
-      try {
-        const dados = JSON.parse(await e.target.files[0].text());
-        if (!Array.isArray(dados.registros)) throw new Error('formato');
-        const lista = obrigacoes();
-        const chave = (o) => `${o.orgao}|${o.titulo}|${o.vencimento}`;
-        const ja = new Set(lista.map(chave));
-        let novas = 0;
-        dados.registros.forEach(r => {
-          if (!r.titulo || !/^\d{4}-\d{2}-\d{2}$/.test(r.vencimento) || ja.has(chave(r))) return;
-          lista.push({ ...r, id: novoId('ob'), versao: 1, status: 'rascunho' }); novas++;
-        });
-        salvarObrigacoes(lista);
-        msg.textContent = `${novas} rascunhos novos importados (${dados.registros.length - novas} já existiam).`;
-        document.getElementById('obrFiltro').value = 'rascunho';
-        desenharObrigacoes();
-      } catch { msg.textContent = 'Arquivo inválido. Use o JSON gerado pela ingestão.'; }
-      e.target.value = '';
-    });
+    document.getElementById('obrBusca').addEventListener('input', desenharObrigacoes);
+    ['obrFiltro', 'obrMes'].forEach(id => document.getElementById(id).addEventListener('change', recarregar));
 
     desenharCategorias();
     desenharEmpresas();
-    desenharObrigacoes();
+    recarregar();
   </script>
 </body>
 </html>

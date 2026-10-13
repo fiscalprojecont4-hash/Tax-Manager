@@ -223,6 +223,7 @@
     import { createSupabaseClient } from './js/supabase-client.js';
     import { iniciarMenusAcoes } from './js/acoes-menu.js';
     import { instalarRelatoriosNoSino } from './js/relatorio-diario.js';
+    import { emailDoPerfil, enviarEmail } from './js/enviar-email.js';
     import { carregar, gravar, restaurarExemplos, hojeIso, somarDias, novoId, novoChecklist, novoPonto, categorias, adicionarCategoria,
              empresas as listarEmpresas, empresaPorNome, competenciaVigente, definirCompetencia, proximaCompetencia, competenciaExtenso,
              competenciaCurta, arquivos as listarArquivos, salvarArquivos, montarArquivos, validacoesExemplo } from './js/dados-teste.js';
@@ -514,10 +515,35 @@
       v.concluidaEm = novo === 'concluida' ? (v.concluidaEm || today) : '';
     }
 
-    function mailtoFor(v) {
-      const corpo = [`Validação: ${v.nome} — ${v.atividade}`, `Analista responsável: ${analistaDe(v)}`, `Status: ${STATUS_LABEL[v.status]}`,
-                     `Pontos identificados: ${v.pontos.length}`, '', ...v.pontos.map((p, i) => `${i + 1}. ${p.titulo || '(sem título)'}`)].join('\n').slice(0, 1500);
-      return `mailto:?subject=${encodeURIComponent(`Validação: ${v.nome} — ${v.atividade}`)}&body=${encodeURIComponent(corpo)}`;
+    function corpoEmail(v) {
+      return {
+        assunto: `Validação: ${v.nome} — ${v.atividade}`,
+        texto: [`Validação: ${v.nome} — ${v.atividade}`, `Analista responsável: ${analistaDe(v)}`, `Status: ${STATUS_LABEL[v.status]}`,
+                `Pontos identificados: ${v.pontos.length}`, '', ...v.pontos.map((p, i) => `${i + 1}. ${p.titulo || '(sem título)'}`)].join('\n').slice(0, 1500),
+      };
+    }
+    // Plano B: se o envio automático ainda não estiver configurado no servidor, abre o programa de e-mail do usuário.
+    function mailtoFor(v, para = []) {
+      const c = corpoEmail(v);
+      return `mailto:${para.join(',')}?subject=${encodeURIComponent(c.assunto)}&body=${encodeURIComponent(c.texto)}`;
+    }
+    // Destinatário: o e-mail cadastrado do analista da validação.
+    async function dispararEmail(v, btn) {
+      if (btn.disabled) return;
+      btn.disabled = true;
+      try {
+        const email = v.analista ? await emailDoPerfil(v.analista) : null;
+        if (!email) { flash(v.analista ? `Não há e-mail cadastrado para o analista "${v.analista}".` : 'Esta validação não tem analista definido.'); return; }
+        flash('Enviando e-mail…');
+        const c = corpoEmail(v);
+        try {
+          await enviarEmail({ para: [email], assunto: c.assunto, texto: c.texto, entidade: 'validacao', entidadeId: v.id });
+          flash(`E-mail enviado para ${email}.`);
+        } catch (err) {
+          if (err.naoConfigurado) { flash('Envio automático ainda não configurado. Abrindo o seu programa de e-mail.'); window.location.href = mailtoFor(v, [email]); }
+          else flash(`Não foi possível enviar: ${err.message}`);
+        }
+      } finally { btn.disabled = false; }
     }
 
     function rowHtml(v) {
@@ -533,7 +559,7 @@
           <td data-label="Atualizada em" class="muted">${fmtBR(v.atualizadoEm)}</td>
           <td class="col-actions">
             <button type="button" class="icon-btn" data-act="pdf" title="Baixar relatório em PDF" aria-label="Baixar relatório em PDF">${svg(ICON.pdf)}</button>
-            <a class="icon-btn" href="${esc(mailtoFor(v))}" title="Enviar por e-mail" aria-label="Enviar por e-mail">${svg(ICON.mail)}</a>
+            <button type="button" class="icon-btn" data-act="email" title="Enviar e-mail ao analista" aria-label="Enviar e-mail ao analista">${svg(ICON.mail)}</button>
             <button type="button" class="icon-btn" data-act="edit" title="Editar" aria-label="Editar">${svg(ICON.edit)}</button>
             <button type="button" class="icon-btn danger" data-act="del" title="Excluir" aria-label="Excluir">${svg(ICON.trash)}</button>
           </td>
@@ -586,6 +612,7 @@
         });
       }
       if (act === 'edit') openPanel(v.id);
+      if (act === 'email') dispararEmail(v, btn);
       if (act === 'pdf') baixarRelatorio(v);
       if (act === 'del') {
         // exclusão em dois cliques (sem janela de confirmação do navegador)

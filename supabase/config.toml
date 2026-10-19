@@ -1,0 +1,4 @@
+# O AM PRO usa um segredo dedicado (Authorization: Bearer ...), que não é um JWT do Supabase Auth.
+# O gateway não consegue validá-lo; a função valida o segredo (hash em public.ampro_chaves) antes de qualquer leitura/gravação.
+[functions.ampro-integration]
+verify_jwt = false

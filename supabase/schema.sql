@@ -1118,3 +1118,226 @@ create policy emails_insert on public.emails_enviados for insert to authenticate
 revoke all on public.emails_enviados from anon, authenticated;
 grant select, insert on public.emails_enviados to authenticated;
 grant all on public.emails_enviados to service_role;
+
+
+-- ---------------------------------------------------------------------
+-- 13. INTEGRAÇÃO COM O AM PRO (Edge Function ampro-integration)
+-- ---------------------------------------------------------------------
+-- O AM PRO (rede interna) chama a função pela internet com UMA credencial de serviço
+-- (Authorization: Bearer ...), cujo hash fica em ampro_chaves junto com as equipes que ela
+-- pode escrever. A função roda com service_role: só ela grava aqui.
+-- O espelho pertence à equipe do snapshot (team.id). A RLS mostra ao usuário do Tax Manager
+-- só o espelho das equipes dele (administrador/gestor vê todas). Nada é excluído automaticamente.
+
+-- 13.1 Equipes do AM PRO -> equipes do Tax Manager.
+create table if not exists public.ampro_equipes (
+  ampro_id  text primary key,                       -- 'fiscal', 'omega', 'beta'
+  equipe_id uuid not null unique references public.equipes (id) on delete cascade
+);
+insert into public.ampro_equipes (ampro_id, equipe_id)
+select m.ampro_id, e.id
+from (values ('fiscal', 'Equipe Alpha'), ('omega', 'Equipe Omega'), ('beta', 'Equipe Beta')) as m (ampro_id, nome)
+join public.equipes e on e.nome = m.nome
+on conflict (ampro_id) do nothing;
+
+-- 13.2 Credencial de serviço (só o hash SHA-256; o segredo aparece UMA vez ao ser criado).
+create table if not exists public.ampro_chaves (
+  id         uuid primary key default gen_random_uuid(),
+  rotulo     text not null default 'AM PRO',
+  hash       text not null unique,
+  equipes    text[] not null default array['fiscal','omega','beta'],   -- equipes que ela pode escrever
+  ativa      boolean not null default true,
+  criada_em  timestamptz not null default now(),
+  ultimo_uso timestamptz
+);
+
+-- 13.3 Espelho operacional (empresas por equipe; obrigações por equipe + ciclo).
+create table if not exists public.ampro_empresas (
+  equipe_id          uuid not null references public.equipes (id) on delete cascade,
+  externo_id         text not null,                 -- companyId no AM PRO
+  nome               text not null default '',
+  nome_exibicao      text not null default '',
+  cnpj               text not null default '',
+  uf                 text not null default '',
+  inscricao_estadual text not null default '',
+  codigo_alterdata   text not null default '',
+  tributacao         text not null default '',
+  regime             text not null default '',
+  ativa              boolean not null default true,
+  responsavel        text not null default '',
+  atualizado_origem  timestamptz,
+  recebido_em        timestamptz not null default now(),
+  primary key (equipe_id, externo_id)
+);
+create index if not exists ampro_empresas_cnpj_idx on public.ampro_empresas (cnpj);
+
+create table if not exists public.ampro_obrigacoes (
+  equipe_id          uuid not null references public.equipes (id) on delete cascade,
+  ciclo              text not null check (ciclo ~ '^\d{4}-(0[1-9]|1[0-2])$'),   -- competência do snapshot
+  externo_id         text not null,                 -- itemId no AM PRO
+  empresa_externo_id text not null,
+  tarefa_chave       text not null default '',
+  tarefa_nome        text not null default '',
+  competencia        text not null default '',      -- competência da obrigação (pode ser retroativa)
+  responsavel        text not null default '',
+  executor           text not null default '',
+  executor_usuario   text,
+  executor_equipe    text,
+  status             text not null check (status in ('pending','in_progress','review','done','impediment','not_applicable')),
+  status_rotulo      text not null default '',
+  vencimento         date,                          -- nulo = sem prazo na origem
+  atualizado_origem  timestamptz,
+  recebido_em        timestamptz not null default now(),
+  primary key (equipe_id, ciclo, externo_id)
+);
+create index if not exists ampro_obrigacoes_venc_idx on public.ampro_obrigacoes (equipe_id, ciclo, vencimento);
+
+-- 13.4 Recibos (idempotência) e versão do cadastro de empresas já aplicada por equipe.
+create table if not exists public.ampro_recibos (
+  equipe_id       uuid not null references public.equipes (id) on delete cascade,
+  competencia     text not null,
+  revisao         text not null,
+  empresas_versao timestamptz not null,
+  ciclo_versao    timestamptz not null,
+  empresas        integer not null,
+  obrigacoes      integer not null,
+  aceito_em       timestamptz not null default now(),
+  primary key (equipe_id, competencia, revisao)
+);
+create table if not exists public.ampro_estado_equipe (
+  equipe_id       uuid primary key references public.equipes (id) on delete cascade,
+  empresas_versao timestamptz not null
+);
+
+create table if not exists public.ampro_log (
+  id         bigint generated always as identity primary key,
+  chave_id   uuid references public.ampro_chaves (id) on delete set null,
+  operacao   text not null,                         -- 'mirror' ou 'calendar'
+  equipe     text,                                  -- team.id do AM PRO, quando houver
+  itens      integer not null default 0,
+  http       integer not null,
+  criado_em  timestamptz not null default now()
+);
+create index if not exists ampro_log_chave_idx on public.ampro_log (chave_id, criado_em desc);
+-- O log guarda só contagens e códigos: nunca o corpo, a credencial ou anexos.
+
+do $$
+declare t text;
+begin
+  foreach t in array array['ampro_equipes','ampro_chaves','ampro_empresas','ampro_obrigacoes','ampro_recibos','ampro_estado_equipe','ampro_log'] loop
+    execute format('alter table public.%I enable row level security', t);
+    execute format('revoke all on public.%I from anon, authenticated', t);
+    execute format('grant all on public.%I to service_role', t);
+  end loop;
+end $$;
+
+grant select on public.ampro_empresas, public.ampro_obrigacoes, public.ampro_recibos, public.ampro_log to authenticated;
+
+-- Cada analista lê o espelho da própria equipe; administrador lê todas (private.eh_membro inclui o admin).
+drop policy if exists ampro_empresas_select on public.ampro_empresas;
+create policy ampro_empresas_select on public.ampro_empresas for select to authenticated
+  using (private.eh_membro(equipe_id));
+drop policy if exists ampro_obrigacoes_select on public.ampro_obrigacoes;
+create policy ampro_obrigacoes_select on public.ampro_obrigacoes for select to authenticated
+  using (private.eh_membro(equipe_id));
+drop policy if exists ampro_recibos_select on public.ampro_recibos;
+create policy ampro_recibos_select on public.ampro_recibos for select to authenticated
+  using (private.eh_membro(equipe_id));
+drop policy if exists ampro_log_select on public.ampro_log;
+create policy ampro_log_select on public.ampro_log for select to authenticated
+  using (private.eh_admin());
+
+-- 13.5 Aplicar um snapshot em UMA transação (chamada só pela Edge Function, com service_role).
+-- Recebe o corpo já validado. Retorna {status: aceito | duplicado | desatualizado | sem_equipe, ...}.
+create or replace function public.ampro_aplicar_espelho(p jsonb)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare
+  v_equipe uuid;
+  v_comp   text        := p ->> 'competence';
+  v_rev    text        := p ->> 'revision';
+  v_cv     timestamptz := (p ->> 'companies_version')::timestamptz;
+  v_yv     timestamptz := (p ->> 'cycle_version')::timestamptz;
+  v_ult    timestamptz;
+  v_est    timestamptz;
+  v_ne     integer;
+  v_no     integer;
+begin
+  select a.equipe_id into v_equipe from public.ampro_equipes a where a.ampro_id = p ->> 'team_id';
+  if v_equipe is null then return jsonb_build_object('status', 'sem_equipe'); end if;
+
+  -- Uma gravação por vez em cada equipe (o cadastro de empresas é compartilhado entre competências).
+  perform pg_advisory_xact_lock(hashtextextended('ampro:' || v_equipe::text, 0));
+
+  if exists (select 1 from public.ampro_recibos r where r.equipe_id = v_equipe and r.competencia = v_comp and r.revisao = v_rev) then
+    return jsonb_build_object('status', 'duplicado');
+  end if;
+
+  select max(r.ciclo_versao) into v_ult from public.ampro_recibos r where r.equipe_id = v_equipe and r.competencia = v_comp;
+  select s.empresas_versao into v_est from public.ampro_estado_equipe s where s.equipe_id = v_equipe;
+  if (v_ult is not null and v_yv < v_ult) or (v_est is not null and v_cv < v_est) then
+    return jsonb_build_object('status', 'desatualizado');
+  end if;
+
+  insert into public.ampro_empresas as t (equipe_id, externo_id, nome, nome_exibicao, cnpj, uf, inscricao_estadual,
+      codigo_alterdata, tributacao, regime, ativa, responsavel, atualizado_origem)
+  select v_equipe, e ->> 'id', coalesce(e ->> 'name', ''), coalesce(e ->> 'displayName', ''), coalesce(e ->> 'cnpj', ''), coalesce(e ->> 'state', ''), coalesce(e ->> 'stateRegistration', ''),
+         coalesce(e ->> 'alterdataCode', ''), coalesce(e ->> 'taxation', ''), coalesce(e ->> 'regime', ''), coalesce((e ->> 'active')::boolean, true), coalesce(e ->> 'responsible', ''),
+         nullif(e ->> 'updatedAt', '')::timestamptz
+  from jsonb_array_elements(coalesce(p -> 'companies', '[]'::jsonb)) e
+  on conflict (equipe_id, externo_id) do update set
+      nome = excluded.nome, nome_exibicao = excluded.nome_exibicao, cnpj = excluded.cnpj, uf = excluded.uf,
+      inscricao_estadual = excluded.inscricao_estadual, codigo_alterdata = excluded.codigo_alterdata,
+      tributacao = excluded.tributacao, regime = excluded.regime, ativa = excluded.ativa,
+      responsavel = excluded.responsavel, atualizado_origem = excluded.atualizado_origem, recebido_em = now()
+    where t.atualizado_origem is null or excluded.atualizado_origem is null or excluded.atualizado_origem >= t.atualizado_origem;
+  get diagnostics v_ne = row_count;
+
+  insert into public.ampro_obrigacoes as t (equipe_id, ciclo, externo_id, empresa_externo_id, tarefa_chave, tarefa_nome,
+      competencia, responsavel, executor, executor_usuario, executor_equipe, status, status_rotulo, vencimento, atualizado_origem)
+  select v_equipe, v_comp, o ->> 'id', o ->> 'companyId', coalesce(o ->> 'taskKey', ''), coalesce(o ->> 'taskLabel', ''),
+         coalesce(o ->> 'competence', ''), coalesce(o ->> 'responsible', ''), coalesce(o ->> 'executor', ''), o ->> 'executorUserId', o ->> 'executorTeamId',
+         o ->> 'status', coalesce(o ->> 'statusLabel', ''), nullif(o ->> 'dueDate', '')::date, nullif(o ->> 'updatedAt', '')::timestamptz
+  from jsonb_array_elements(coalesce(p -> 'obligations', '[]'::jsonb)) o
+  on conflict (equipe_id, ciclo, externo_id) do update set
+      empresa_externo_id = excluded.empresa_externo_id, tarefa_chave = excluded.tarefa_chave, tarefa_nome = excluded.tarefa_nome,
+      competencia = excluded.competencia, responsavel = excluded.responsavel, executor = excluded.executor,
+      executor_usuario = excluded.executor_usuario, executor_equipe = excluded.executor_equipe, status = excluded.status,
+      status_rotulo = excluded.status_rotulo, vencimento = excluded.vencimento,
+      atualizado_origem = excluded.atualizado_origem, recebido_em = now()
+    where t.atualizado_origem is null or excluded.atualizado_origem is null or excluded.atualizado_origem >= t.atualizado_origem;
+  get diagnostics v_no = row_count;
+
+  insert into public.ampro_estado_equipe (equipe_id, empresas_versao) values (v_equipe, v_cv)
+  on conflict (equipe_id) do update set empresas_versao = greatest(public.ampro_estado_equipe.empresas_versao, excluded.empresas_versao);
+
+  insert into public.ampro_recibos (equipe_id, competencia, revisao, empresas_versao, ciclo_versao, empresas, obrigacoes)
+  values (v_equipe, v_comp, v_rev, v_cv, v_yv,
+          jsonb_array_length(coalesce(p -> 'companies', '[]'::jsonb)), jsonb_array_length(coalesce(p -> 'obligations', '[]'::jsonb)));
+
+  return jsonb_build_object('status', 'aceito', 'empresas', v_ne, 'obrigacoes', v_no);
+end $$;
+revoke all on function public.ampro_aplicar_espelho(jsonb) from public, anon, authenticated;
+grant execute on function public.ampro_aplicar_espelho(jsonb) to service_role;
+
+-- 13.6 Criar e revogar a credencial. Rode no SQL Editor; o segredo sai UMA vez no resultado
+-- (32 bytes aleatórios em base64url, 43 caracteres).
+--   select * from private.criar_chave_ampro();
+--   select * from private.criar_chave_ampro('AM PRO - troca de out/2026');
+--   select private.revogar_chave_ampro('<chave_id>');
+create or replace function private.criar_chave_ampro(p_rotulo text default 'AM PRO', p_equipes text[] default array['fiscal','omega','beta'])
+returns table (chave_id uuid, equipes text[], segredo text) language plpgsql security definer set search_path = '' as $$
+declare
+  v_segredo text := translate(encode(extensions.gen_random_bytes(32), 'base64'), '+/=', '-_');
+  v_id      uuid;
+begin
+  insert into public.ampro_chaves (rotulo, hash, equipes)
+  values (p_rotulo, encode(extensions.digest(v_segredo, 'sha256'), 'hex'), p_equipes)
+  returning id into v_id;
+  return query select v_id, p_equipes, v_segredo;
+end $$;
+
+create or replace function private.revogar_chave_ampro(p_id uuid)
+returns void language sql security definer set search_path = '' as $$
+  update public.ampro_chaves set ativa = false where id = p_id
+$$;
+revoke all on function private.criar_chave_ampro(text, text[]), private.revogar_chave_ampro(uuid) from public, anon, authenticated;

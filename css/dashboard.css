@@ -1651,3 +1651,10 @@ html, body {
 .ap-plain .ap-sub { color: var(--muted); }
 .ap-plain .ap-opt { background: var(--accent-soft); color: var(--accent); }
 @media (min-width: 860px) { .ap-plain { justify-content: space-between; } }
+.ap-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.2rem; max-height: 7.2rem; overflow-y: auto; font-size: 0.9rem; }
+.ap-hero .ap-lista { max-height: 11rem; font-size: 1rem; }
+.ap-lista li { display: flex; align-items: baseline; gap: 0.5rem; font-variant-numeric: tabular-nums; }
+.ap-lista-pos { width: 1.2rem; opacity: 0.7; }
+.ap-lista-nome { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ap-lista-vazio { opacity: 0.85; }
+.ap-lista[hidden], .ap-value[hidden] { display: none; }

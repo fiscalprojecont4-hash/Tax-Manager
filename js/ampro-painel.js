@@ -49,11 +49,11 @@ export const METRICAS = {
   atrasadas: { nome: 'Obrigações em atraso', calc: (d) => ({ valor: n(d.t.vencidas), sub: `de ${n(d.t.aplicaveis)} aplicáveis`, rotulo: 'Obrigações em atraso' }) },
   meta: { nome: 'Meta batida', calc: (d) => ({ valor: d.t.pct >= META_CONCLUSAO ? 'Sim' : 'Não', sub: `${d.t.pct}% de ${META_CONCLUSAO}% (provisória)`, rotulo: 'Meta batida' }) },
   entrega_membro: {
-    nome: 'Entrega por membro',
+    nome: 'Entrega por membro (no prazo)',
     calc: (d) => {
-      const l = d.membros.slice().sort((a, b) => b.concluidas - a.concluidas);
-      if (!l.length) return { valor: '—', sub: 'Sem dados por membro', rotulo: 'Entrega por membro' };
-      return { valor: n(l[0].concluidas), sub: l.slice(0, 3).map(x => `${x.membro}: ${n(x.concluidas)}`).join(' · '), rotulo: 'Entrega por membro' };
+      // Só contam entregas dentro do prazo; do maior para o menor.
+      const l = d.membros.filter(x => x.no_prazo > 0).sort((a, b) => b.no_prazo - a.no_prazo || a.membro.localeCompare(b.membro, 'pt-BR'));
+      return { lista: l.map(x => ({ nome: x.membro, n: x.no_prazo })), valor: '—', sub: 'Somente entregas no prazo', rotulo: 'Entrega por membro' };
     },
   },
   top_prazo: {
@@ -91,6 +91,13 @@ function quando(iso) {
 function html(s) { return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
 function pintarBloco(el, m) {
+  let ol = el.querySelector('.ap-lista');
+  if (!ol) { ol = document.createElement('ol'); ol.className = 'ap-lista'; el.querySelector('.ap-value').after(ol); }
+  ol.hidden = !m.lista;
+  el.querySelector('.ap-value').hidden = !!m.lista;
+  ol.innerHTML = m.lista ? (m.lista.length
+    ? m.lista.map((x, i) => `<li><span class="ap-lista-pos">${i + 1}</span><span class="ap-lista-nome" title="${html(x.nome)}">${html(x.nome)}</span><b>${n(x.n)}</b></li>`).join('')
+    : '<li class="ap-lista-vazio">Nenhuma entrega no prazo ainda</li>') : '';
   el.querySelector('.ap-value').textContent = m.valor;
   el.querySelector('.ap-value').classList.toggle('ap-value-txt', !!m.texto);
   el.querySelector('.ap-sub').textContent = m.sub;

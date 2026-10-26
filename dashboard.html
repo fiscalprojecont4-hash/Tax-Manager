@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/dashboard.css?v=20261026a" />
+  <link rel="stylesheet" href="css/dashboard.css?v=20261026b" />
 </head>
 <body>
   <nav class="topnav">
@@ -119,18 +119,35 @@
     <!-- AM PRO: quadro reservado para os indicadores da outra plataforma. Os valores ficam em "—" até a integração ser ligada. -->
     <section class="ap" aria-labelledby="apTitulo">
       <div class="ap-grid">
-        <div class="ap-hero">
+        <div class="ap-hero" id="apHero" data-slot="hero" title="Botão direito para escolher a métrica">
           <span class="ap-tag"><span class="ap-dot" id="apDot" aria-hidden="true"></span><span id="apTag">AM PRO · carregando…</span></span>
-          <div class="ap-hero-text">
-            <h2 id="apTitulo">Operação no AM PRO</h2>
-            <p>Indicadores operacionais espelhados do AM PRO, por equipe e competência.</p>
           <label class="ap-ciclo">Competência <select id="apCiclo"></select></label>
+          <button type="button" class="ap-opt" aria-haspopup="menu" aria-label="Escolher a métrica deste bloco" title="Escolher a métrica (ou clique com o botão direito)"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
+          <div class="ap-views">
+            <div class="ap-view is-on" aria-hidden="false">
+              <div class="ap-hero-text" id="apIntro">
+                <h2 id="apTitulo">Operação no AM PRO</h2>
+                <p>Indicadores operacionais espelhados do AM PRO, por equipe e competência.</p>
+              </div>
+              <div class="ap-hero-metrica" id="apHeroMetrica" hidden>
+                <p class="ap-value">—</p><p class="ap-sub"></p><p class="ap-label"></p>
+              </div>
+            </div>
+            <div class="ap-view" aria-hidden="true">
+              <div class="ap-prog">
+                <h3>Progresso por obrigação</h3>
+                <ul id="apProgresso" class="ap-prog-lista"></ul>
+                <p class="ap-prog-mais" id="apProgMais"></p>
+              </div>
+            </div>
           </div>
+          <div class="ap-dots" role="group" aria-label="Alternar visão"><button type="button" aria-label="Visão geral" aria-current="true"></button><button type="button" aria-label="Progresso por obrigação" aria-current="false"></button></div>
         </div>
 
-        <div class="ap-card ap-blue">
+        <div class="ap-card ap-blue ap-slot" data-slot="s1" title="Botão direito para escolher a métrica">
+          <button type="button" class="ap-opt" aria-haspopup="menu" aria-label="Escolher a métrica deste bloco" title="Escolher a métrica (ou clique com o botão direito)"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
           <div class="ap-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></div>
-          <div><p class="ap-value" id="apConcluidas">—</p><p class="ap-sub" id="apConcluidasSub"></p><p class="ap-label">Tarefas concluídas</p></div>
+          <div><p class="ap-value">—</p><p class="ap-sub"></p><p class="ap-label">Tarefas concluídas</p></div>
         </div>
 
         <div class="ap-card ap-plain">
@@ -142,15 +159,17 @@
           </div>
         </div>
 
-                <div class="ap-card ap-dark ap-stat">
-          <p class="ap-value" id="apRisco">—</p>
-          <p class="ap-sub" id="apRiscoSub"></p>
+        <div class="ap-card ap-dark ap-stat ap-slot" data-slot="s2" title="Botão direito para escolher a métrica">
+          <button type="button" class="ap-opt" aria-haspopup="menu" aria-label="Escolher a métrica deste bloco" title="Escolher a métrica (ou clique com o botão direito)"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
+          <p class="ap-value">—</p>
+          <p class="ap-sub"></p>
           <p class="ap-label">Tarefas em risco de atraso</p>
         </div>
 
-        <div class="ap-card ap-blue ap-stat">
-          <p class="ap-value" id="apMeta">—</p>
-          <p class="ap-sub" id="apMetaSub"></p>
+        <div class="ap-card ap-blue ap-stat ap-slot" data-slot="s3" title="Botão direito para escolher a métrica">
+          <button type="button" class="ap-opt" aria-haspopup="menu" aria-label="Escolher a métrica deste bloco" title="Escolher a métrica (ou clique com o botão direito)"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
+          <p class="ap-value">—</p>
+          <p class="ap-sub"></p>
           <p class="ap-label">Meta batida</p>
         </div>
       </div>

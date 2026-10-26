@@ -163,18 +163,6 @@ returns boolean language sql stable security definer set search_path = '' as $$
     where m.usuario_id = auth.uid() and m.ativo and m.papel = any (p_papeis))
 $$;
 
-create or replace function private.eh_gestor_geral()
-returns boolean language sql stable security definer set search_path = '' as $$
-  -- Gestor fiscal de TODAS as equipes ativas (ou administrador). Usado no que é compartilhado
-  -- entre equipes (calendário oficial): quem é gestor só da própria equipe não entra.
-  select private.eh_admin() or (
-    exists (select 1 from public.equipes e where e.ativa)
-    and not exists (
-      select 1 from public.equipes e where e.ativa and not exists (
-        select 1 from public.membros_equipe m
-        where m.equipe_id = e.id and m.usuario_id = auth.uid() and m.ativo and m.papel = 'gestor_fiscal')))
-$$;
-
 -- Os dois usuários participam de alguma equipe em comum? (para ver nomes de colegas)
 create or replace function private.compartilham_equipe(p_usuario uuid)
 returns boolean language sql stable security definer set search_path = '' as $$
@@ -971,16 +959,16 @@ drop policy if exists obrigacoes_select on public.obrigacoes_oficiais;
 drop policy if exists obrigacoes_update on public.obrigacoes_oficiais;
 create policy obrigacoes_select on public.obrigacoes_oficiais for select to authenticated
   using (status = 'aprovado'
-         or private.eh_gestor_geral());
--- Aprovar/rejeitar: gestor fiscal. Inserir rascunhos: só o job (service_role).
+         or private.tem_papel_em_alguma_equipe(array['gestor_fiscal']));
+-- Aprovar/rejeitar: gestor fiscal de qualquer equipe (cada analista, gestor da sua, também revisa). Inserir rascunhos: só o job (service_role).
 create policy obrigacoes_update on public.obrigacoes_oficiais for update to authenticated
-  using (private.eh_gestor_geral())
-  with check (private.eh_gestor_geral());
+  using (private.tem_papel_em_alguma_equipe(array['gestor_fiscal']))
+  with check (private.tem_papel_em_alguma_equipe(array['gestor_fiscal']));
 
 alter table public.obrigacoes_ingestoes enable row level security;
 drop policy if exists ingestoes_select on public.obrigacoes_ingestoes;
 create policy ingestoes_select on public.obrigacoes_ingestoes for select to authenticated
-  using (private.eh_gestor_geral());
+  using (private.tem_papel_em_alguma_equipe(array['gestor_fiscal']));
 
 -- notificações -----------------------------------------------------------
 alter table public.notificacoes enable row level security;
@@ -1394,3 +1382,51 @@ returns table (
 $$;
 revoke all on function public.ampro_ciclos(), public.ampro_resumo(text) from public, anon;
 grant execute on function public.ampro_ciclos(), public.ampro_resumo(text) to authenticated;
+
+-- 13.8 Indicadores por membro (executor) e por obrigação. SECURITY INVOKER: o RLS limita às equipes permitidas.
+-- "No prazo" = concluída cuja última alteração na origem (updatedAt, fuso de Manaus) é até o vencimento;
+-- o contrato do AM PRO não traz a data exata da conclusão, então é a melhor aproximação disponível.
+create or replace function public.ampro_por_membro(p_ciclo text default null)
+returns table (
+  equipe_id uuid, equipe_nome text, membro text,
+  aplicaveis integer, concluidas integer, no_prazo integer, fora_prazo integer, atrasadas integer
+) language sql stable security invoker set search_path = '' as $$
+  with alvo as (
+    select coalesce(p_ciclo, (select max(x.ciclo) from public.ampro_obrigacoes x)) as ciclo
+  ), hoje as (select (now() at time zone 'America/Manaus')::date as d)
+  select o.equipe_id, coalesce(e.nome, 'Equipe'),
+         coalesce(nullif(o.executor, ''), 'Sem executor'),
+         count(*) filter (where o.status <> 'not_applicable')::int,
+         count(*) filter (where o.status = 'done')::int,
+         count(*) filter (where o.status = 'done' and o.vencimento is not null and o.atualizado_origem is not null
+                            and (o.atualizado_origem at time zone 'America/Manaus')::date <= o.vencimento)::int,
+         count(*) filter (where o.status = 'done' and o.vencimento is not null and o.atualizado_origem is not null
+                            and (o.atualizado_origem at time zone 'America/Manaus')::date > o.vencimento)::int,
+         count(*) filter (where o.status not in ('done','not_applicable') and o.vencimento < h.d)::int
+  from public.ampro_obrigacoes o
+  join alvo a on a.ciclo = o.ciclo
+  cross join hoje h
+  left join public.equipes e on e.id = o.equipe_id
+  group by o.equipe_id, e.nome, 3
+$$;
+
+create or replace function public.ampro_por_obrigacao(p_ciclo text default null)
+returns table (obrigacao text, aplicaveis integer, concluidas integer, em_andamento integer, atrasadas integer)
+language sql stable security invoker set search_path = '' as $$
+  with alvo as (
+    select coalesce(p_ciclo, (select max(x.ciclo) from public.ampro_obrigacoes x)) as ciclo
+  ), hoje as (select (now() at time zone 'America/Manaus')::date as d)
+  select coalesce(nullif(o.tarefa_nome, ''), nullif(o.tarefa_chave, ''), 'Sem nome') as obrigacao,
+         count(*) filter (where o.status <> 'not_applicable')::int,
+         count(*) filter (where o.status = 'done')::int,
+         count(*) filter (where o.status in ('in_progress','review'))::int,
+         count(*) filter (where o.status not in ('done','not_applicable') and o.vencimento < h.d)::int
+  from public.ampro_obrigacoes o
+  join alvo a on a.ciclo = o.ciclo
+  cross join hoje h
+  group by 1
+  having count(*) filter (where o.status <> 'not_applicable') > 0
+  order by 2 desc, 1
+$$;
+revoke all on function public.ampro_por_membro(text), public.ampro_por_obrigacao(text) from public, anon;
+grant execute on function public.ampro_por_membro(text), public.ampro_por_obrigacao(text) to authenticated;

@@ -1605,3 +1605,43 @@ html, body {
 .ap-ciclo option { color: #111; }
 .ap-equipes { margin-top: 0.5rem !important; font-size: 0.82rem !important; }
 @media (min-width: 860px) { .ap-plain { grid-row: span 2; justify-content: center; } }
+
+/* --- AM PRO: escolha de métrica, hero que alterna e progresso por obrigação --- */
+.ap-hero, .ap-slot { position: relative; }
+.ap-hero { display: flex; flex-direction: column; justify-content: space-between; gap: 1rem; }
+.ap-ciclo { position: absolute; top: 1.4rem; right: 3.4rem; z-index: 2; }
+.ap-opt {
+  position: absolute; top: 0.9rem; right: 0.9rem; z-index: 3; width: 30px; height: 30px; border-radius: 50%;
+  display: grid; place-items: center; border: 0; cursor: pointer; color: inherit; background: rgba(255,255,255,0.16);
+  opacity: 0; transition: opacity .15s;
+}
+.ap-hero:hover .ap-opt, .ap-slot:hover .ap-opt, .ap-opt:focus-visible { opacity: 1; }
+@media (hover: none) { .ap-opt { opacity: 0.8; } }
+.ap-opt:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.ap-views { display: grid; position: relative; z-index: 1; margin-top: auto; }
+.ap-view { grid-area: 1 / 1; opacity: 0; visibility: hidden; transform: translateY(10px); transition: opacity .45s ease, transform .45s ease, visibility .45s; }
+.ap-view.is-on { opacity: 1; visibility: visible; transform: none; }
+@media (prefers-reduced-motion: reduce) { .ap-view { transition: none; transform: none; } }
+.ap-hero-metrica .ap-value { font-size: clamp(2.6rem, 5vw, 4rem); }
+.ap-value-txt { font-size: 1.6rem; line-height: 1.15; overflow-wrap: anywhere; }
+.ap-hero-metrica .ap-value-txt { font-size: clamp(1.8rem, 3.4vw, 2.6rem); }
+.ap-dots { position: relative; z-index: 2; display: flex; gap: 0.4rem; }
+.ap-dots button { width: 22px; height: 6px; border: 0; border-radius: 99px; padding: 0; cursor: pointer; background: rgba(255,255,255,0.4); }
+.ap-dots button[aria-current="true"] { background: #fff; }
+.ap-prog h3 { margin: 0 0 0.6rem; font-size: 1.15rem; }
+.ap-prog-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.55rem; }
+.ap-prog-topo { display: flex; justify-content: space-between; gap: 0.75rem; font-size: 0.82rem; }
+.ap-prog-nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.ap-prog-num { white-space: nowrap; font-variant-numeric: tabular-nums; opacity: 0.9; }
+.ap-barra { height: 7px; margin-top: 0.25rem; border-radius: 99px; background: rgba(255,255,255,0.25); overflow: hidden; }
+.ap-barra span { display: block; height: 100%; border-radius: 99px; background: #fff; transition: width .6s ease; }
+.ap-hero .ap-prog-mais, .ap-hero .ap-prog-vazio, .ap-hero .ap-sub { margin: 0.4rem 0 0; font-size: 0.8rem; opacity: 0.85; }
+.ap-menu {
+  position: fixed; z-index: 1000; min-width: 250px; padding: 0.4rem; border-radius: 12px; background: var(--panel, #fff);
+  color: var(--text, #111); border: 1px solid var(--border, #e5e7eb); box-shadow: 0 12px 32px rgba(15,23,42,0.22);
+}
+.ap-menu-tit { margin: 0.3rem 0.6rem 0.4rem; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted, #6b7280); }
+.ap-menu button { display: block; width: 100%; text-align: left; padding: 0.5rem 0.6rem 0.5rem 1.6rem; border: 0; border-radius: 8px; background: none; color: inherit; font: inherit; font-size: 0.9rem; cursor: pointer; position: relative; }
+.ap-menu button:hover, .ap-menu button:focus-visible { background: var(--accent-soft, #e8f0fe); outline: none; }
+.ap-menu button[aria-checked="true"]::before { content: '✓'; position: absolute; left: 0.5rem; color: var(--accent, #1d4ed8); font-weight: 700; }
+.ap-menu .ap-menu-reset { margin-top: 0.25rem; padding-left: 0.6rem; border-top: 1px solid var(--border, #e5e7eb); border-radius: 0 0 8px 8px; color: var(--muted, #6b7280); font-size: 0.82rem; }

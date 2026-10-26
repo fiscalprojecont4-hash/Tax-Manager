@@ -264,6 +264,8 @@
 
   <script type="module">
     import { iniciarShell } from './js/shell.js';
+    import { createSupabaseClient } from './js/supabase-client.js';
+    import { sincronizarEmpresasAmPro } from './js/empresas-ampro.js';
     import { iniciarMenusAcoes } from './js/acoes-menu.js';
     import { STATUS_ORDER, STATUS_LABEL, STATUS_BADGE, STATUS_OCULTOS, statusVisivel, PRIORIDADE_ORDER, PRIORIDADE_LABEL, PRIORIDADE_BADGE,
              esc, norm, fmtBR, downloadFile, csvCell, createMultiSelect, abrirStatusMenu, statusPillHtml } from './js/lista-ui.js';
@@ -273,6 +275,7 @@
              mapeamento as listarMapeamento, salvarMapeamento, validacoesExemplo } from './js/dados-teste.js';
 
     const session = await iniciarShell();
+    await sincronizarEmpresasAmPro(createSupabaseClient(true));
     iniciarMenusAcoes();
     const today = hojeIso();
     const geradoPor = session ? session.user.email : '';

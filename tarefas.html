@@ -202,7 +202,8 @@
         </div>
         <div>
           <label for="fRequerente">Requerente</label>
-          <input type="text" id="fRequerente" placeholder="Cliente, empresa ou 'Interno'" />
+          <input type="text" id="fRequerente" list="empresasReq" autocomplete="off" placeholder="Cliente, empresa ou 'Interno'" />
+          <datalist id="empresasReq"></datalist>
         </div>
       </div>
       <div class="form-row form-row-split">
@@ -233,6 +234,7 @@
 
   <script type="module">
     import { createSupabaseClient } from './js/supabase-client.js';
+    import { sincronizarEmpresasAmPro } from './js/empresas-ampro.js';
     import { iniciarMenusAcoes } from './js/acoes-menu.js';
     import { STATUS_ORDER, STATUS_LABEL, STATUS_OCULTOS, statusVisivel, esc, norm, fmtBR, downloadFile, csvCell,
              createMultiSelect, abrirStatusMenu, statusPillHtml } from './js/lista-ui.js';
@@ -250,6 +252,8 @@
       window.location.href = 'index.html';
     } else {
       emailEl.textContent = session.user.email;
+      const cad = await sincronizarEmpresasAmPro(supabase);
+      if (cad) document.getElementById('empresasReq').innerHTML = cad.map(e => `<option value="${e.nome.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}"></option>`).join('');
     }
 
     logoutBtn.addEventListener('click', async () => {

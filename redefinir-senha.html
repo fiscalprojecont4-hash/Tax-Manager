@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://debwbmbhmtimozhkeyql.supabase.co wss://debwbmbhmtimozhkeyql.supabase.co https://cdn.jsdelivr.net; object-src 'none'; base-uri 'self'; form-action 'self'" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Redefinir senha — Tax Manager Projecont</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/login.css?v=20261013b" />
+</head>
+<body>
+  <div class="login-layout">
+    <section class="login-form-section">
+      <div class="login-form-wrap">
+        <div class="brand animate-in" style="animation-delay: .05s">
+          <img src="assets/hero-login.jpg" alt="" />
+          <span>Tax Manager · Projecont</span>
+        </div>
+
+        <h1 class="login-title animate-in" style="animation-delay: .1s">Redefinir senha</h1>
+        <p class="login-subtitle animate-in" style="animation-delay: .15s">Escolha uma nova senha para acessar a plataforma.</p>
+
+        <div id="formMessage" class="form-message"></div>
+
+        <form id="resetForm" novalidate hidden>
+          <div class="field">
+            <label for="novaSenha">Nova senha</label>
+            <div class="input-glass">
+              <input id="novaSenha" type="password" placeholder="Mínimo de 10 caracteres" autocomplete="new-password" required />
+            </div>
+          </div>
+          <div class="field">
+            <label for="confirmaSenha">Confirmar nova senha</label>
+            <div class="input-glass">
+              <input id="confirmaSenha" type="password" placeholder="Repita a senha" autocomplete="new-password" required />
+            </div>
+          </div>
+          <button type="submit" class="btn-primary" id="submitBtn">Salvar nova senha</button>
+        </form>
+
+        <p class="footnote"><a class="link" href="index.html">Voltar ao login</a></p>
+      </div>
+    </section>
+
+    <section class="login-hero-section">
+      <div class="login-hero-image" style="background-image: url('assets/hero-login.jpg')"></div>
+    </section>
+  </div>
+
+  <script type="module" src="js/redefinir-senha.js"></script>
+</body>
+</html>

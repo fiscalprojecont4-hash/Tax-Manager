@@ -103,6 +103,10 @@
         <h3>Empresas, responsáveis e executores</h3>
         <p>Cada empresa tem um responsável (quem responde pelo assunto) e um executor (quem faz a rotina). O executor identifica de onde veio um erro:
         no Mapeamento fiscal ele é preenchido sozinho a partir deste cadastro.</p>
+        <div class="inline-form" id="ampBarra" hidden>
+          <div class="form-row"><label for="empBusca">Buscar</label><input type="search" id="empBusca" placeholder="Nome ou CNPJ" autocomplete="off" /></div>
+          <div class="form-row"><label for="empEquipe">Equipe</label><select id="empEquipe"><option value="">Todas</option></select></div>
+        </div>
         <form class="inline-form" id="formEmp">
           <div class="form-row"><label for="nEmpresa">Empresa</label><input type="text" id="nEmpresa" autocomplete="off" /></div>
           <div class="form-row"><label for="nResp">Responsável</label><input type="text" id="nResp" list="pessoas" autocomplete="off" /></div>
@@ -114,7 +118,7 @@
       </div>
       <div class="table-card">
         <table class="data-table cad-table">
-          <thead><tr><th>Empresa</th><th>Responsável</th><th>Executor</th><th class="col-actions">Ações</th></tr></thead>
+          <thead id="empHead"><tr><th>Empresa</th><th>Responsável</th><th>Executor</th><th class="col-actions">Ações</th></tr></thead>
           <tbody id="empRows"></tbody>
         </table>
       </div>
@@ -146,12 +150,15 @@
 
   <script type="module">
     import { iniciarShell } from './js/shell.js';
+    import { createSupabaseClient } from './js/supabase-client.js';
+    import { sincronizarEmpresasAmPro } from './js/empresas-ampro.js';
     import { esc, norm } from './js/lista-ui.js';
     import { restaurarExemplos, categorias, salvarCategorias, adicionarCategoria, empresas, salvarEmpresas,
              carregar } from './js/dados-teste.js';
     import { listarObrigacoes, contarPorStatus, mudarStatus } from './js/obrigacoes-db.js';
 
     await iniciarShell();
+    await sincronizarEmpresasAmPro(createSupabaseClient(true));
 
     document.getElementById('btnRestaurar').addEventListener('click', () => { restaurarExemplos(); window.location.reload(); });
 
@@ -215,7 +222,13 @@
 
     // ---------- empresas ----------
     function desenharEmpresas() {
-      const lista = empresas().slice().sort((a, b) => a.nome.localeCompare(b.nome));
+      const todas = empresas().slice().sort((a, b) => a.nome.localeCompare(b.nome));
+      const doAmPro = todas.some(e => e.origem === 'ampro');
+      document.getElementById('formEmp').hidden = doAmPro;
+      document.getElementById('ampBarra').hidden = !doAmPro;
+      if (doAmPro) { desenharEmpresasAmPro(todas); return; }
+      document.getElementById('empHead').innerHTML = '<tr><th>Empresa</th><th>Responsável</th><th>Executor</th><th class="col-actions">Ações</th></tr>';
+      const lista = todas;
       const pessoas = [...new Set(lista.flatMap(e => [e.responsavel, e.executor]).filter(Boolean))].sort((a, b) => a.localeCompare(b));
       document.getElementById('pessoas').innerHTML = pessoas.map(p => `<option value="${esc(p)}"></option>`).join('');
       document.getElementById('empRows').innerHTML = lista.map(e => `
@@ -226,6 +239,25 @@
           <td class="col-actions"><button type="button" class="icon-btn danger" data-del title="Remover" aria-label="Remover ${esc(e.nome)}">${svg(LIXEIRA)}</button></td>
         </tr>`).join('');
     }
+    // Empresas vindas do AM PRO: só leitura (a origem é o AM PRO) e já filtradas pelo banco por equipe.
+    function desenharEmpresasAmPro(todas) {
+      const sel = document.getElementById('empEquipe');
+      if (sel.options.length === 1) {
+        [...new Set(todas.flatMap(e => e.equipes || []))].sort().forEach(n => sel.add(new Option(n, n)));
+      }
+      const q = norm(document.getElementById('empBusca').value), eq = sel.value;
+      const lista = todas.filter(e => (!eq || (e.equipes || []).includes(eq)) &&
+        (!q || norm(e.nome).includes(q) || (e.cnpj || '').replace(/\D/g, '').includes(q.replace(/\D/g, '') || '\u0000')));
+      document.getElementById('empHead').innerHTML = '<tr><th>Empresa</th><th>CNPJ</th><th>UF</th><th>Regime</th><th>Equipe</th><th>Responsável (AM PRO)</th></tr>';
+      document.getElementById('empRows').innerHTML = lista.map(e => `
+        <tr><td class="col-main">${esc(e.nome)}</td><td data-label="CNPJ">${esc(e.cnpj)}</td><td data-label="UF">${esc(e.uf)}</td>
+        <td data-label="Regime">${esc(e.regime)}</td><td data-label="Equipe">${esc((e.equipes || []).join(', '))}</td>
+        <td data-label="Responsável">${esc(e.responsavel)}</td></tr>`).join('') ||
+        '<tr><td colspan="6">Nenhuma empresa para esse filtro.</td></tr>';
+      document.getElementById('empMsg').textContent = `${lista.length} de ${todas.length} empresas · cadastro mantido no AM PRO; cada analista vê as da sua equipe.`;
+    }
+    document.getElementById('empBusca').addEventListener('input', desenharEmpresas);
+    document.getElementById('empEquipe').addEventListener('change', desenharEmpresas);
     document.getElementById('formEmp').addEventListener('submit', (e) => {
       e.preventDefault();
       const nome = document.getElementById('nEmpresa').value.trim();

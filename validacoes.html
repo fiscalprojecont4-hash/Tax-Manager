@@ -221,6 +221,7 @@
 
   <script type="module">
     import { createSupabaseClient } from './js/supabase-client.js';
+    import { sincronizarEmpresasAmPro } from './js/empresas-ampro.js';
     import { iniciarMenusAcoes } from './js/acoes-menu.js';
     import { instalarRelatoriosNoSino } from './js/relatorio-diario.js';
     import { emailDoPerfil, enviarEmail } from './js/enviar-email.js';
@@ -240,6 +241,7 @@
       window.location.href = 'index.html';
     } else {
       emailEl.textContent = session.user.email;
+      await sincronizarEmpresasAmPro(supabase);
     }
 
     logoutBtn.addEventListener('click', async () => {

@@ -34,6 +34,16 @@ export function porMembro(linhas) {
 
 // Métricas que podem ocupar um bloco. Cada uma devolve { valor, sub, rotulo } a partir do estado carregado.
 export const METRICAS = {
+  sync: {
+    nome: 'Sincronização',
+    calc: (d) => {
+      const u = d.t.ultima_sync;
+      if (!u) return { valor: '—', sub: d.equipesTxt, rotulo: 'Sincronização' };
+      const dt = new Date(u), o = { timeZone: 'America/Manaus' };
+      return { valor: dt.toLocaleTimeString('pt-BR', { ...o, hour: '2-digit', minute: '2-digit' }),
+               sub: `${dt.toLocaleDateString('pt-BR', { ...o, day: '2-digit', month: '2-digit' })} (Manaus) · ${d.equipesTxt}`, rotulo: 'Última sincronização' };
+    },
+  },
   concluidas: { nome: 'Tarefas concluídas', calc: (d) => ({ valor: n(d.t.concluidas), sub: `de ${n(d.t.aplicaveis)} · ${d.t.pct}%`, rotulo: 'Tarefas concluídas' }) },
   risco: { nome: 'Tarefas em risco de atraso', calc: (d) => ({ valor: n(d.t.em_risco), sub: `${n(d.t.vencidas)} vencidas · ${n(d.t.impedimentos)} com impedimento`, rotulo: 'Tarefas em risco de atraso' }) },
   atrasadas: { nome: 'Obrigações em atraso', calc: (d) => ({ valor: n(d.t.vencidas), sub: `de ${n(d.t.aplicaveis)} aplicáveis`, rotulo: 'Obrigações em atraso' }) },
@@ -62,7 +72,7 @@ export const METRICAS = {
     },
   },
 };
-const PADRAO = { s1: 'concluidas', s2: 'risco', s3: 'meta', hero: 'geral' };
+const PADRAO = { s1: 'concluidas', s4: 'sync', s2: 'risco', s3: 'meta', hero: 'geral' };
 
 const estado = { dados: null, escolhas: { ...PADRAO }, supabase: null, chave: 'tm.ap.escolhas', ligado: false, heroVista: 0, timer: null };
 
@@ -114,9 +124,7 @@ function vazio(msg, tag) {
   estado.dados = null;
   $('apTag').textContent = tag;
   $('apDot')?.classList.remove('ap-on');
-  document.querySelectorAll('.ap-slot').forEach((el) => pintarBloco(el, { valor: '—', sub: '', rotulo: METRICAS[estado.escolhas[el.dataset.slot]].nome }));
-  $('apSyncTxt').textContent = msg;
-  $('apEquipes').textContent = '';
+  document.querySelectorAll('.ap-slot').forEach((el) => pintarBloco(el, { valor: '—', sub: estado.escolhas[el.dataset.slot] === 'sync' ? msg : '', rotulo: METRICAS[estado.escolhas[el.dataset.slot]].nome }));
   $('apProgresso').innerHTML = `<li class="ap-prog-vazio">${html(msg)}</li>`;
   $('apProgMais').textContent = '';
 }
@@ -143,11 +151,10 @@ async function atualizar() {
     ]);
     if (r.error) throw r.error;
     if (!r.data?.length) { vazio('Sem dados para este ciclo.', 'AM PRO · sem dados no ciclo'); return; }
-    estado.dados = { t: consolidar(r.data), membros: m.error ? [] : porMembro(m.data || []), obrigacoes: o.error ? [] : (o.data || []) };
+    estado.dados = { t: consolidar(r.data), membros: m.error ? [] : porMembro(m.data || []), obrigacoes: o.error ? [] : (o.data || []),
+      equipesTxt: r.data.map((l) => `${l.equipe_nome}: ${l.concluidas}/${l.aplicaveis}`).join(' · ') };
     $('apTag').textContent = 'AM PRO · conectado';
     $('apDot')?.classList.add('ap-on');
-    $('apSyncTxt').textContent = estado.dados.t.ultima_sync ? `Última sincronização: ${quando(estado.dados.t.ultima_sync)} (Manaus)` : 'Sincronizado.';
-    $('apEquipes').textContent = r.data.map((l) => `${l.equipe_nome}: ${l.concluidas}/${l.aplicaveis}`).join(' · ');
     pintar();
   } catch (err) {
     console.error('AM PRO painel:', err);

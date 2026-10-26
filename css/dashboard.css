@@ -1645,3 +1645,9 @@ html, body {
 .ap-menu button:hover, .ap-menu button:focus-visible { background: var(--accent-soft, #e8f0fe); outline: none; }
 .ap-menu button[aria-checked="true"]::before { content: '✓'; position: absolute; left: 0.5rem; color: var(--accent, #1d4ed8); font-weight: 700; }
 .ap-menu .ap-menu-reset { margin-top: 0.25rem; padding-left: 0.6rem; border-top: 1px solid var(--border, #e5e7eb); border-radius: 0 0 8px 8px; color: var(--muted, #6b7280); font-size: 0.82rem; }
+.ap-plain .ap-value { color: var(--text); font-size: 2.4rem; }
+.ap-plain .ap-label { color: var(--text); font-size: 0.78rem; }
+.ap-plain .ap-sub { font-size: 0.85rem; }
+.ap-plain .ap-sub { color: var(--muted); }
+.ap-plain .ap-opt { background: var(--accent-soft); color: var(--accent); }
+@media (min-width: 860px) { .ap-plain { justify-content: space-between; } }

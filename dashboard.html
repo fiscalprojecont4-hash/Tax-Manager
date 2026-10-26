@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/dashboard.css?v=20261026b" />
+  <link rel="stylesheet" href="css/dashboard.css?v=20261026c" />
 </head>
 <body>
   <nav class="topnav">
@@ -150,13 +150,10 @@
           <div><p class="ap-value">—</p><p class="ap-sub"></p><p class="ap-label">Tarefas concluídas</p></div>
         </div>
 
-        <div class="ap-card ap-plain">
+        <div class="ap-card ap-plain ap-slot" data-slot="s4" title="Botão direito para escolher a métrica">
+          <button type="button" class="ap-opt" aria-haspopup="menu" aria-label="Escolher a métrica deste bloco" title="Escolher a métrica (ou clique com o botão direito)"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
           <div class="ap-icon ap-icon-soft" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 12A9 9 0 0 1 18.5 5.8L21 8"/><path d="M21 3v5h-5"/><path d="M3 21v-5h5"/></svg></div>
-          <div>
-            <h3>Sincronização</h3>
-            <p id="apSyncTxt">Os dados chegam sem digitação e cada item mostra de onde veio.</p>
-            <p id="apEquipes" class="ap-equipes"></p>
-          </div>
+          <div><p class="ap-value">—</p><p class="ap-sub"></p><p class="ap-label">Sincronização</p></div>
         </div>
 
         <div class="ap-card ap-dark ap-stat ap-slot" data-slot="s2" title="Botão direito para escolher a métrica">

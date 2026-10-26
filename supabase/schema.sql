@@ -163,6 +163,18 @@ returns boolean language sql stable security definer set search_path = '' as $$
     where m.usuario_id = auth.uid() and m.ativo and m.papel = any (p_papeis))
 $$;
 
+create or replace function private.eh_gestor_geral()
+returns boolean language sql stable security definer set search_path = '' as $$
+  -- Gestor fiscal de TODAS as equipes ativas (ou administrador). Usado no que é compartilhado
+  -- entre equipes (calendário oficial): quem é gestor só da própria equipe não entra.
+  select private.eh_admin() or (
+    exists (select 1 from public.equipes e where e.ativa)
+    and not exists (
+      select 1 from public.equipes e where e.ativa and not exists (
+        select 1 from public.membros_equipe m
+        where m.equipe_id = e.id and m.usuario_id = auth.uid() and m.ativo and m.papel = 'gestor_fiscal')))
+$$;
+
 -- Os dois usuários participam de alguma equipe em comum? (para ver nomes de colegas)
 create or replace function private.compartilham_equipe(p_usuario uuid)
 returns boolean language sql stable security definer set search_path = '' as $$
@@ -959,16 +971,16 @@ drop policy if exists obrigacoes_select on public.obrigacoes_oficiais;
 drop policy if exists obrigacoes_update on public.obrigacoes_oficiais;
 create policy obrigacoes_select on public.obrigacoes_oficiais for select to authenticated
   using (status = 'aprovado'
-         or private.tem_papel_em_alguma_equipe(array['gestor_fiscal']));
+         or private.eh_gestor_geral());
 -- Aprovar/rejeitar: gestor fiscal. Inserir rascunhos: só o job (service_role).
 create policy obrigacoes_update on public.obrigacoes_oficiais for update to authenticated
-  using (private.tem_papel_em_alguma_equipe(array['gestor_fiscal']))
-  with check (private.tem_papel_em_alguma_equipe(array['gestor_fiscal']));
+  using (private.eh_gestor_geral())
+  with check (private.eh_gestor_geral());
 
 alter table public.obrigacoes_ingestoes enable row level security;
 drop policy if exists ingestoes_select on public.obrigacoes_ingestoes;
 create policy ingestoes_select on public.obrigacoes_ingestoes for select to authenticated
-  using (private.tem_papel_em_alguma_equipe(array['gestor_fiscal']));
+  using (private.eh_gestor_geral());
 
 -- notificações -----------------------------------------------------------
 alter table public.notificacoes enable row level security;

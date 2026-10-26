@@ -33,6 +33,18 @@ join public.equipes e on e.nome = m.equipe
 join public.perfis  p on lower(p.email) = m.email
 on conflict do nothing;
 
+-- Cada analista também administra a PRÓPRIA equipe (papel gestor_fiscal só nela).
+insert into public.membros_equipe (equipe_id, usuario_id, papel)
+select e.id, p.id, 'gestor_fiscal'
+from (values
+  ('Equipe Alpha', 'fiscal6@projecont.com.br'),
+  ('Equipe Beta',  'fiscal5@projecont.com.br'),
+  ('Equipe Omega', 'fiscal4@projecont.com.br')
+) as m (equipe, email)
+join public.equipes e on e.nome = m.equipe
+join public.perfis  p on lower(p.email) = m.email
+on conflict do nothing;
+
 -- Gestor fiscal (Wendel) nas três equipes.
 insert into public.membros_equipe (equipe_id, usuario_id, papel)
 select e.id, p.id, 'gestor_fiscal'

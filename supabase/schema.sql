@@ -1341,3 +1341,44 @@ returns void language sql security definer set search_path = '' as $$
   update public.ampro_chaves set ativa = false where id = p_id
 $$;
 revoke all on function private.criar_chave_ampro(text, text[]), private.revogar_chave_ampro(uuid) from public, anon, authenticated;
+
+-- 13.7 Indicadores do painel (dashboard). SECURITY INVOKER: quem chama só enxerga as equipes
+-- permitidas pelas políticas RLS de ampro_obrigacoes (analista = a própria; gestor/admin = todas).
+-- "Em risco" = não concluída/aplicável e (impedimento OU vencimento até 3 dias à frente, já vencidas inclusas).
+create or replace function public.ampro_ciclos()
+returns table (ciclo text) language sql stable security invoker set search_path = '' as $$
+  select distinct o.ciclo from public.ampro_obrigacoes o order by o.ciclo desc
+$$;
+
+create or replace function public.ampro_resumo(p_ciclo text default null)
+returns table (
+  equipe_id uuid, equipe_nome text, ciclo text,
+  total integer, aplicaveis integer, concluidas integer, em_andamento integer,
+  impedimentos integer, vencidas integer, em_risco integer, ultima_sync timestamptz
+) language sql stable security invoker set search_path = '' as $$
+  with alvo as (
+    select coalesce(p_ciclo, (select max(x.ciclo) from public.ampro_obrigacoes x)) as ciclo
+  ), hoje as (
+    select (now() at time zone 'America/Manaus')::date as d
+  )
+  select o.equipe_id,
+         coalesce(e.nome, 'Equipe') as equipe_nome,
+         o.ciclo,
+         count(*)::int,
+         count(*) filter (where o.status <> 'not_applicable')::int,
+         count(*) filter (where o.status = 'done')::int,
+         count(*) filter (where o.status in ('in_progress','review'))::int,
+         count(*) filter (where o.status = 'impediment')::int,
+         count(*) filter (where o.status not in ('done','not_applicable') and o.vencimento < h.d)::int,
+         count(*) filter (where o.status not in ('done','not_applicable')
+                            and (o.status = 'impediment' or o.vencimento <= h.d + 3))::int,
+         max(o.recebido_em)
+  from public.ampro_obrigacoes o
+  join alvo a on a.ciclo = o.ciclo
+  cross join hoje h
+  left join public.equipes e on e.id = o.equipe_id
+  group by o.equipe_id, e.nome, o.ciclo
+  order by e.nome
+$$;
+revoke all on function public.ampro_ciclos(), public.ampro_resumo(text) from public, anon;
+grant execute on function public.ampro_ciclos(), public.ampro_resumo(text) to authenticated;

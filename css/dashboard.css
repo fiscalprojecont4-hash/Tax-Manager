@@ -1597,3 +1597,11 @@ html, body {
   letter-spacing: 0.06em; text-transform: uppercase; background: rgba(255,255,255,0.16);
 }
 .ap-dark h3 { margin: 0; font-size: 1.45rem; line-height: 1.2; letter-spacing: -0.01em; }
+
+.ap-dot.ap-on { background: #34d399; }
+.ap-sub { margin: 0.35rem 0 0; font-size: 0.85rem; opacity: 0.9; font-variant-numeric: tabular-nums; }
+.ap-ciclo { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; }
+.ap-ciclo select { padding: 0.25rem 0.5rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.4); background: rgba(255,255,255,0.15); color: #fff; font: inherit; }
+.ap-ciclo option { color: #111; }
+.ap-equipes { margin-top: 0.5rem !important; font-size: 0.82rem !important; }
+@media (min-width: 860px) { .ap-plain { grid-row: span 2; justify-content: center; } }

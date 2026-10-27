@@ -1662,3 +1662,15 @@ html, body {
 .ap-menu .ap-top button { padding: 0.4rem 0.2rem; text-align: center; border: 1px solid var(--border, #e5e7eb); }
 .ap-menu .ap-top button[aria-checked="true"] { background: var(--accent, #1d4ed8); color: #fff; border-color: transparent; }
 .ap-menu .ap-top button[aria-checked="true"]::before { content: none; }
+
+/* --- Indicadores do Tax Manager: botão ⋯ e linha de detalhe --- */
+.bento-primary, .bento-card { position: relative; }
+.tm-opt {
+  position: absolute; top: 0.7rem; right: 0.7rem; z-index: 3; width: 28px; height: 28px; border-radius: 50%;
+  display: grid; place-items: center; border: 0; cursor: pointer; color: var(--accent, #1d4ed8); background: var(--accent-soft, #e8f0fe);
+  opacity: 0; transition: opacity .15s;
+}
+.bento-primary:hover .tm-opt, .bento-card:hover .tm-opt, .tm-opt:focus-visible { opacity: 1; }
+@media (hover: none) { .tm-opt { opacity: 0.8; } }
+.tm-sub { margin: 0.25rem 0 0; font-size: 0.72rem; line-height: 1.35; color: var(--muted, #6b7280); text-transform: none; letter-spacing: 0; font-weight: 400; }
+.data-note[hidden] { display: none; }

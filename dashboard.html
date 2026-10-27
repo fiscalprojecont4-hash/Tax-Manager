@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/dashboard.css?v=20261027a" />
+  <link rel="stylesheet" href="css/dashboard.css?v=20261027b" />
 </head>
 <body>
   <nav class="topnav">
@@ -66,15 +66,16 @@
   </nav>
 
   <main class="main-wrap">
-    <div class="data-note">
-      ⚠ Dados de exemplo — o modelo de dados (Supabase/PostgreSQL) ainda não existe, então
-      estas métricas são mock para validar o layout. Serão substituídas por consultas reais
-      assim que o schema estiver pronto.
+    <div class="data-note" id="dataNote" hidden>
+      ⚠ Alguns números abaixo ainda vêm de dados guardados só neste navegador (Tarefas, Validações,
+      Projetos e Conhecimento) e passam a vir do banco quando esses módulos forem ligados a ele.
+      O Calendário e o painel do AM PRO já usam o banco.
     </div>
 
     <div class="bento">
       <!-- Bloco rotativo: métricas por módulo, troca a cada 5s -->
-      <div class="bento-primary" id="statSlide">
+      <div class="bento-primary" id="statSlide" data-tm="hero" title="Botão direito para escolher a métrica">
+        <button type="button" class="tm-opt" aria-haspopup="menu" aria-label="Escolher a métrica deste bloco" title="Escolher a métrica (ou clique com o botão direito)"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
         <div>
           <span class="bento-tag" id="statTag">Tarefas</span>
           <p class="bento-value" id="statValue">12</p>
@@ -85,7 +86,8 @@
         </div>
       </div>
 
-      <div class="bento-card span-3">
+      <div class="bento-card span-3" data-tm="c1" title="Botão direito para escolher a métrica">
+        <button type="button" class="tm-opt" aria-haspopup="menu" aria-label="Escolher a métrica deste bloco" title="Escolher a métrica (ou clique com o botão direito)"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
         <div class="bento-card-row">
           <div>
             <p class="bento-card-label">Cumprimento no prazo</p>
@@ -100,12 +102,14 @@
         </div>
       </div>
 
-      <div class="bento-card span-1 center">
+      <div class="bento-card span-1 center" data-tm="c2" title="Botão direito para escolher a métrica">
+        <button type="button" class="tm-opt" aria-haspopup="menu" aria-label="Escolher a métrica deste bloco" title="Escolher a métrica (ou clique com o botão direito)"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
         <p class="bento-card-value">—</p>
         <p class="bento-card-label">Achados repetidos</p>
       </div>
 
-      <div class="bento-card span-2">
+      <div class="bento-card span-2" data-tm="c3" title="Botão direito para escolher a métrica">
+        <button type="button" class="tm-opt" aria-haspopup="menu" aria-label="Escolher a métrica deste bloco" title="Escolher a métrica (ou clique com o botão direito)"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
         <div class="bento-card-row">
           <div class="icon-badge">⏱</div>
           <div>
@@ -177,6 +181,7 @@
     import { createSupabaseClient } from './js/supabase-client.js';
     import { instalarRelatoriosNoSino } from './js/relatorio-diario.js';
     import { carregarPainelAmPro } from './js/ampro-painel.js';
+    import { iniciarPainelTm } from './js/painel-tm.js';
 
     const supabase = createSupabaseClient(true);
     const emailEl = document.getElementById('userEmail');
@@ -195,46 +200,8 @@
       window.location.href = 'index.html';
     });
 
-    // --- Carrossel de métricas por módulo (mock até o schema existir) ---
-    const slides = [
-      { tag: 'Tarefas', value: '12', desc: 'Tarefas em aberto hoje, 3 delas já atrasadas.' },
-      { tag: 'Validações', value: '5', desc: 'Validações aguardando revisão em 3 empresas diferentes.' },
-      { tag: 'Calendário', value: '2', desc: 'Obrigações fiscais vencendo nos próximos 7 dias.' },
-      { tag: 'Projetos', value: '67%', desc: 'Progresso médio dos projetos em andamento — 4 de 6 etapas concluídas no piloto.' },
-      { tag: 'Conhecimento', value: '5', desc: 'Novos padrões aprovados e adicionados à base este mês.' },
-    ];
-
-    const statSlide = document.getElementById('statSlide');
-    const statTag = document.getElementById('statTag');
-    const statValue = document.getElementById('statValue');
-    const statDesc = document.getElementById('statDesc');
-    const dotsEl = document.getElementById('statDots');
-
-    slides.forEach((_, i) => {
-      const dot = document.createElement('span');
-      if (i === 0) dot.classList.add('active');
-      dotsEl.appendChild(dot);
-    });
-
-    let current = 0;
-
-    function renderSlide(index) {
-      const s = slides[index];
-      statTag.textContent = s.tag;
-      statValue.textContent = s.value;
-      statDesc.textContent = s.desc;
-
-      statSlide.classList.remove('bento-slide');
-      void statSlide.offsetWidth; // reinicia a animação
-      statSlide.classList.add('bento-slide');
-
-      [...dotsEl.children].forEach((dot, i) => dot.classList.toggle('active', i === index));
-    }
-
-    setInterval(() => {
-      current = (current + 1) % slides.length;
-      renderSlide(current);
-    }, 5000);
+    // --- Indicadores do Tax Manager: calculados dos dados, com métrica escolhida por bloco ---
+    iniciarPainelTm(supabase);
 
     // --- Dropdown "Módulos": abre/fecha só por clique ---
     const dropdown = document.getElementById('modulosDropdown');

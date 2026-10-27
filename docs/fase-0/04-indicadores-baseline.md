@@ -16,4 +16,4 @@ do Wendel (prazos perdidos, retrabalho):
 
 `[CONFIRMAR]`: esses 5 fazem sentido como primeiros, ou há outro mais urgente para o seu
 dia a dia agora (ex.: algo ligado a parcelamentos, que aparece com muita frequência nas tarefas
-reais — Empresa Zeta, XT, TL)?
+reais)?

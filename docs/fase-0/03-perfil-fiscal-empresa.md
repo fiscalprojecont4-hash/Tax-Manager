@@ -14,7 +14,7 @@ consegue decidir quais obrigações valem para qual empresa — é por isso que 
 | UF | AM | obrigações estaduais (SEFAZ-AM) |
 | Município | Manaus | obrigações municipais (ISS) — relevante porque o escritório já lida com ISS de mais de um município, pelo histórico de tarefas |
 | Atividade / CNAE principal | — | determina obrigações setoriais (ex.: fabricação de cerveja já aparece várias vezes nas tarefas — IPI, controle de produção) |
-| Benefício fiscal ZFM/Suframa | sim/não + inscrição Suframa | relevante dado o contexto amazonense — aparece repetidamente (Empresa Eta, Empresa Mu, Empresa Nu) |
+| Benefício fiscal ZFM/Suframa | sim/não + inscrição Suframa | relevante dado o contexto amazonense — aparece repetidamente (vários clientes) |
 | Equipe responsável (`team_id`) | — | isolamento de dados |
 | Status do processo de procuração/certificado digital | ativo / pendente / vencido | já é rastreado manualmente hoje ("levantamento de empresas sem procuração/certificado") |
 | Situação cadastral no sistema de gestão (Gestta/Alterdata) | ativo / sem cadastro | hoje rastreado manualmente também |

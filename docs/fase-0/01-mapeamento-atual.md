@@ -54,8 +54,7 @@ revisão do Wendel antes de ser considerado definitivo (marcar `[CONFIRMAR]` ond
 ## 5. Dados a migrar vs. dados de demonstração `[CONFIRMAR COM WENDEL]`
 
 Pendente de decisão:
-- As tarefas/projetos/empresas atualmente no protótipo (ex.: Empresa Zeta, Empresa Eta, Empresa Teta,
-  Empresa Iota, etc.) são dados reais de trabalho e devem ser migrados, ou o protótipo foi usado
+- As tarefas/projetos/empresas atualmente no protótipo (nomes fictícios no repositório público) são dados reais de trabalho e devem ser migrados, ou o protótipo foi usado
   também com dados de teste que não devem ir para o banco novo?
 - Há necessidade de preservar o histórico de tarefas já concluídas (ex.: a lista de tarefas de
   agosto/2026 enviada) como registro histórico, ou o início da nova plataforma zera o

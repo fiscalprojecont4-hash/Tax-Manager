@@ -53,7 +53,8 @@ export const METRICAS = {
     calc: (d) => {
       // Só contam entregas dentro do prazo; do maior para o menor.
       const l = d.membros.filter(x => x.no_prazo > 0).sort((a, b) => b.no_prazo - a.no_prazo || a.membro.localeCompare(b.membro, 'pt-BR'));
-      return { lista: l.map(x => ({ nome: x.membro, n: x.no_prazo })), valor: '—', sub: 'Somente entregas no prazo', rotulo: 'Entrega por membro' };
+      const top = d.top || 3;
+      return { lista: l.slice(0, top).map(x => ({ nome: x.membro, n: x.no_prazo })), valor: '—', sub: 'Somente entregas no prazo', rotulo: `Ranking de entregas · Top ${top}` };
     },
   },
   top_prazo: {
@@ -74,15 +75,16 @@ export const METRICAS = {
 };
 const PADRAO = { s1: 'concluidas', s4: 'sync', s2: 'risco', s3: 'meta', hero: 'geral' };
 
-const estado = { dados: null, escolhas: { ...PADRAO }, supabase: null, chave: 'tm.ap.escolhas', ligado: false, heroVista: 0, timer: null };
+const estado = { dados: null, escolhas: { ...PADRAO }, top: 3, supabase: null, chave: 'tm.ap.escolhas', ligado: false, heroVista: 0, timer: null };
 
 function lerEscolhas() {
   try {
     const o = JSON.parse(localStorage.getItem(estado.chave) || '{}');
     for (const k of Object.keys(PADRAO)) if (k === 'hero' ? (o[k] === 'geral' || METRICAS[o[k]]) : METRICAS[o[k]]) estado.escolhas[k] = o[k];
+    if ([1, 2, 3].includes(o.top)) estado.top = o.top;
   } catch { /* storage bloqueado ou corrompido: segue com o padrão */ }
 }
-function salvarEscolhas() { try { localStorage.setItem(estado.chave, JSON.stringify(estado.escolhas)); } catch { /* ignora */ } }
+function salvarEscolhas() { try { localStorage.setItem(estado.chave, JSON.stringify({ ...estado.escolhas, top: estado.top })); } catch { /* ignora */ } }
 
 function cicloRotulo(c) { const [a, m] = c.split('-'); return `${m}/${a}`; }
 function quando(iso) {
@@ -119,6 +121,7 @@ function pintarProgresso(lista) {
 function pintar() {
   const d = estado.dados;
   if (!d) return;
+  d.top = estado.top;
   document.querySelectorAll('.ap-slot').forEach((el) => pintarBloco(el, METRICAS[estado.escolhas[el.dataset.slot]].calc(d)));
   const geral = estado.escolhas.hero === 'geral';
   $('apIntro').hidden = !geral;
@@ -158,7 +161,7 @@ async function atualizar() {
     ]);
     if (r.error) throw r.error;
     if (!r.data?.length) { vazio('Sem dados para este ciclo.', 'AM PRO · sem dados no ciclo'); return; }
-    estado.dados = { t: consolidar(r.data), membros: m.error ? [] : porMembro(m.data || []), obrigacoes: o.error ? [] : (o.data || []),
+    estado.dados = { top: estado.top, t: consolidar(r.data), membros: m.error ? [] : porMembro(m.data || []), obrigacoes: o.error ? [] : (o.data || []),
       equipesTxt: r.data.map((l) => `${l.equipe_nome}: ${l.concluidas}/${l.aplicaveis}`).join(' · ') };
     $('apTag').textContent = 'AM PRO · conectado';
     $('apDot')?.classList.add('ap-on');
@@ -183,12 +186,16 @@ function abrirMenu(slot, x, y, origem) {
   menu.className = 'ap-menu'; menu.setAttribute('role', 'menu'); menu.setAttribute('aria-label', 'Escolher o que mostrar neste bloco');
   menu.innerHTML = `<p class="ap-menu-tit">O que mostrar aqui</p>` + opcoes.map(([k, nome]) =>
     `<button type="button" role="menuitemradio" aria-checked="${k === atual}" data-k="${k}">${html(nome)}</button>`).join('') +
+    `<p class="ap-menu-tit">Ranking de entregas no prazo</p><div class="ap-top" role="group" aria-label="Posições do ranking">` +
+    [1, 2, 3].map(t => `<button type="button" role="menuitemradio" aria-checked="${t === estado.top}" data-top="${t}">Top ${t}</button>`).join('') + `</div>` +
     `<button type="button" class="ap-menu-reset" data-k="__padrao">Restaurar padrão</button>`;
   document.body.appendChild(menu);
   const w = menu.offsetWidth, h = menu.offsetHeight;
   menu.style.left = `${Math.max(8, Math.min(x, window.innerWidth - w - 8))}px`;
   menu.style.top = `${Math.max(8, Math.min(y, window.innerHeight - h - 8))}px`;
   menu.addEventListener('click', (e) => {
+    const t = e.target.closest('[data-top]');
+    if (t) { estado.top = Number(t.dataset.top); salvarEscolhas(); pintar(); fecharMenu(); origem?.focus(); return; }
     const b = e.target.closest('[data-k]');
     if (!b) return;
     estado.escolhas[slot] = b.dataset.k === '__padrao' ? PADRAO[slot] : b.dataset.k;

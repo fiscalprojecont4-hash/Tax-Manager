@@ -1658,3 +1658,7 @@ html, body {
 .ap-lista-nome { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ap-lista-vazio { opacity: 0.85; }
 .ap-lista[hidden], .ap-value[hidden] { display: none; }
+.ap-top { display: flex; gap: 0.3rem; padding: 0 0.3rem 0.3rem; }
+.ap-menu .ap-top button { padding: 0.4rem 0.2rem; text-align: center; border: 1px solid var(--border, #e5e7eb); }
+.ap-menu .ap-top button[aria-checked="true"] { background: var(--accent, #1d4ed8); color: #fff; border-color: transparent; }
+.ap-menu .ap-top button[aria-checked="true"]::before { content: none; }

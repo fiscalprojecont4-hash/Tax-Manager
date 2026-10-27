@@ -5,14 +5,7 @@
 import { createSupabaseClient } from './supabase-client.js';
 import { instalarRelatoriosNoSino } from './relatorio-diario.js';
 
-const NOTIF_DATA = [
-  { id: 'n1', tipo: 'fiscal', texto: 'DCTF do mês vence hoje.', href: 'calendar.html', quando: 'Hoje', read: false },
-  { id: 'n2', tipo: 'tarefa', texto: 'Tarefa atrasada: "Validar notas fiscais — Empresa Alfa" venceu há 2 dias.', href: 'tarefas.html', quando: 'Há 2 dias', read: false },
-  { id: 'n3', tipo: 'achado', texto: 'Novo achado em Empresa Alfa: SPED Fiscal do período anterior não localizado.', href: 'validacoes.html', quando: 'Há 3 dias', read: false },
-  { id: 'n4', tipo: 'projeto', texto: 'Etapa atrasada no projeto "Empresa Zeta — Regularização cadastral".', href: 'projetos.html', quando: 'Há 1 dia', read: true },
-  { id: 'n5', tipo: 'tarefa', texto: 'Reunião de alinhamento com Wendel às 14:30 hoje.', href: 'calendar.html', quando: 'Hoje', read: true },
-  { id: 'n6', tipo: 'achado', texto: 'Guia de ICMS de setembro (Empresa Iota) recolhida com atraso — verificar multa.', href: 'validacoes.html', quando: 'Há 1 dia', read: true },
-];
+const NOTIF_DATA = []; // sem notificações de exemplo; entram quando forem geradas pelo banco
 
 export async function iniciarShell() {
   const supabase = createSupabaseClient(true);

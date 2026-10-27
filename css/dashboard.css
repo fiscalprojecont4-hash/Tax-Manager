@@ -1674,3 +1674,70 @@ html, body {
 @media (hover: none) { .tm-opt { opacity: 0.8; } }
 .tm-sub { margin: 0.25rem 0 0; font-size: 0.72rem; line-height: 1.35; color: var(--muted, #6b7280); text-transform: none; letter-spacing: 0; font-weight: 400; }
 .data-note[hidden] { display: none; }
+
+/* =====================================================================
+   Layout do dashboard: ocupa a largura da tela e alinha os dois quadros
+   (Tax Manager em cima, AM PRO embaixo) na mesma grade de 12 colunas.
+   ===================================================================== */
+.main-wrap { max-width: 1760px; padding: 1.5rem clamp(1rem, 3vw, 3rem) 3rem; }
+.data-note { margin-bottom: 1rem; }
+.bento, .ap-grid { min-width: 0; }
+.bento > *, .ap-grid > * { min-width: 0; }
+
+@media (min-width: 860px) {
+  .bento { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+  .bento-primary { grid-column: span 12; grid-row: auto; min-height: 220px; }
+  .bento-card.span-3 { grid-column: span 12; }
+  .bento-card.span-1 { grid-column: span 6; }
+  .bento-card.span-2 { grid-column: span 6; }
+
+  .ap-grid { grid-template-columns: repeat(12, minmax(0, 1fr)); grid-auto-rows: minmax(190px, auto); }
+  .ap-hero { grid-column: span 12; grid-row: auto; min-height: 280px; }
+  .ap-grid > .ap-card { grid-column: span 6; }
+}
+@media (min-width: 1180px) {
+  .bento-primary { grid-column: span 6; grid-row: span 2; min-height: 260px; }
+  .bento-card.span-3 { grid-column: span 6; }
+  .bento-card.span-1 { grid-column: span 2; }
+  .bento-card.span-2 { grid-column: span 4; }
+
+  .ap-hero { grid-column: span 6; grid-row: span 2; min-height: 0; }
+  .ap-grid > .ap-card { grid-column: span 3; }
+}
+
+/* Textos sempre dentro dos blocos: quebram ou cortam com reticências, sem empurrar o layout. */
+.bento-card, .bento-primary, .ap-card, .ap-hero { overflow: hidden; }
+.bento-card-label, .tm-sub, .bento-desc, .ap-label, .ap-sub { overflow-wrap: anywhere; }
+.bento-card-label { line-height: 1.25; }
+.tm-sub { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.bento-card-row > div:first-child { min-width: 0; }
+.bento-card-value, .bento-value { overflow-wrap: anywhere; line-height: 1.1; }
+.bento-card.center { min-width: 0; }
+.bento-card.span-3 .bars { flex-shrink: 0; }
+.ap-value { font-size: clamp(1.9rem, 2.4vw, 2.6rem); overflow-wrap: anywhere; }
+.ap-value.ap-value-txt { font-size: clamp(1.3rem, 1.8vw, 1.8rem); }
+.ap-card h3, .ap-hero h2 { overflow-wrap: anywhere; }
+.ap-sub { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.ap-hero .ap-sub { -webkit-line-clamp: unset; display: block; }
+.ap-ciclo { max-width: calc(100% - 5rem); flex-wrap: wrap; }
+.ap-tag { max-width: calc(100% - 12rem); }
+.ap-tag #apTag { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 520px) {
+  .ap-ciclo { position: static; margin-top: 0.5rem; max-width: 100%; }
+  .ap-tag { max-width: 100%; }
+  .ap-hero { padding: 1.25rem; }
+  .ap-card, .bento-card { padding: 1.15rem; }
+  .bento-primary { padding: 1.5rem; }
+}
+.ap-views { grid-template-columns: minmax(0, 1fr); min-width: 0; }
+.ap-view { min-width: 0; }
+.ap-hero p, .ap-hero-text { max-width: 100%; }
+.ap-prog-nome { min-width: 0; }
+@media (min-width: 860px) { .ap-plain { grid-row: auto; justify-content: space-between; } }
+.ap-prog-lista { grid-template-columns: minmax(0, 1fr); }
+.ap-prog-topo { min-width: 0; }
+.ap-prog-mais:empty { display: none; }
+@media (max-width: 520px) {
+  .ap-prog-topo { flex-direction: column; gap: 0.1rem; }
+  .ap-prog-num { white-space: normal; }
+}

@@ -67,9 +67,7 @@
 
   <main class="wrap-fluid">
     <div class="data-note">
-      ⚠ Dados de exemplo — o modelo de dados (Supabase/PostgreSQL) ainda não existe, então
-      estas tarefas são mock para validar o layout e a interação. Serão substituídas por
-      dados reais, com sincronização entre usuários, assim que o schema estiver pronto.
+      Os dados desta tela ficam guardados neste navegador até este módulo ser ligado ao banco.
     </div>
 
     <div class="tf-toolbar">
@@ -288,14 +286,7 @@
     // compartilhado entre páginas (Fase 1+ do plano).
     // ======================================================================
 
-    const NOTIF_DATA = [
-      { id: 'n1', tipo: 'fiscal', texto: 'DCTF do mês vence hoje.', href: 'calendar.html', quando: 'Hoje', read: false },
-      { id: 'n2', tipo: 'tarefa', texto: 'Tarefa atrasada: "Validar notas fiscais — Empresa Alfa" venceu há 2 dias.', href: 'tarefas.html', quando: 'Há 2 dias', read: false },
-      { id: 'n3', tipo: 'achado', texto: 'Novo achado em Empresa Alfa: SPED Fiscal do período anterior não localizado.', href: 'validacoes.html', quando: 'Há 3 dias', read: false },
-      { id: 'n4', tipo: 'projeto', texto: 'Etapa atrasada no projeto "Empresa Zeta — Regularização cadastral".', href: 'projetos.html', quando: 'Há 1 dia', read: true },
-      { id: 'n5', tipo: 'tarefa', texto: 'Reunião de alinhamento com Wendel às 14:30 hoje.', href: 'calendar.html', quando: 'Hoje', read: true },
-      { id: 'n6', tipo: 'achado', texto: 'Guia de ICMS de setembro (Empresa Iota) recolhida com atraso — verificar multa.', href: 'validacoes.html', quando: 'Há 1 dia', read: true },
-    ];
+    const NOTIF_DATA = []; // sem notificações de exemplo; entram quando forem geradas pelo banco
 
     function notifReadOverrides() {
       try { return JSON.parse(sessionStorage.getItem('tm_notif_read') || '[]'); } catch { return []; }

@@ -67,8 +67,7 @@
 
   <main class="wrap-fluid">
     <div class="data-note">
-      ⚠ Dados de exemplo — o histórico e o mapeamento ficam guardados só neste navegador até o banco (Supabase/PostgreSQL) ser ligado.
-      <button type="button" class="link-btn" id="btnRestaurar">Restaurar exemplos</button>
+      Os dados desta tela ficam guardados neste navegador até este módulo ser ligado ao banco.
     </div>
 
     <div class="tab-bar" role="tablist" aria-label="Conhecimento">
@@ -270,7 +269,7 @@
     import { STATUS_ORDER, STATUS_LABEL, STATUS_BADGE, STATUS_OCULTOS, statusVisivel, PRIORIDADE_ORDER, PRIORIDADE_LABEL, PRIORIDADE_BADGE,
              esc, norm, fmtBR, downloadFile, csvCell, createMultiSelect, abrirStatusMenu, statusPillHtml } from './js/lista-ui.js';
     import { gerarPdf } from './js/relatorio-pdf.js';
-    import { carregar, gravar, restaurarExemplos, hojeIso, somarDias, novoId, novoChecklist, categorias, adicionarCategoria, empresas as listarEmpresas,
+    import { carregar, gravar, hojeIso, somarDias, novoId, novoChecklist, categorias, adicionarCategoria, empresas as listarEmpresas,
              empresaPorNome, competenciaVigente, competenciaExtenso, competenciaCurta, arquivos as listarArquivos, resumoArquivo,
              mapeamento as listarMapeamento, salvarMapeamento, validacoesExemplo } from './js/dados-teste.js';
 
@@ -279,8 +278,6 @@
     iniciarMenusAcoes();
     const today = hojeIso();
     const geradoPor = session ? session.user.email : '';
-
-    document.getElementById('btnRestaurar').addEventListener('click', () => { restaurarExemplos(); window.location.reload(); });
 
     const svg = (d) => `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
     const ICON = {

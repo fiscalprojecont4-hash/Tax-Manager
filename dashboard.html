@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/dashboard.css?v=20261027b" />
+  <link rel="stylesheet" href="css/dashboard.css?v=20261027c" />
 </head>
 <body>
   <nav class="topnav">
@@ -241,14 +241,7 @@
     // compartilhado entre páginas (Fase 1+ do plano).
     // ======================================================================
 
-    const NOTIF_DATA = [
-      { id: 'n1', tipo: 'fiscal', texto: 'DCTF do mês vence hoje.', href: 'calendar.html', quando: 'Hoje', read: false },
-      { id: 'n2', tipo: 'tarefa', texto: 'Tarefa atrasada: "Validar notas fiscais — Empresa Alfa" venceu há 2 dias.', href: 'tarefas.html', quando: 'Há 2 dias', read: false },
-      { id: 'n3', tipo: 'achado', texto: 'Novo achado em Empresa Alfa: SPED Fiscal do período anterior não localizado.', href: 'validacoes.html', quando: 'Há 3 dias', read: false },
-      { id: 'n4', tipo: 'projeto', texto: 'Etapa atrasada no projeto "Empresa Zeta — Regularização cadastral".', href: 'projetos.html', quando: 'Há 1 dia', read: true },
-      { id: 'n5', tipo: 'tarefa', texto: 'Reunião de alinhamento com Wendel às 14:30 hoje.', href: 'calendar.html', quando: 'Hoje', read: true },
-      { id: 'n6', tipo: 'achado', texto: 'Guia de ICMS de setembro (Empresa Iota) recolhida com atraso — verificar multa.', href: 'validacoes.html', quando: 'Há 1 dia', read: true },
-    ];
+    const NOTIF_DATA = []; // sem notificações de exemplo; entram quando forem geradas pelo banco
 
     function notifReadOverrides() {
       try { return JSON.parse(sessionStorage.getItem('tm_notif_read') || '[]'); } catch { return []; }

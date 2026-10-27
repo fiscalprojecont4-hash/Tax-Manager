@@ -17,7 +17,7 @@ Security), calendário fiscal oficial aprovado por gestores e integração com o
 | Integração com o AM PRO | ✅ Espelho de empresas e obrigações por equipe; API do calendário aprovado. |
 | Dashboard com indicadores do AM PRO | ✅ Métrica escolhida por bloco (botão direito), progresso por obrigação. |
 | Empresas | ✅ Vêm do AM PRO (só leitura) em Administração, Validações, Conhecimento e Tarefas. |
-| Tarefas, Validações, Projetos, Conhecimento, Categorias | 🚧 Telas prontas, mas os dados ainda ficam só no navegador (dados de exemplo fictícios). O schema do banco já existe; falta ligar. |
+| Tarefas, Validações, Projetos, Conhecimento, Categorias | 🚧 Telas prontas e sem dados de exemplo, mas o que for digitado ainda fica só no navegador de quem digitou. O schema do banco já existe; falta ligar. |
 | Envio de e-mail (`enviar-email`) | 🚧 Código pronto; falta publicar a função e configurar o Resend e o DNS. |
 | Calendário de execução do AM PRO exibir os prazos aprovados | ⏳ Depende do AM PRO: o cache do calendário já é gravado, falta a tela. |
 
@@ -38,7 +38,7 @@ Security), calendário fiscal oficial aprovado por gestores e integração com o
 | `*.html`, `css/`, `js/` | Telas e scripts: `dashboard`, `tarefas`, `validacoes`, `conhecimento`, `projetos`, `calendar`, `administracao`, `index` (login), `redefinir-senha`. |
 | `js/ampro-painel.js` | Painel do AM PRO no dashboard (RPCs de resumo, por membro e por obrigação). |
 | `js/empresas-ampro.js` | Carrega as empresas do espelho do AM PRO como cadastro do Tax Manager. |
-| `js/dados-teste.js` | Dados de exemplo (nomes fictícios) das telas ainda não ligadas ao banco. |
+| `js/dados-teste.js` | Armazenamento local (no navegador) das telas ainda não ligadas ao banco. Sem dados de exemplo: tudo começa vazio. |
 | `supabase/schema.sql` | Modelo de dados, RLS, funções e a integração com o AM PRO (seção 13). |
 | `supabase/equipes-iniciais.sql` | Cria as equipes Alpha, Beta e Omega e seus membros. |
 | `supabase/functions/ampro-integration/` | Receptor do AM PRO (`POST /mirror`, `GET /calendar`) e o contrato `CONTRATO-AMPRO.md`. |

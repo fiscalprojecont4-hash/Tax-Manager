@@ -70,9 +70,7 @@
 
   <main class="wrap-fluid">
     <div class="data-note">
-      ⚠ Dados de exemplo — Categorias e Empresas ficam guardadas só neste navegador até serem ligadas ao banco. O Calendário oficial já usa o banco.
-      Usuários, equipes e permissões entram nessa etapa.
-      <button type="button" class="link-btn" id="btnRestaurar">Restaurar exemplos</button>
+      As categorias ficam guardadas neste navegador até serem ligadas ao banco. As empresas vêm do AM PRO e o Calendário oficial já usa o banco.
     </div>
 
     <div class="tab-bar" role="tablist" aria-label="Cadastros">
@@ -153,14 +151,12 @@
     import { createSupabaseClient } from './js/supabase-client.js';
     import { sincronizarEmpresasAmPro } from './js/empresas-ampro.js';
     import { esc, norm } from './js/lista-ui.js';
-    import { restaurarExemplos, categorias, salvarCategorias, adicionarCategoria, empresas, salvarEmpresas,
+    import { categorias, salvarCategorias, adicionarCategoria, empresas, salvarEmpresas,
              carregar } from './js/dados-teste.js';
     import { listarObrigacoes, contarPorStatus, mudarStatus } from './js/obrigacoes-db.js';
 
     await iniciarShell();
     await sincronizarEmpresasAmPro(createSupabaseClient(true));
-
-    document.getElementById('btnRestaurar').addEventListener('click', () => { restaurarExemplos(); window.location.reload(); });
 
     // ---------- abas ----------
     const abas = { cat: ['tabCat', 'paneCat'], emp: ['tabEmp', 'paneEmp'], obr: ['tabObr', 'paneObr'] };

@@ -67,7 +67,7 @@
 
   <main class="wrap-fluid">
     <div class="data-note">
-      Os dados desta tela ficam guardados neste navegador até este módulo ser ligado ao banco.
+      As tarefas ficam no banco, na sua equipe. Quem é da equipe vê e altera as mesmas tarefas.
     </div>
 
     <div class="tf-toolbar">
@@ -202,6 +202,7 @@
           <label for="fRequerente">Requerente</label>
           <input type="text" id="fRequerente" list="empresasReq" autocomplete="off" placeholder="Cliente, empresa ou 'Interno'" />
           <datalist id="empresasReq"></datalist>
+          <datalist id="membrosEquipe"></datalist>
         </div>
       </div>
       <div class="form-row form-row-split">
@@ -237,7 +238,8 @@
     import { STATUS_ORDER, STATUS_LABEL, STATUS_OCULTOS, statusVisivel, esc, norm, fmtBR, downloadFile, csvCell,
              createMultiSelect, abrirStatusMenu, statusPillHtml } from './js/lista-ui.js';
     import { gerarPdf } from './js/relatorio-pdf.js';
-    import { carregar, gravar, novoId, tarefasExemplo } from './js/dados-teste.js';
+    import { contextoEquipe, criarSincronizador, sincronizarTarefas, resolverDelegado, SEM_DELEGADO } from './js/tarefas-db.js';
+    import { gravar } from './js/dados-teste.js';
     import { instalarRelatoriosNoSino } from './js/relatorio-diario.js';
     import { emailsValidos, emailDoPerfil, enviarEmail } from './js/enviar-email.js';
 
@@ -399,13 +401,37 @@
     }
 
     const today = isoToday();
-    const nextId = () => novoId('t');
-    let tasks = carregar('tarefas', tarefasExemplo);
+    const nextId = () => crypto.randomUUID();
+
+    // ---------- banco ----------
+    let ctx = null, sync = null, tasks = [], erroInicial = '';
+    try {
+      ctx = session ? await contextoEquipe(supabase) : null;
+      if (ctx) { tasks = await sincronizarTarefas(supabase, ctx); sync = criarSincronizador(supabase, ctx, tasks); }
+      else if (session) erroInicial = 'Seu usuário ainda não está em nenhuma equipe. Peça ao administrador para incluí-lo.';
+    } catch (e) {
+      console.error(e);
+      erroInicial = 'Não foi possível carregar as tarefas do banco. Recarregue a página.';
+    }
+    if (ctx) {
+      document.getElementById('fDelegado').setAttribute('list', 'membrosEquipe');
+      document.getElementById('fDelegado').placeholder = 'Escolha um analista da equipe (opcional)';
+      document.getElementById('membrosEquipe').innerHTML = ctx.membros.map(m => `<option value="${esc(m.nome)}"></option>`).join('');
+    }
+    let pendentes = 0;
+    function enviarAoBanco() {
+      if (!sync) return;
+      pendentes++;
+      sync.enviar(tasks).catch(async (e) => {
+        console.error(e);
+        flash('Não foi possível salvar no banco. Recarregando os dados da equipe…');
+        try { tasks = await sync.recarregar(); render(); } catch { /* sem rede: mantém a tela */ }
+      }).finally(() => { pendentes--; });
+    }
 
     let editingId = null;
     const filters = { q: '', tipo: [], prioridade: [], status: [], requerente: [], delegado: [], prazo: [] };
     const selected = new Set();
-    const SEM_DELEGADO = 'Sem delegado';
 
     const PRIORIDADE_LABEL = { critica: 'Crítica', alta: 'Alta', normal: 'Normal', baixa: 'Melhoria' };
     const PRIORIDADE_BADGE = { critica: 'badge-danger', alta: 'badge-warning', normal: 'badge-accent', baixa: 'badge-neutral' };
@@ -661,6 +687,7 @@
       // data de conclusão acompanha o status (usada no relatório de fim do dia)
       tasks.forEach(x => { x.concluidaEm = x.status === 'concluida' ? (x.concluidaEm || today) : ''; });
       gravar('tarefas', tasks);
+      enviarAoBanco();
       refreshDynamicOptions();
       renderKpis();
       document.getElementById('btnLimpar').hidden = !filtrosAtivos();
@@ -889,7 +916,7 @@
           prioridade: pelaLabel(PRIORIDADE_LABEL, val(l, iPri), 'normal'),
           status: pelaLabel(STATUS_LABEL, val(l, iSta), 'pendente'),
           requerente: val(l, iReq) || 'Interno',
-          delegadoPara: val(l, iDel) || SEM_DELEGADO,
+          delegadoPara: ctx ? resolverDelegado(ctx, val(l, iDel)) : SEM_DELEGADO,
           prazo: parseData(val(l, iPrazo)) || today,
           criadoEm: parseData(val(l, iCri)) || today,
           observacoes: '', notificar: '',
@@ -983,6 +1010,8 @@
 
     document.getElementById('panelSave').addEventListener('click', () => {
       if (!fTarefa.value.trim()) { fTarefa.focus(); return; }
+      if (!ctx) { flash(erroInicial || 'Sem equipe: não é possível salvar.'); return; }
+      const digitado = fDelegado.value.trim();
       const data = {
         tarefa: fTarefa.value.trim(),
         tipo: fTipo.value,
@@ -990,7 +1019,7 @@
         status: fStatus.value,
         requerente: fRequerente.value.trim() || 'Interno',
         prazo: fPrazo.value || today,
-        delegadoPara: fDelegado.value.trim() || 'Sem delegado',
+        delegadoPara: ctx ? resolverDelegado(ctx, fDelegado.value) : SEM_DELEGADO,
         observacoes: fObservacoes.value.trim(),
         notificar: fNotificar.value.trim(),
       };
@@ -1002,6 +1031,9 @@
       }
       closePanel();
       render();
+      if (digitado && data.delegadoPara === SEM_DELEGADO && digitado.toLowerCase() !== SEM_DELEGADO.toLowerCase()) {
+        flash(`"${digitado}" não é analista desta equipe: a tarefa ficou sem delegado.`);
+      }
     });
 
     panelDelete.addEventListener('click', () => {
@@ -1012,6 +1044,15 @@
     });
 
     render();
+    if (erroInicial) flash(erroInicial);
+
+    // atualiza com o que os colegas da equipe alteraram (a cada minuto e ao voltar para a aba)
+    async function atualizarDoBanco() {
+      if (!sync || pendentes || taskPanel.classList.contains('open') || document.hidden) return;
+      try { tasks = await sync.recarregar(); render(); } catch { /* tenta de novo no próximo ciclo */ }
+    }
+    setInterval(atualizarDoBanco, 60000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) atualizarDoBanco(); });
   </script>
 </body>
 </html>

@@ -1,8 +1,9 @@
 // Bloco de indicadores do Tax Manager no dashboard. Os números são CALCULADOS dos dados guardados
-// (nada fixo no código): Calendário vem do banco; Tarefas, Validações, Projetos e Conhecimento ainda
+// (nada fixo no código): Calendário e Tarefas vêm do banco; Validações, Projetos e Conhecimento ainda
 // vêm dos dados guardados neste navegador, até esses módulos serem ligados ao banco.
 // Como no painel do AM PRO, cada pessoa escolhe a métrica de cada bloco (botão direito ou ⋯).
 
+import { contextoEquipe, sincronizarTarefas } from './tarefas-db.js';
 import { carregar, tarefasExemplo, validacoesExemplo, projetosExemplo, mapeamento, arquivos, hojeIso, somarDias } from './dados-teste.js';
 import { listarObrigacoes } from './obrigacoes-db.js';
 
@@ -17,13 +18,13 @@ const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0);
 const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
 
 export const METRICAS = {
-  tarefas: { nome: 'Tarefas em aberto', fonte: 'nav', tag: 'Tarefas', calc: (d) => {
+  tarefas: { nome: 'Tarefas em aberto', fonte: 'banco', tag: 'Tarefas', calc: (d) => {
     const ab = d.tarefas.filter(t => ABERTAS(t.status)), at = ab.filter(t => t.prazo && t.prazo < d.hoje).length;
     return { valor: n(ab.length), desc: `Tarefas em aberto, ${n(at)} já atrasadas.` }; } },
-  tarefas_atrasadas: { nome: 'Tarefas atrasadas', fonte: 'nav', tag: 'Tarefas', calc: (d) => {
+  tarefas_atrasadas: { nome: 'Tarefas atrasadas', fonte: 'banco', tag: 'Tarefas', calc: (d) => {
     const at = d.tarefas.filter(t => ABERTAS(t.status) && t.prazo && t.prazo < d.hoje).length;
     return { valor: n(at), desc: 'Tarefas abertas com o prazo vencido.' }; } },
-  cumprimento: { nome: 'Cumprimento no prazo', fonte: 'nav', tag: 'Tarefas', calc: (d) => {
+  cumprimento: { nome: 'Cumprimento no prazo', fonte: 'banco', tag: 'Tarefas', calc: (d) => {
     const c = d.tarefas.filter(t => t.status === 'concluida' && t.concluidaEm && t.prazo);
     const ok = c.filter(t => t.concluidaEm <= t.prazo).length;
     return c.length ? { valor: `${pct(ok, c.length)}%`, desc: `${n(ok)} de ${n(c.length)} tarefas concluídas dentro do prazo.` } : { valor: '—', desc: 'Nenhuma tarefa concluída ainda.' }; } },
@@ -155,6 +156,15 @@ export async function iniciarPainelTm(supabase) {
   addEventListener('scroll', () => { if (Date.now() - abertoEm > 500) fechar(); }, { passive: true });
   estado.dados = lerDados(null);
   pintarTudo();
+  // Tarefas vêm do banco: atualiza a cópia lida pelos blocos, agora e a cada minuto.
+  const atualizarTarefas = async () => {
+    try {
+      const ctx = await contextoEquipe(supabase);
+      if (ctx) { await sincronizarTarefas(supabase, ctx); estado.dados = lerDados(estado.dados.calendario7d); pintarTudo(); }
+    } catch { /* mantém a última cópia */ }
+  };
+  atualizarTarefas();
+  setInterval(() => { if (!document.hidden) atualizarTarefas(); }, 60000);
   obrigacoesEm7Dias().then((c) => { estado.dados = lerDados(c); pintarTudo(); });
   setInterval(() => {
     if (estado.escolhas.hero !== 'rodizio' || document.hidden) return;

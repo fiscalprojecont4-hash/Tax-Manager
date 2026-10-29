@@ -1,8 +1,8 @@
 // Armazenamento local dos módulos que ainda não estão no banco.
 //
-// Enquanto Tarefas, Validações, Projetos e Conhecimento não são ligados ao banco (Supabase/PostgreSQL),
-// as páginas guardam o que o usuário faz no próprio navegador (localStorage). Quando o banco
-// entrar, este módulo é o único ponto a trocar. Não há dados de exemplo: tudo começa vazio.
+// As telas leem e gravam por aqui (localStorage). Para Validações, Conhecimento, Projetos, Calendário e
+// Categorias, js/dados-equipe.js liga esta camada ao banco: lê da equipe ao abrir a página e envia cada
+// gravação. Sem sessão ou sem rede, a tela segue só no navegador. Não há dados de exemplo.
 
 const PREFIXO = 'tm.';
 const memoria = {};   // reserva quando o navegador bloqueia o localStorage
@@ -26,10 +26,31 @@ function lerBruto(chave) {
   return chave in memoria ? memoria[chave] : null;
 }
 
-export function gravar(chave, valor) {
+// Grava só no navegador (usado também por quem acabou de ler do banco).
+export function gravarLocal(chave, valor) {
   const texto = JSON.stringify(valor);
   memoria[chave] = texto;
   try { localStorage.setItem(PREFIXO + chave, texto); } catch { /* segue só na memória */ }
+}
+
+// Ponte para o banco (js/dados-equipe.js): toda gravação das telas também é enviada à equipe.
+let ponte = null;
+export function definirPonte(fn) { ponte = fn; }
+
+export function gravar(chave, valor) {
+  gravarLocal(chave, valor);
+  if (ponte) { try { ponte(chave, valor); } catch (e) { console.error(e); } }
+}
+
+/** Valor guardado no navegador (ou undefined). */
+export function lerLocal(chave) {
+  const bruto = lerBruto(chave);
+  if (bruto === null) return undefined;
+  try { return JSON.parse(bruto); } catch { return undefined; }
+}
+export function removerLocal(chave) {
+  delete memoria[chave];
+  try { localStorage.removeItem(PREFIXO + chave); } catch { /* ignora */ }
 }
 
 // Lê a chave; se ainda não existe, cria vazia (fabrica) e grava.

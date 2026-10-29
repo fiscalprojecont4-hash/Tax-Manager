@@ -68,7 +68,7 @@
   <main class="cal-wrap">
     <div class="data-note">
       As obrigações oficiais (Receita Federal e SEFAZ-AM) vêm do banco e aparecem aqui depois de aprovadas em
-      Administração › Calendário oficial. Os eventos criados por você ficam guardados neste navegador até serem ligados ao banco.
+      Administração › Calendário oficial. Os eventos criados ficam no banco, na sua equipe.
     </div>
 
     <div class="cal-toolbar">
@@ -184,6 +184,7 @@
     import { instalarRelatoriosNoSino } from './js/relatorio-diario.js';
     import { esc } from './js/lista-ui.js';
     import { atualizarOficiais } from './js/obrigacoes-db.js';
+    import { ligarDadosEquipe } from './js/dados-equipe.js';
 
     const supabase = createSupabaseClient(true);
     const emailEl = document.getElementById('userEmail');
@@ -194,6 +195,7 @@
       window.location.href = 'index.html';
     } else {
       emailEl.textContent = session.user.email;
+      await ligarDadosEquipe(supabase);
     }
 
     logoutBtn.addEventListener('click', async () => {
@@ -680,6 +682,15 @@
     });
 
     render();
+    addEventListener('tm:dados', (e) => {
+      if (e.detail.chave !== 'eventos' || dayPanel.classList.contains('open')) return;
+      const novo = carregar('eventos', eventosExemplo);
+      Object.keys(base).forEach(k => delete base[k]);
+      Object.keys(events).forEach(k => delete events[k]);
+      Object.entries(novo).forEach(([k, l]) => { base[k] = [...l]; events[k] = [...l]; });
+      Object.entries(eventosOficiais()).forEach(([k, l]) => { events[k] = (events[k] || []).concat(l); });
+      render();
+    });
   </script>
 </body>
 </html>

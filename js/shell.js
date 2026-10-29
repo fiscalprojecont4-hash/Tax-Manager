@@ -2,6 +2,7 @@
 // menu "Módulos" e sino de notificações. As páginas mais antigas trazem o
 // mesmo código inline; aqui ele fica num só lugar.
 
+import { ligarDadosEquipe } from './dados-equipe.js';
 import { createSupabaseClient } from './supabase-client.js';
 import { instalarRelatoriosNoSino } from './relatorio-diario.js';
 
@@ -12,6 +13,7 @@ export async function iniciarShell() {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) { window.location.href = 'index.html'; return null; }
   document.getElementById('userEmail').textContent = session.user.email;
+  await ligarDadosEquipe(supabase); // leitura/gravação das telas no banco, por equipe
   document.getElementById('logoutBtn').addEventListener('click', async () => {
     await supabase.auth.signOut();
     window.location.href = 'index.html';

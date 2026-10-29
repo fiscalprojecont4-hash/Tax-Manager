@@ -18,7 +18,7 @@ Security), calendário fiscal oficial aprovado por gestores e integração com o
 | Dashboard com indicadores do AM PRO | ✅ Métrica escolhida por bloco (botão direito), progresso por obrigação. |
 | Empresas | ✅ Vêm do AM PRO (só leitura) em Administração, Validações, Conhecimento e Tarefas. |
 | Tarefas | ✅ Gravadas no banco (tabela `tarefas`), por equipe; atualizam sozinhas a cada minuto. Delegado = analista da equipe. |
-| Validações, Projetos, Conhecimento, Categorias | 🚧 Telas prontas e sem dados de exemplo, mas o que for digitado ainda fica só no navegador de quem digitou. O schema do banco já existe; falta ligar. |
+| Validações, Conhecimento, Projetos, Calendário (eventos), Categorias | ✅ No banco (tabela `dados_equipe`, um registro por linha em JSON), por equipe, atualizados a cada minuto. A virada de mês (arquivos) é imutável. |
 | Envio de e-mail (`enviar-email`) | 🚧 Código pronto; falta publicar a função e configurar o Resend e o DNS. |
 | Calendário de execução do AM PRO exibir os prazos aprovados | ⏳ Depende do AM PRO: o cache do calendário já é gravado, falta a tela. |
 
@@ -83,7 +83,7 @@ A URL e a anon key públicas do Supabase ficam em `js/supabase-client.js`. **Nun
 
 ## Próximos passos
 
-1. Ligar Validações, Conhecimento e Projetos ao banco (hoje só no navegador).
+1. Notificações e relatórios diários ainda ficam só no navegador.
 2. Publicar `enviar-email` e configurar o Resend e o DNS.
 3. O AM PRO exibir os prazos aprovados no calendário de execução.
 4. Decidir quais dados reais migrar (`docs/fase-0/01-mapeamento-atual.md`).

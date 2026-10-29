@@ -1430,3 +1430,58 @@ language sql stable security invoker set search_path = '' as $$
 $$;
 revoke all on function public.ampro_por_membro(text), public.ampro_por_obrigacao(text) from public, anon;
 grant execute on function public.ampro_por_membro(text), public.ampro_por_obrigacao(text) to authenticated;
+
+
+-- ---------------------------------------------------------------------
+-- 14. DADOS DA EQUIPE (Validações, Conhecimento, Projetos, Calendário, Categorias)
+-- ---------------------------------------------------------------------
+-- Uma linha por registro, guardando o registro inteiro em JSON. É o que liga as telas
+-- ao banco sem mudar o formato que elas já usam. Cada equipe só enxerga as suas linhas.
+--   validacoes / arquivos / mapeamento / projetos : um registro por linha (id = id do registro)
+--   categorias / eventos                          : um documento por equipe (id = 'unico')
+-- 'arquivos' (virada de mês) é imutável: só entra e é lido.
+create table if not exists public.dados_equipe (
+  equipe_id     uuid not null references public.equipes (id) on delete cascade,
+  colecao       text not null check (colecao in ('validacoes','arquivos','mapeamento','projetos','categorias','eventos')),
+  id            text not null check (length(id) between 1 and 80),
+  dados         jsonb not null,
+  criado_por    uuid references public.perfis (id) on delete set null default auth.uid(),
+  criado_em     timestamptz not null default now(),
+  atualizado_em timestamptz not null default now(),
+  primary key (equipe_id, colecao, id)
+);
+create index if not exists dados_equipe_colecao_idx on public.dados_equipe (equipe_id, colecao, atualizado_em desc);
+
+drop trigger if exists set_atualizado_em on public.dados_equipe;
+create trigger set_atualizado_em before update on public.dados_equipe
+  for each row execute function private.set_atualizado_em();
+
+create or replace function private.bloquear_arquivo_equipe() returns trigger
+language plpgsql as $$
+begin
+  if old.colecao = 'arquivos' then
+    raise exception 'Arquivo de virada de mês não pode ser alterado nem apagado (use uma retificadora).';
+  end if;
+  return coalesce(new, old);
+end $$;
+drop trigger if exists arquivo_imutavel on public.dados_equipe;
+create trigger arquivo_imutavel before update or delete on public.dados_equipe
+  for each row execute function private.bloquear_arquivo_equipe();
+
+alter table public.dados_equipe enable row level security;
+drop policy if exists dados_equipe_select on public.dados_equipe;
+drop policy if exists dados_equipe_insert on public.dados_equipe;
+drop policy if exists dados_equipe_update on public.dados_equipe;
+drop policy if exists dados_equipe_delete on public.dados_equipe;
+create policy dados_equipe_select on public.dados_equipe for select to authenticated
+  using (private.eh_membro(equipe_id));
+create policy dados_equipe_insert on public.dados_equipe for insert to authenticated
+  with check (private.tem_papel(equipe_id, array['gestor_fiscal','analista','revisor']));
+create policy dados_equipe_update on public.dados_equipe for update to authenticated
+  using (private.tem_papel(equipe_id, array['gestor_fiscal','analista','revisor']))
+  with check (private.tem_papel(equipe_id, array['gestor_fiscal','analista','revisor']));
+create policy dados_equipe_delete on public.dados_equipe for delete to authenticated
+  using (private.tem_papel(equipe_id, array['gestor_fiscal','analista']));
+revoke all on public.dados_equipe from anon;
+grant select, insert, update, delete on public.dados_equipe to authenticated;
+grant all on public.dados_equipe to service_role;

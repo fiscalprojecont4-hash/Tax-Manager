@@ -1,9 +1,9 @@
 // Bloco de indicadores do Tax Manager no dashboard. Os números são CALCULADOS dos dados guardados
-// (nada fixo no código): Calendário e Tarefas vêm do banco; Validações, Projetos e Conhecimento ainda
-// vêm dos dados guardados neste navegador, até esses módulos serem ligados ao banco.
+// (nada fixo no código) e vêm do banco, da equipe de quem está logado.
 // Como no painel do AM PRO, cada pessoa escolhe a métrica de cada bloco (botão direito ou ⋯).
 
 import { contextoEquipe, sincronizarTarefas } from './tarefas-db.js';
+import { ligarDadosEquipe } from './dados-equipe.js';
 import { carregar, tarefasExemplo, validacoesExemplo, projetosExemplo, mapeamento, arquivos, hojeIso, somarDias } from './dados-teste.js';
 import { listarObrigacoes } from './obrigacoes-db.js';
 
@@ -28,15 +28,15 @@ export const METRICAS = {
     const c = d.tarefas.filter(t => t.status === 'concluida' && t.concluidaEm && t.prazo);
     const ok = c.filter(t => t.concluidaEm <= t.prazo).length;
     return c.length ? { valor: `${pct(ok, c.length)}%`, desc: `${n(ok)} de ${n(c.length)} tarefas concluídas dentro do prazo.` } : { valor: '—', desc: 'Nenhuma tarefa concluída ainda.' }; } },
-  validacoes: { nome: 'Validações em aberto', fonte: 'nav', tag: 'Validações', calc: (d) => {
+  validacoes: { nome: 'Validações em aberto', fonte: 'banco', tag: 'Validações', calc: (d) => {
     const ab = d.validacoes.filter(v => ABERTAS(v.status));
     return { valor: n(ab.length), desc: `Validações em aberto em ${n(new Set(ab.map(v => norm(v.nome))).size)} empresas.` }; } },
-  tempo_medio: { nome: 'Tempo médio de validação', fonte: 'nav', tag: 'Validações', calc: (d) => {
+  tempo_medio: { nome: 'Tempo médio de validação', fonte: 'banco', tag: 'Validações', calc: (d) => {
     const c = d.validacoes.filter(v => v.status === 'concluida' && v.criadoEm && v.concluidaEm);
     if (!c.length) return { valor: '—', desc: 'Nenhuma validação concluída ainda.' };
     const m = c.reduce((s, v) => s + Math.max(0, dias(v.criadoEm, v.concluidaEm)), 0) / c.length;
     return { valor: `${m.toFixed(1).replace('.', ',')} dias`, desc: `Da abertura à conclusão, em ${n(c.length)} validações.` }; } },
-  achados_repetidos: { nome: 'Achados repetidos', fonte: 'nav', tag: 'Conhecimento', calc: (d) => {
+  achados_repetidos: { nome: 'Achados repetidos', fonte: 'banco', tag: 'Conhecimento', calc: (d) => {
     const cont = new Map();
     const add = (c) => { const k = norm(c); if (k) cont.set(k, (cont.get(k) || 0) + 1); };
     d.validacoes.forEach(v => (v.pontos || []).forEach(p => add(p.categoria)));
@@ -46,10 +46,10 @@ export const METRICAS = {
   calendario: { nome: 'Obrigações nos próximos 7 dias', fonte: 'banco', tag: 'Calendário', calc: (d) =>
     d.calendario7d == null ? { valor: '—', desc: 'Calendário oficial indisponível no momento.' }
       : { valor: n(d.calendario7d), desc: 'Obrigações fiscais aprovadas vencendo nos próximos 7 dias.' } },
-  projetos: { nome: 'Progresso dos projetos', fonte: 'nav', tag: 'Projetos', calc: (d) => {
+  projetos: { nome: 'Progresso dos projetos', fonte: 'banco', tag: 'Projetos', calc: (d) => {
     const et = d.projetos.flatMap(p => p.etapas || []).filter(e => e.status !== 'cancelada'), ok = et.filter(e => e.status === 'concluida').length;
     return { valor: `${pct(ok, et.length)}%`, desc: `${n(ok)} de ${n(et.length)} etapas concluídas nos projetos.` }; } },
-  conhecimento: { nome: 'Mapeamento fiscal em aberto', fonte: 'nav', tag: 'Conhecimento', calc: (d) => {
+  conhecimento: { nome: 'Mapeamento fiscal em aberto', fonte: 'banco', tag: 'Conhecimento', calc: (d) => {
     const ab = d.mapeamento.filter(m => ABERTAS(m.status)).length;
     return { valor: n(ab), desc: `Situações em aberto no Mapeamento fiscal; ${n(d.arquivos.length)} arquivos no histórico.` }; } },
 };
@@ -100,8 +100,8 @@ function pintarCard(el, chave) {
   sub.textContent = r.desc + fonteTxt(m);
 }
 function pintarNota() {
-  const usaNav = Object.entries(estado.escolhas).some(([s, k]) => (k === 'rodizio' ? RODIZIO.some(x => METRICAS[x].fonte === 'nav') : METRICAS[k].fonte === 'nav'));
-  const nota = $('dataNote'); if (nota) nota.hidden = !usaNav;
+  // o aviso só aparece quando o usuário não pertence a nenhuma equipe e os números vêm do navegador
+  const nota = $('dataNote'); if (nota) nota.hidden = !estado.semBanco;
 }
 function pintarTudo() {
   if (!estado.dados) return;
@@ -144,6 +144,7 @@ export async function iniciarPainelTm(supabase) {
     if (session?.user?.id) estado.chave = `tm.tm.escolhas.${session.user.id}`;
   } catch { /* chave genérica */ }
   lerEscolhas();
+  estado.semBanco = !(await ligarDadosEquipe(supabase));
   const dots = $('statDots'); dots.innerHTML = '';
   RODIZIO.forEach(() => dots.appendChild(document.createElement('span')));
   document.querySelectorAll('[data-tm]').forEach((el) => {
@@ -156,6 +157,7 @@ export async function iniciarPainelTm(supabase) {
   addEventListener('scroll', () => { if (Date.now() - abertoEm > 500) fechar(); }, { passive: true });
   estado.dados = lerDados(null);
   pintarTudo();
+  addEventListener('tm:dados', () => { estado.dados = lerDados(estado.dados.calendario7d); pintarTudo(); });
   // Tarefas vêm do banco: atualiza a cópia lida pelos blocos, agora e a cada minuto.
   const atualizarTarefas = async () => {
     try {

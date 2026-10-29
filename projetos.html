@@ -67,7 +67,7 @@
 
   <main class="wrap-fluid">
     <div class="data-note">
-      Os dados desta tela ficam guardados neste navegador até este módulo ser ligado ao banco.
+      Os dados desta tela ficam no banco, na sua equipe, e os colegas veem as mudanças em até 1 minuto.
     </div>
 
     <div class="pj-toolbar">
@@ -160,6 +160,7 @@
     import { carregar, gravar, novoId, projetosExemplo } from './js/dados-teste.js';
     import { instalarRelatoriosNoSino } from './js/relatorio-diario.js';
     import { esc } from './js/lista-ui.js';
+    import { ligarDadosEquipe } from './js/dados-equipe.js';
 
     const supabase = createSupabaseClient(true);
     const emailEl = document.getElementById('userEmail');
@@ -170,6 +171,7 @@
       window.location.href = 'index.html';
     } else {
       emailEl.textContent = session.user.email;
+      await ligarDadosEquipe(supabase);
     }
 
     logoutBtn.addEventListener('click', async () => {
@@ -638,6 +640,11 @@
     });
 
     render();
+    addEventListener('tm:dados', (e) => {
+      if (e.detail.chave !== 'projetos' || pjPanel.classList.contains('open')) return;
+      projetos = carregar('projetos', projetosExemplo);
+      render();
+    });
   </script>
 </body>
 </html>

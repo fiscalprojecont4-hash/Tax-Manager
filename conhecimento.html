@@ -67,7 +67,7 @@
 
   <main class="wrap-fluid">
     <div class="data-note">
-      Os dados desta tela ficam guardados neste navegador até este módulo ser ligado ao banco.
+      Os dados desta tela ficam no banco, na sua equipe, e os colegas veem as mudanças em até 1 minuto.
     </div>
 
     <div class="tab-bar" role="tablist" aria-label="Conhecimento">
@@ -1027,6 +1027,13 @@
 
     hRender();
     mRender();
+
+    // mudanças feitas pelos colegas da equipe (js/dados-equipe.js avisa a cada minuto)
+    addEventListener('tm:dados', (e) => {
+      if (mPanel.classList.contains('open')) return;
+      if (e.detail.chave === 'mapeamento') { mapa = listarMapeamento(); mRender(); }
+      if (['arquivos', 'validacoes', 'categorias'].includes(e.detail.chave)) hRender();
+    });
   </script>
 </body>
 </html>

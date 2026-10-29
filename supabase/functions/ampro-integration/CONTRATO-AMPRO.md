@@ -194,6 +194,75 @@ data/integrations/tax-manager/calendar/AAAA-MM.json
 
 O cache inclui `competence` e `syncedAt`. Falha de rede ou validação preserva o cache anterior. Nesta etapa, salvar o calendário não altera prazos/status oficiais nem cria a visualização no painel.
 
+## 4.1 Consultar validações e achados (Tax Manager → AM PRO)
+
+Devolve as validações fiscais feitas pela equipe no Tax Manager em uma competência, com os achados de cada uma. Serve para o AM PRO mostrar, ao lado da obrigação, se a conferência foi feita e o que foi encontrado.
+
+```http
+GET <URL_BASE>/validations?team=fiscal&competence=2026-09
+Authorization: Bearer <segredo>
+```
+
+`team` (fiscal, omega ou beta) e `competence` (AAAA-MM) são obrigatórios. A credencial precisa ter a equipe no seu escopo, senão 403.
+
+### Resposta esperada
+
+HTTP 200:
+
+```json
+{
+  "schemaVersion": 1,
+  "team": { "id": "fiscal" },
+  "competence": "2026-09",
+  "validations": [
+    {
+      "id": "v1",
+      "companyId": "id-da-empresa-no-AM-PRO",
+      "companyName": "Acme Ltda",
+      "cnpj": "12.345.678/0001-95",
+      "activity": "EFD ICMS/IPI",
+      "analyst": "Jhonathan",
+      "status": "in_progress",
+      "closed": false,
+      "checklist": { "done": 3, "total": 5 },
+      "justification": "",
+      "createdAt": "2026-09-02",
+      "completedAt": null,
+      "updatedAt": "2026-09-10",
+      "amends": null,
+      "findings": [
+        { "id": "p1", "category": "ICMS", "title": "Crédito indevido", "identified": "…", "reason": "…", "guidance": "…" }
+      ]
+    }
+  ]
+}
+```
+
+| Campo | Regra |
+| --- | --- |
+| id | Estável: o mesmo id aparece antes e depois do encerramento do mês |
+| companyId / cnpj | Preenchidos quando o nome da empresa na validação coincide (sem acento e sem diferenciar maiúsculas) com uma empresa já espelhada pela equipe. Senão, `null`: use `companyName` |
+| status | pending, in_progress, impediment, done ou cancelled |
+| closed | `true` quando o mês já foi encerrado no Tax Manager (registro imutável); `false` quando ainda está em andamento |
+| checklist | Itens do checklist concluídos e total |
+| amends | `{ "competence": "AAAA-MM" }` quando a validação é retificadora de outro mês; senão `null` |
+| findings | Achados da validação (categoria, o que foi identificado, motivo e orientação). Pode ser vazio |
+| createdAt / completedAt / updatedAt | AAAA-MM-DD, ou `null` quando não houver |
+
+- `validations: []` significa que a consulta funcionou e não há validações no mês. Falha de leitura devolve 500, nunca lista vazia.
+- A resposta traz só a equipe pedida. Não há dados de outra equipe.
+- Sugestão de cache no AM PRO, no mesmo padrão do calendário: `data/integrations/tax-manager/validations/<team>/AAAA-MM.json`, com `competence`, `team` e `syncedAt`. Falha de rede ou validação preserva o cache anterior.
+- Frequência sugerida: de hora em hora, junto com o calendário, para a competência vigente e a anterior.
+
+## 4.2 Exibir o calendário aprovado no AM PRO
+
+O endpoint `/calendar` já responde e o AM PRO já guarda o cache. O que falta é mostrar:
+
+- Listar os eventos `approved` do mês no calendário de execução, com `title`, `dueDate`, `authority` e link em `sourceUrl`.
+- Ignorar `superseded` como prazo ativo (use `replacesId` para apontar que o prazo mudou).
+- Marcar a origem como "Calendário oficial Tax Manager" e mostrar a hora da última sincronização (`syncedAt`).
+- Não alterar prazos nem status das obrigações do AM PRO a partir do calendário: ele só informa.
+
 ## 5. Respostas de erro previstas para o receptor
 
 Os códigos abaixo são o contrato recomendado para a função a implementar, não evidência de um endpoint já publicado.
@@ -223,7 +292,7 @@ O espelho pode ter sido aceito antes de uma falha na consulta do calendário. A 
 | Processo | Frequência proposta |
 | --- | --- |
 | AM PRO → Tax Manager: dados operacionais | A cada 5 minutos, por equipe e competência |
-| Tax Manager → AM PRO: calendário | **De hora em hora**, no minuto 00 |
+| Tax Manager → AM PRO: calendário e validações | **De hora em hora**, no minuto 00 |
 | Reconciliação | Diariamente, comparando revisão, contagens e última sincronização |
 
 Usar servidor ligado, fuso America/Manaus e bloqueio de sobreposição. Registrar horário, equipe, competência, revisão, contagens e resultado, sem conteúdo sensível.

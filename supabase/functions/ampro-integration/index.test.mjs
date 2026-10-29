@@ -1,7 +1,7 @@
 // node --experimental-strip-types supabase/functions/ampro-integration/index.test.mjs
 // O SQL (idempotência, 409, RLS) é testado no Postgres; aqui: contrato HTTP, validação e calendário.
 import assert from 'node:assert/strict';
-import { validarEspelho, hashDoSegredo, intervaloDaCompetencia, eventoDoCalendario, tratar, MAX_BYTES, LIMITE_POR_MINUTO } from './index.ts';
+import { validacaoParaAmPro, indiceDeEmpresas, validarEspelho, hashDoSegredo, intervaloDaCompetencia, eventoDoCalendario, tratar, MAX_BYTES, LIMITE_POR_MINUTO } from './index.ts';
 
 const REV = 'a'.repeat(64);
 const espelho = (extra = {}) => ({
@@ -191,6 +191,51 @@ const json = (r) => r.json();
   const j = await json(await chamar(db, 'GET', 'calendar', { segredo: SEGREDO, query: '?competence=2026-09' }));
   assert.equal(j.events.length, 2500);
   assert.equal(new Set(j.events.map((e) => e.id)).size, 2500);
+}
+
+{ // GET /validations
+  const EQ = 'eq-alpha';
+  const aberta = { id: 'v1', nome: 'Acme Ltda', atividade: 'EFD ICMS/IPI', analista: 'Jhonathan', status: 'andamento', competencia: '2026-09',
+    checklist: [{ id: 'c0', label: 'a', done: true }, { id: 'c1', label: 'b', done: false }], justificativa: '', criadoEm: '2026-09-02', concluidaEm: '', atualizadoEm: '2026-09-10',
+    retificadora: null, pontos: [{ id: 'p1', categoria: 'ICMS', titulo: 'Crédito', identificado: 'x', motivo: 'y', orientacao: 'z' }] };
+  const outroMes = { ...aberta, id: 'v2', competencia: '2026-10' };
+  const arquivo = { id: 'a1', competencia: '2026-08', empresa: 'Beta SA', encerradoEm: '2026-09-01', itens: [
+    { id: 'v9', atividade: 'DCTF', analista: 'PH', status: 'concluida', justificativa: 'ok', criadoEm: '2026-08-03', concluidaEm: '2026-08-20', atualizadoEm: '2026-08-20',
+      checklistFeitos: 5, checklistTotal: 5, pontos: [], retificadora: null }] };
+  const tabelas = {
+    ampro_equipes: [{ ampro_id: 'fiscal', equipe_id: EQ }, { ampro_id: 'beta', equipe_id: 'eq-beta' }],
+    ampro_empresas: [{ equipe_id: EQ, externo_id: 'c1', nome: 'ACME LTDA', nome_exibicao: 'Acme Ltda', cnpj: '12.345.678/0001-95' }],
+    dados_equipe: [
+      { equipe_id: EQ, colecao: 'validacoes', id: 'v1', dados: aberta }, { equipe_id: EQ, colecao: 'validacoes', id: 'v2', dados: outroMes },
+      { equipe_id: EQ, colecao: 'arquivos', id: 'a1', dados: arquivo },
+      { equipe_id: 'eq-beta', colecao: 'validacoes', id: 'vb', dados: { ...aberta, id: 'vb', nome: 'Outra Equipe' } },
+    ],
+  };
+  const db = await novo({ tabelas });
+  assert.equal((await chamar(db, 'GET', 'validations', { segredo: SEGREDO, query: '?competence=2026-09' })).status, 400);          // team obrigatório
+  assert.equal((await chamar(db, 'GET', 'validations', { segredo: SEGREDO, query: '?team=gama&competence=2026-09' })).status, 400);
+  assert.equal((await chamar(db, 'GET', 'validations', { segredo: SEGREDO, query: '?team=fiscal' })).status, 400);
+  assert.equal((await chamar(db, 'GET', 'validations', { segredo: SEGREDO_BETA, query: '?team=fiscal&competence=2026-09' })).status, 403); // credencial sem a equipe
+  assert.equal((await chamar(db, 'POST', 'validations', { segredo: SEGREDO, corpo: {} })).status, 405);
+  const r = await chamar(db, 'GET', 'validations', { segredo: SEGREDO, query: '?team=fiscal&competence=2026-09' });
+  assert.equal(r.status, 200);
+  const j = await json(r);
+  assert.deepEqual([j.schemaVersion, j.team.id, j.competence], [1, 'fiscal', '2026-09']);
+  assert.equal(j.validations.length, 1);                                                                           // só o mês e só a equipe
+  assert.deepEqual(j.validations[0], { id: 'v1', companyId: 'c1', companyName: 'Acme Ltda', cnpj: '12.345.678/0001-95', activity: 'EFD ICMS/IPI',
+    analyst: 'Jhonathan', status: 'in_progress', closed: false, checklist: { done: 1, total: 2 }, justification: '', createdAt: '2026-09-02',
+    completedAt: null, updatedAt: '2026-09-10', amends: null,
+    findings: [{ id: 'p1', category: 'ICMS', title: 'Crédito', identified: 'x', reason: 'y', guidance: 'z' }] });
+  const ag = await json(await chamar(db, 'GET', 'validations', { segredo: SEGREDO, query: '?team=fiscal&competence=2026-08' }));
+  assert.equal(ag.validations.length, 1);                                                                          // mês já encerrado vem do arquivo
+  assert.deepEqual([ag.validations[0].closed, ag.validations[0].status, ag.validations[0].companyId, ag.validations[0].checklist], [true, 'done', null, { done: 5, total: 5 }]);
+  assert.deepEqual((await json(await chamar(db, 'GET', 'validations', { segredo: SEGREDO, query: '?team=fiscal&competence=2027-01' }))).validations, []);
+  const b = await json(await chamar(db, 'GET', 'validations', { segredo: SEGREDO_BETA, query: '?team=beta&competence=2026-09' }));
+  assert.deepEqual(b.validations.map((x) => x.companyName), ['Outra Equipe']);                                      // isolamento entre equipes
+  db.falhaEm = 'select:dados_equipe';
+  assert.equal((await chamar(db, 'GET', 'validations', { segredo: SEGREDO, query: '?team=fiscal&competence=2026-09' })).status, 500); // falha NÃO vira lista vazia
+  assert.equal(indiceDeEmpresas([{ externo_id: 'x', nome: 'Ação S/A', nome_exibicao: '', cnpj: '' }]).get('acao s/a').externo_id, 'x');
+  assert.equal(validacaoParaAmPro({ id: 1, status: 'estranho' }, 'Z', '2026-09', false, new Map()).status, 'pending');
 }
 
 { // limite por minuto, por credencial

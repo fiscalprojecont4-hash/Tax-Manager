@@ -6,6 +6,7 @@ Implementa o contrato **`CONTRATO-AMPRO.md`** (v1, escrito pelo lado do AM PRO).
 |---|---|---|
 | `POST /mirror` | AM PRO | Snapshot de uma equipe e competência (empresas + obrigações/execução). Aplicado em **uma transação**, com recibo e idempotência. |
 | `GET /calendar?competence=AAAA-MM` | AM PRO | Calendário fiscal aprovado do mês, com versões substituídas. Lê o mês inteiro (sem truncar em 1000 linhas). |
+| `GET /validations?team=fiscal&competence=AAAA-MM` | AM PRO | Validações e achados de uma equipe e competência (abertas e já encerradas), ligadas à empresa do AM PRO pelo nome. Só da equipe pedida e só se a credencial a tiver no escopo. |
 
 ## Como a segurança funciona
 
@@ -38,7 +39,7 @@ Implementa o contrato **`CONTRATO-AMPRO.md`** (v1, escrito pelo lado do AM PRO).
 
 ## Publicar (passo a passo)
 
-1. **SQL Editor:** rodar o `supabase/schema.sql` de novo (seção 13; é idempotente). As equipes Alpha, Beta e Omega já existem, e a seção liga `fiscal`→Alpha, `omega`→Omega e `beta`→Beta.
+1. **SQL Editor:** rodar o `supabase/schema.sql` de novo (seções 13 e 14; é idempotente). As equipes Alpha, Beta e Omega já existem, e a seção liga `fiscal`→Alpha, `omega`→Omega e `beta`→Beta.
 2. **Publicar a função** `ampro-integration` (código: `index.ts`). Com o CLI: `supabase functions deploy ampro-integration --no-verify-jwt`. Pelo painel: Edge Functions → Deploy new function → colar o `index.ts` → desligar **Verify JWT**.
 3. **Criar a credencial** no SQL Editor. O segredo aparece **uma única vez** no resultado; copie direto para o `.env.local` do servidor do AM PRO (`TAX_MANAGER_INTEGRATION_KEY`), sem colar em chat ou e-mail:
    ```sql
@@ -54,4 +55,4 @@ Implementa o contrato **`CONTRATO-AMPRO.md`** (v1, escrito pelo lado do AM PRO).
 ```bash
 node --experimental-strip-types supabase/functions/ampro-integration/index.test.mjs
 ```
-Cobre a validação do contrato, autenticação, escopo de equipes, idempotência/409/falhas (HTTP), calendário com mais de 1000 eventos e limite de chamadas. A transação, a idempotência e a RLS foram testadas à parte, em Postgres.
+Cobre a validação do contrato, autenticação, escopo de equipes, idempotência/409/falhas (HTTP), calendário com mais de 1000 eventos, validações por equipe/competência e limite de chamadas. A transação, a idempotência e a RLS foram testadas à parte, em Postgres.

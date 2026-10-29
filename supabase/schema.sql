@@ -1485,3 +1485,31 @@ create policy dados_equipe_delete on public.dados_equipe for delete to authentic
 revoke all on public.dados_equipe from anon;
 grant select, insert, update, delete on public.dados_equipe to authenticated;
 grant all on public.dados_equipe to service_role;
+
+
+-- ---------------------------------------------------------------------
+-- 15. MEMBROS DA EQUIPE NO AM PRO (lista de pessoas para "Delegado para" e "Membro em validação")
+-- ---------------------------------------------------------------------
+-- As pessoas da equipe vêm do que o AM PRO envia: executores das obrigações (sem apoio de outra equipe)
+-- e responsáveis pelas empresas. Security definer só para ler o mapa de equipes (ampro_equipes, sem acesso direto);
+-- o filtro private.eh_membro() em cada linha mantém cada pessoa restrita às equipes das quais faz parte.
+create or replace function public.ampro_membros()
+returns table (equipe_id uuid, nome text, usuario text)
+language sql stable security definer set search_path = '' as $$
+  select o.equipe_id, btrim(o.executor), max(o.executor_usuario)
+    from public.ampro_obrigacoes o
+   where btrim(o.executor) <> '' and private.eh_membro(o.equipe_id)
+     and (coalesce(o.executor_equipe, '') = ''
+          or o.executor_equipe = (select a.ampro_id from public.ampro_equipes a where a.equipe_id = o.equipe_id))
+   group by o.equipe_id, btrim(o.executor)
+  union all
+  select e.equipe_id, btrim(e.responsavel), null::text
+    from public.ampro_empresas e
+   where e.ativa and btrim(e.responsavel) <> '' and private.eh_membro(e.equipe_id)
+   group by e.equipe_id, btrim(e.responsavel)
+$$;
+revoke all on function public.ampro_membros() from public, anon;
+grant execute on function public.ampro_membros() to authenticated;
+
+-- Tarefas: o delegado pode ser alguém do AM PRO que não tem login no Tax Manager.
+alter table public.tarefas add column if not exists delegado_nome text;

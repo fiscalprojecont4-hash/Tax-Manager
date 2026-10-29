@@ -336,7 +336,7 @@
       empresa: createMultiSelect(document.getElementById('hMsEmpresa'), { rotuloTodos: 'Toda empresa', rotuloCurto: 'Empresa', options: [], onChange: v => hSet('empresa', v) }),
       status: createMultiSelect(document.getElementById('hMsStatus'), { rotuloTodos: 'Todo status', rotuloCurto: 'Status',
         options: STATUS_ORDER.map(value => ({ value, label: STATUS_LABEL[value] })), onChange: v => hSet('status', v) }),
-      analista: createMultiSelect(document.getElementById('hMsAnalista'), { rotuloTodos: 'Todo analista', rotuloCurto: 'Analista', options: [], onChange: v => hSet('analista', v) }),
+      analista: createMultiSelect(document.getElementById('hMsAnalista'), { rotuloTodos: 'Todo membro', rotuloCurto: 'Membro', options: [], onChange: v => hSet('analista', v) }),
     };
     function hSet(k, v) { hf[k] = v; hMs[k].set(v); hRender(); }
     document.getElementById('hSearch').addEventListener('input', (e) => { hf.q = e.target.value; hRender(); });
@@ -353,7 +353,7 @@
       if (hf.competencia.length) p.push(`Competência: ${hf.competencia.map(competenciaCurta).join(', ')}`);
       if (hf.empresa.length) p.push(`Empresa: ${hf.empresa.join(', ')}`);
       if (hf.status.length) p.push(`Status: ${hf.status.map(s => STATUS_LABEL[s]).join(', ')}`);
-      if (hf.analista.length) p.push(`Analista: ${hf.analista.join(', ')}`);
+      if (hf.analista.length) p.push(`Membro em validação: ${hf.analista.join(', ')}`);
       return p;
     }
 
@@ -365,7 +365,7 @@
       if (hf.competencia.length && !hf.competencia.includes(a.competencia)) return false;
       if (hf.empresa.length && !hf.empresa.includes(a.empresa)) return false;
       if (hf.status.length && !a.itens.some(i => hf.status.includes(i.status))) return false;
-      if (hf.analista.length && !a.itens.some(i => hf.analista.includes(i.analista || 'Sem analista'))) return false;
+      if (hf.analista.length && !a.itens.some(i => hf.analista.includes(i.analista || 'Sem membro'))) return false;
       return true;
     }
     const hLista = () => arqs.filter(hMatch).sort((a, b) => b.competencia.localeCompare(a.competencia) || a.empresa.localeCompare(b.empresa));
@@ -388,7 +388,7 @@
     }
 
     function itemHtml(a, i) {
-      const analista = i.analista ? esc(i.analista) : 'sem analista';
+      const analista = i.analista ? esc(i.analista) : 'sem membro';
       const meta = [`Criada em ${fmtBR(i.criadoEm)}`, i.concluidaEm ? `Concluída em ${fmtBR(i.concluidaEm)}` : '', `Checklist ${i.checklistFeitos}/${i.checklistTotal}`]
         .filter(Boolean).join(' · ');
       const pontos = (i.pontos || []).length
@@ -406,7 +406,7 @@
       }
       return `<div class="kn-item">
         <div class="kn-item-head"><strong>${esc(i.atividade)}</strong><span class="badge ${STATUS_BADGE[i.status]}">${esc(STATUS_LABEL[i.status])}</span>
-          <span class="muted">Analista: ${analista}</span></div>
+          <span class="muted">Membro em validação: ${analista}</span></div>
         <p class="kn-item-meta">${esc(meta)}</p>${justif}${pontos}${eRetif}${retInfo}
         ${acao ? `<div class="kn-item-actions">${acao}</div>` : ''}</div>`;
     }
@@ -444,7 +444,7 @@
       const unicos = (fn) => [...new Set(arqs.flatMap(fn).filter(Boolean))];
       hMs.competencia.setOptions(unicos(a => [a.competencia]).sort().reverse().map(c => ({ value: c, label: competenciaExtenso(c) })));
       hMs.empresa.setOptions(unicos(a => [a.empresa]).sort((x, y) => x.localeCompare(y)).map(x => ({ value: x, label: x })));
-      hMs.analista.setOptions(unicos(a => a.itens.map(i => i.analista || 'Sem analista')).sort((x, y) => x.localeCompare(y)).map(x => ({ value: x, label: x })));
+      hMs.analista.setOptions(unicos(a => a.itens.map(i => i.analista || 'Sem membro')).sort((x, y) => x.localeCompare(y)).map(x => ({ value: x, label: x })));
       ['competencia', 'empresa', 'analista'].forEach(k => { hf[k] = hMs[k].values(); });
     }
 
@@ -502,7 +502,7 @@
           ],
           resumo: STATUS_ORDER.filter(s => r[s]).map(s => ({ label: STATUS_LABEL[s], valor: r[s] })).concat([{ label: 'Pontos', valor: r.pontos }]),
           tabelas: [{
-            colunas: ['Atividade', 'Analista', 'Status', 'Criada em', 'Concluída em', 'Justificativa'],
+            colunas: ['Atividade', 'Membro em validação', 'Status', 'Criada em', 'Concluída em', 'Justificativa'],
             linhas: a.itens.map(i => [i.atividade, i.analista || '-', STATUS_LABEL[i.status] + (i.retificadora ? ' (retificadora)' : ''),
               fmtBR(i.criadoEm), i.concluidaEm ? fmtBR(i.concluidaEm) : '-', i.justificativa || '-']),
             estilosColunas: { 3: { cellWidth: 20 }, 4: { cellWidth: 22 } },

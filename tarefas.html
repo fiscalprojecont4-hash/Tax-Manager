@@ -415,7 +415,7 @@
     }
     if (ctx) {
       document.getElementById('fDelegado').setAttribute('list', 'membrosEquipe');
-      document.getElementById('fDelegado').placeholder = 'Escolha um analista da equipe (opcional)';
+      document.getElementById('fDelegado').placeholder = 'Escolha um membro da equipe (opcional)';
       document.getElementById('membrosEquipe').innerHTML = ctx.membros.map(m => `<option value="${esc(m.nome)}"></option>`).join('');
     }
     let pendentes = 0;
@@ -1032,7 +1032,7 @@
       closePanel();
       render();
       if (digitado && data.delegadoPara === SEM_DELEGADO && digitado.toLowerCase() !== SEM_DELEGADO.toLowerCase()) {
-        flash(`"${digitado}" não é analista desta equipe: a tarefa ficou sem delegado.`);
+        flash(`"${digitado}" não está na lista da equipe: a tarefa ficou sem delegado.`);
       }
     });
 

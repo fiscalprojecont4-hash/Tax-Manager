@@ -17,7 +17,7 @@ Security), calendário fiscal oficial aprovado por gestores e integração com o
 | Integração com o AM PRO | ✅ Espelho de empresas e obrigações por equipe; API do calendário aprovado. |
 | Dashboard com indicadores do AM PRO | ✅ Métrica escolhida por bloco (botão direito), progresso por obrigação. |
 | Empresas | ✅ Vêm do AM PRO (só leitura) em Administração, Validações, Conhecimento e Tarefas. |
-| Tarefas | ✅ Gravadas no banco (tabela `tarefas`), por equipe; atualizam sozinhas a cada minuto. Delegado = analista da equipe. |
+| Tarefas | ✅ Gravadas no banco (tabela `tarefas`), por equipe; atualizam sozinhas a cada minuto. Delegado = membro da equipe no AM PRO. |
 | Validações, Conhecimento, Projetos, Calendário (eventos), Categorias | ✅ No banco (tabela `dados_equipe`, um registro por linha em JSON), por equipe, atualizados a cada minuto. A virada de mês (arquivos) é imutável. |
 | Envio de e-mail (`enviar-email`) | 🚧 Código pronto; falta publicar a função e configurar o Resend e o DNS. |
 | Calendário de execução do AM PRO exibir os prazos aprovados | ⏳ Depende do AM PRO: o cache do calendário já é gravado, falta a tela. |

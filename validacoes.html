@@ -127,7 +127,7 @@
           <tr>
             <th>Empresa</th>
             <th>Atividade</th>
-            <th>Analista responsável</th>
+            <th>Membro em validação</th>
             <th>Status</th>
             <th>Pontos</th>
             <th>Última atualização</th>
@@ -165,7 +165,7 @@
       </div>
       <div class="form-row form-row-split">
         <div>
-          <label for="fAnalista">Analista responsável</label>
+          <label for="fAnalista">Membro em validação</label>
           <input type="text" id="fAnalista" list="analistasSugeridos" autocomplete="off" />
           <datalist id="analistasSugeridos"></datalist>
         </div>
@@ -229,17 +229,19 @@
              createMultiSelect, abrirStatusMenu, statusPillHtml } from './js/lista-ui.js';
     import { gerarPdf } from './js/relatorio-pdf.js';
     import { ligarDadosEquipe } from './js/dados-equipe.js';
+    import { acharMembro } from './js/membros.js';
 
     const supabase = createSupabaseClient(true);
     const emailEl = document.getElementById('userEmail');
     const logoutBtn = document.getElementById('logoutBtn');
 
+    let ctxEquipe = null; // equipe e pessoas da equipe no AM PRO (null sem equipe)
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       window.location.href = 'index.html';
     } else {
       emailEl.textContent = session.user.email;
-      await ligarDadosEquipe(supabase);
+      ctxEquipe = await ligarDadosEquipe(supabase);
       await sincronizarEmpresasAmPro(supabase);
     }
 
@@ -378,7 +380,7 @@
     // com fluxo de aprovação/revisão, por empresa e por competência)
     // ======================================================================
 
-    const SEM_ANALISTA = 'Sem analista';
+    const SEM_ANALISTA = 'Sem membro';
     const today = hojeIso();
     const addDays = somarDias;
     const nextId = novoId;
@@ -394,6 +396,9 @@
     });
     const persistir = () => gravar('validacoes', validacoes);
     const categoriasLista = () => categorias();
+
+    // nome como está na lista da equipe (sem diferença de acento/maiúscula); texto fora da lista é mantido
+    const membroCanonico = (t) => (ctxEquipe && acharMembro(ctxEquipe.membros, t)?.nome) || String(t || '').trim();
 
     const filters = { q: '', status: [], atividade: [], empresa: [], analista: [] };
     const analistaDe = (v) => v.analista || SEM_ANALISTA;
@@ -426,7 +431,7 @@
         options: [], onChange: v => setFilter('atividade', v) }),
       empresa: createMultiSelect(document.getElementById('msEmpresa'), { rotuloTodos: 'Toda empresa', rotuloCurto: 'Empresa',
         options: [], onChange: v => setFilter('empresa', v) }),
-      analista: createMultiSelect(document.getElementById('msAnalista'), { rotuloTodos: 'Todo analista', rotuloCurto: 'Analista',
+      analista: createMultiSelect(document.getElementById('msAnalista'), { rotuloTodos: 'Todo membro', rotuloCurto: 'Membro',
         options: [], onChange: v => setFilter('analista', v) }),
     };
 
@@ -443,7 +448,9 @@
       dl('atividadesSugeridas', unicos(v => v.atividade));
       const cad = listarEmpresas();
       dl('empresasSugeridas', [...new Set([...cad.map(e => e.nome), ...validacoes.map(v => v.nome)])].sort((a, b) => a.localeCompare(b)));
-      dl('analistasSugeridos', [...new Set([...cad.flatMap(e => [e.responsavel, e.executor]), ...validacoes.map(v => v.analista)].filter(Boolean))].sort((a, b) => a.localeCompare(b)));
+      dl('analistasSugeridos', ctxEquipe
+        ? ctxEquipe.membros.map(m => m.nome)
+        : [...new Set([...cad.flatMap(e => [e.responsavel, e.executor]), ...validacoes.map(v => v.analista)].filter(Boolean))].sort((a, b) => a.localeCompare(b)));
     }
 
     document.getElementById('fltSearch').addEventListener('input', (e) => { filters.q = e.target.value; render(); });
@@ -455,7 +462,7 @@
       if (filters.status.length) partes.push(`Status: ${filters.status.map(s => STATUS_LABEL[s]).join(', ')}`);
       if (filters.atividade.length) partes.push(`Atividade: ${filters.atividade.join(', ')}`);
       if (filters.empresa.length) partes.push(`Empresa: ${filters.empresa.join(', ')}`);
-      if (filters.analista.length) partes.push(`Analista: ${filters.analista.join(', ')}`);
+      if (filters.analista.length) partes.push(`Membro em validação: ${filters.analista.join(', ')}`);
       return partes;
     }
     document.getElementById('btnLimpar').addEventListener('click', () => {
@@ -512,7 +519,7 @@
     function corpoEmail(v) {
       return {
         assunto: `Validação: ${v.nome} — ${v.atividade}`,
-        texto: [`Validação: ${v.nome} — ${v.atividade}`, `Analista responsável: ${analistaDe(v)}`, `Status: ${STATUS_LABEL[v.status]}`,
+        texto: [`Validação: ${v.nome} — ${v.atividade}`, `Membro em validação: ${analistaDe(v)}`, `Status: ${STATUS_LABEL[v.status]}`,
                 `Pontos identificados: ${v.pontos.length}`, '', ...v.pontos.map((p, i) => `${i + 1}. ${p.titulo || '(sem título)'}`)].join('\n').slice(0, 1500),
       };
     }
@@ -521,13 +528,13 @@
       const c = corpoEmail(v);
       return `mailto:${para.join(',')}?subject=${encodeURIComponent(c.assunto)}&body=${encodeURIComponent(c.texto)}`;
     }
-    // Destinatário: o e-mail cadastrado do analista da validação.
+    // Destinatário: o e-mail cadastrado do membro da validação (só quem tem login no Tax Manager).
     async function dispararEmail(v, btn) {
       if (btn.disabled) return;
       btn.disabled = true;
       try {
         const email = v.analista ? await emailDoPerfil(v.analista) : null;
-        if (!email) { flash(v.analista ? `Não há e-mail cadastrado para o analista "${v.analista}".` : 'Esta validação não tem analista definido.'); return; }
+        if (!email) { flash(v.analista ? `Não há e-mail cadastrado para o membro "${v.analista}".` : 'Esta validação não tem membro definido.'); return; }
         flash('Enviando e-mail…');
         const c = corpoEmail(v);
         try {
@@ -547,13 +554,13 @@
         <tr data-id="${esc(v.id)}" class="${classe}">
           <td class="col-main">${esc(v.nome)}${v.retificadora ? ` <span class="badge badge-warning" title="Retifica a validação de ${esc(competenciaCurta(v.retificadora.competencia))}">Retificadora ${esc(competenciaCurta(v.retificadora.competencia))}</span>` : ''}</td>
           <td data-label="Atividade">${esc(v.atividade)}</td>
-          <td data-label="Analista">${analista}</td>
+          <td data-label="Membro em validação">${analista}</td>
           <td data-label="Status">${statusPillHtml(v.status)}</td>
           <td data-label="Pontos">${v.pontos.length ? `<strong>${v.pontos.length}</strong>` : '<span class="muted">—</span>'}</td>
           <td data-label="Atualizada em" class="muted">${fmtBR(v.atualizadoEm)}</td>
           <td class="col-actions">
             <button type="button" class="icon-btn" data-act="pdf" title="Baixar relatório em PDF" aria-label="Baixar relatório em PDF">${svg(ICON.pdf)}</button>
-            <button type="button" class="icon-btn" data-act="email" title="Enviar e-mail ao analista" aria-label="Enviar e-mail ao analista">${svg(ICON.mail)}</button>
+            <button type="button" class="icon-btn" data-act="email" title="Enviar e-mail ao membro" aria-label="Enviar e-mail ao membro">${svg(ICON.mail)}</button>
             <button type="button" class="icon-btn" data-act="edit" title="Editar" aria-label="Editar">${svg(ICON.edit)}</button>
             <button type="button" class="icon-btn danger" data-act="del" title="Excluir" aria-label="Excluir">${svg(ICON.trash)}</button>
           </td>
@@ -622,7 +629,7 @@
     document.getElementById('btnCsv').addEventListener('click', () => {
       const list = visibleList();
       if (!list.length) { flash('Nada para exportar com os filtros atuais.'); return; }
-      const linhas = [['Empresa', 'Atividade', 'Analista responsável', 'Status', 'Pontos identificados', 'Última atualização', 'Justificativa'].join(';')];
+      const linhas = [['Empresa', 'Atividade', 'Membro em validação', 'Status', 'Pontos identificados', 'Última atualização', 'Justificativa'].join(';')];
       list.forEach(v => linhas.push([v.nome, v.atividade, v.analista, STATUS_LABEL[v.status], v.pontos.length, fmtBR(v.atualizadoEm), v.justificativa].map(csvCell).join(';')));
       downloadFile('validacoes.csv', '﻿' + linhas.join('\r\n'), 'text/csv;charset=utf-8');
       flash(`${list.length} ${list.length === 1 ? 'validação exportada' : 'validações exportadas'} em CSV.`);
@@ -642,7 +649,7 @@
           resumo: [{ label: 'Validações', valor: list.length }, ...STATUS_ORDER.filter(s => contar(s)).map(s => ({ label: STATUS_LABEL[s], valor: contar(s) })),
                    { label: 'Pontos identificados', valor: list.reduce((t, v) => t + v.pontos.length, 0) }],
           filtros: descricaoFiltros(),
-          colunas: ['Empresa', 'Atividade', 'Analista responsável', 'Status', 'Pontos', 'Última atualização'],
+          colunas: ['Empresa', 'Atividade', 'Membro em validação', 'Status', 'Pontos', 'Última atualização'],
           linhas: list.map(v => [v.nome, v.atividade, v.analista || '-', STATUS_LABEL[v.status], String(v.pontos.length), fmtBR(v.atualizadoEm)]),
           estilosColunas: { 4: { cellWidth: 20, halign: 'center' }, 5: { cellWidth: 36 } },
         });
@@ -653,7 +660,7 @@
     function identificacaoDe(v, comp) {
       const itens = [
         { rotulo: 'Empresa', valor: v.nome }, { rotulo: 'Atividade', valor: v.atividade },
-        { rotulo: 'Analista responsável', valor: v.analista }, { rotulo: 'Status', valor: STATUS_LABEL[v.status] },
+        { rotulo: 'Membro em validação', valor: v.analista }, { rotulo: 'Status', valor: STATUS_LABEL[v.status] },
         { rotulo: 'Competência', valor: competenciaExtenso(comp) }, { rotulo: 'Criada em', valor: fmtBR(v.criadoEm) },
       ];
       if (v.concluidaEm) itens.push({ rotulo: 'Concluída em', valor: fmtBR(v.concluidaEm) });
@@ -784,7 +791,7 @@
     }
 
     function salvar() {
-      const dados = { nome: fEmpresa.value.trim(), atividade: fAtividade.value.trim(), analista: fAnalista.value.trim(), status: fStatus.value,
+      const dados = { nome: fEmpresa.value.trim(), atividade: fAtividade.value.trim(), analista: membroCanonico(fAnalista.value), status: fStatus.value,
                       justificativa: fJust.value.trim() };
       if (!atual) {
         if (!dados.nome) return;
@@ -860,7 +867,7 @@
     // Ao escolher uma empresa do cadastro, sugere o responsável dela como analista (se o campo estiver vazio).
     fEmpresa.addEventListener('change', () => {
       const cad = empresaPorNome(fEmpresa.value);
-      if (cad && !fAnalista.value.trim()) { fAnalista.value = cad.responsavel; salvar(); }
+      if (cad && !fAnalista.value.trim()) { fAnalista.value = membroCanonico(cad.responsavel); salvar(); }
     });
 
     document.getElementById('addPontoBtn').addEventListener('click', () => {

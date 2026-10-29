@@ -32,11 +32,17 @@ function qb(nome) {
   const orig = q.in; q.in = (c, vs) => { const r = orig(c, vs); return op === 'delete' ? Promise.resolve({ error: null }) : r; };
   return q;
 }
-const supabase = { auth: { getSession: async () => ({ data: { session: { user: { id: U } } } }) }, from: qb };
+const amPro = [{ equipe_id: EQ, nome: 'ADRIELY', usuario: 'u7' }, { equipe_id: EQ, nome: 'Adriely Monteiro', usuario: 'u7' },
+  { equipe_id: EQ, nome: 'ANA SOUZA', usuario: '' }, { equipe_id: 'outra', nome: 'De Outra Equipe', usuario: '' }];
+const supabase = { auth: { getSession: async () => ({ data: { session: { user: { id: U } } } }) }, from: qb,
+  rpc: async (nome) => (nome === 'ampro_membros' ? { data: amPro, error: null } : { data: null, error: { message: 'x' } }) };
 
 const ctx = await contextoEquipe(supabase);
 assert.equal(ctx.equipeId, EQ);
-assert.deepEqual(ctx.membros.map(m => m.nome), ['Ana Souza', 'bia']); // gestora Wendel ('w') não é candidata a delegado
+// AM PRO (só desta equipe, nomes repetidos reunidos) + analistas com login; o gestor Wendel ('w') não entra
+assert.deepEqual(ctx.membros.map(m => m.nome), ['Adriely Monteiro', 'Ana Souza', 'bia']);
+assert.equal(ctx.membros.find(m => m.nome === 'Ana Souza').id, U);        // quem tem login mantém o id
+assert.equal(ctx.membros.find(m => m.nome === 'Adriely Monteiro').id, null);
 assert.equal(resolverDelegado(ctx, 'ana souza'), 'Ana Souza');
 assert.equal(resolverDelegado(ctx, 'Fulano'), SEM_DELEGADO);
 
@@ -53,6 +59,14 @@ assert.equal(tabelas.tarefas[0].observacoes, null);
 await sync.enviar(lista); // sem mudança: não grava de novo
 assert.equal(chamadas.filter(c => c[0] === 'upsert').length, 1);
 
+lista.push({ id: 'a-2', tarefa: 'Outra', tipo: 'operacional', prioridade: 'normal', status: 'pendente', requerente: 'Interno',
+  delegadoPara: resolverDelegado(ctx, 'adriely MONTEIRO'), prazo: '2026-11-06', observacoes: '', notificar: '' });
+assert.equal(lista[1].delegadoPara, 'Adriely Monteiro');
+await sync.enviar(lista);
+const t2 = tabelas.tarefas.find(r => r.id === 'a-2');
+assert.equal(t2.delegado_nome, 'Adriely Monteiro');   // pessoa do AM PRO sem login: grava o nome
+assert.equal(t2.responsavel_id, null);
+lista.pop(); await sync.enviar(lista);
 lista[0].status = 'concluida';
 await sync.enviar(lista);
 assert.equal(tabelas.tarefas[0].status, 'concluida');

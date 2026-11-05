@@ -4,7 +4,8 @@
 
 // Meta de conclusão (%) — valor provisório; o contrato do AM PRO não envia meta.
 export const META_CONCLUSAO = 90;
-const ATUALIZA_A_CADA_MS = 60_000;
+const ATUALIZA_A_CADA_MS = 3_600_000; // o AM PRO atualiza a leitura de hora em hora
+const CONFERE_A_CADA_MS = 60_000;      // vira o mês na hora: confere o relógio a cada minuto
 const TROCA_DO_HERO_MS = 9_000;
 
 const fmt = new Intl.NumberFormat('pt-BR');
@@ -86,6 +87,12 @@ function lerEscolhas() {
 }
 function salvarEscolhas() { try { localStorage.setItem(estado.chave, JSON.stringify({ ...estado.escolhas, top: estado.top })); } catch { /* ignora */ } }
 
+/** Competência de hoje (AAAA-MM) no fuso de Manaus. */
+function mesAtual() {
+  const p = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Manaus', year: 'numeric', month: '2-digit' }).formatToParts(new Date());
+  return `${p.find(x => x.type === 'year').value}-${p.find(x => x.type === 'month').value}`;
+}
+
 function cicloRotulo(c) { const [a, m] = c.split('-'); return `${m}/${a}`; }
 function quando(iso) {
   return new Date(iso).toLocaleString('pt-BR', { timeZone: 'America/Manaus', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
@@ -145,15 +152,23 @@ async function atualizar() {
     const sel = $('apCiclo');
     const { data: ciclos, error: e1 } = await supabase.rpc('ampro_ciclos');
     if (e1) throw e1;
-    if (!ciclos?.length) { vazio('Nenhum dado recebido do AM PRO ainda.', 'AM PRO · aguardando primeira sincronização'); return; }
-    const anterior = sel.value;
-    const lista = ciclos.map(c => c.ciclo);
+    if (!ciclos?.length) { estado.ultimaLeitura = Date.now(); estado.mesLido = mesAtual(); vazio('Nenhum dado recebido do AM PRO ainda.', 'AM PRO · aguardando primeira sincronização'); return; }
+    const hoje = mesAtual();
+    // A competência acompanha o mês: no mês novo volta sozinha para ele, mesmo que alguém tenha escolhido outra.
+    if (estado.escolhaManual && estado.mesDaEscolha !== hoje) estado.escolhaManual = false;
+    const comDados = ciclos.map(c => c.ciclo);
+    const lista = [...new Set([hoje, ...comDados])].sort().reverse();
     if (lista.join() !== [...sel.options].map(o => o.value).join()) {
       sel.innerHTML = '';
       for (const c of lista) sel.add(new Option(cicloRotulo(c), c));
     }
-    sel.value = lista.includes(anterior) ? anterior : lista[0];
-    const ciclo = sel.value;
+    let ciclo;
+    if (estado.escolhaManual && lista.includes(sel.value)) ciclo = sel.value;
+    else ciclo = comDados.includes(hoje) ? hoje : comDados[0]; // mês ainda sem envio do AM PRO: mostra o último que chegou
+    sel.value = ciclo;
+    estado.ultimaLeitura = Date.now();
+    estado.mesLido = hoje;
+    const aguardando = !estado.escolhaManual && ciclo !== hoje ? ` · aguardando ${cicloRotulo(hoje)}` : '';
     const [r, m, o] = await Promise.all([
       supabase.rpc('ampro_resumo', { p_ciclo: ciclo }),
       supabase.rpc('ampro_por_membro', { p_ciclo: ciclo }),
@@ -163,7 +178,7 @@ async function atualizar() {
     if (!r.data?.length) { vazio('Sem dados para este ciclo.', 'AM PRO · sem dados no ciclo'); return; }
     estado.dados = { top: estado.top, t: consolidar(r.data), membros: m.error ? [] : porMembro(m.data || []), obrigacoes: o.error ? [] : (o.data || []),
       equipesTxt: r.data.map((l) => `${l.equipe_nome}: ${l.concluidas}/${l.aplicaveis}`).join(' · ') };
-    $('apTag').textContent = 'AM PRO · conectado';
+    $('apTag').textContent = `AM PRO · conectado${aguardando}`;
     $('apDot')?.classList.add('ap-on');
     pintar();
   } catch (err) {
@@ -254,8 +269,10 @@ export async function carregarPainelAmPro(supabase) {
   lerEscolhas();
   instalarMenus();
   instalarHero();
-  $('apCiclo').addEventListener('change', atualizar);
+  $('apCiclo').addEventListener('change', () => { estado.escolhaManual = true; estado.mesDaEscolha = mesAtual(); atualizar(); });
   await atualizar();
-  setInterval(atualizar, ATUALIZA_A_CADA_MS);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) atualizar(); });
+  // Releitura de hora em hora e, na virada do mês, imediatamente.
+  const devida = () => estado.mesLido !== mesAtual() || Date.now() - (estado.ultimaLeitura || 0) >= ATUALIZA_A_CADA_MS;
+  setInterval(() => { if (devida()) atualizar(); }, CONFERE_A_CADA_MS);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && devida()) atualizar(); });
 }

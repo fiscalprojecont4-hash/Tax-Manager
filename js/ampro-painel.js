@@ -87,10 +87,16 @@ function lerEscolhas() {
 }
 function salvarEscolhas() { try { localStorage.setItem(estado.chave, JSON.stringify({ ...estado.escolhas, top: estado.top })); } catch { /* ignora */ } }
 
-/** Competência de hoje (AAAA-MM) no fuso de Manaus. */
+/**
+ * Competência que o painel acompanha: a do MÊS ANTERIOR ao de hoje (fuso de Manaus). O desempenho é do mês
+ * corrente (o que está sendo entregue agora), sobre a competência fechada no mês anterior: em novembro,
+ * 10/2026; no dia 1º de dezembro, passa para 11/2026.
+ */
 function mesAtual() {
   const p = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Manaus', year: 'numeric', month: '2-digit' }).formatToParts(new Date());
-  return `${p.find(x => x.type === 'year').value}-${p.find(x => x.type === 'month').value}`;
+  let a = Number(p.find(x => x.type === 'year').value), m = Number(p.find(x => x.type === 'month').value) - 1;
+  if (m === 0) { m = 12; a -= 1; }
+  return `${a}-${String(m).padStart(2, '0')}`;
 }
 
 function cicloRotulo(c) { const [a, m] = c.split('-'); return `${m}/${a}`; }
@@ -154,7 +160,7 @@ async function atualizar() {
     if (e1) throw e1;
     if (!ciclos?.length) { estado.ultimaLeitura = Date.now(); estado.mesLido = mesAtual(); vazio('Nenhum dado recebido do AM PRO ainda.', 'AM PRO · aguardando primeira sincronização'); return; }
     const hoje = mesAtual();
-    // A competência acompanha o mês: no mês novo volta sozinha para ele, mesmo que alguém tenha escolhido outra.
+    // A competência acompanha o calendário: na virada do mês volta sozinha para a do mês anterior, mesmo que alguém tenha escolhido outra.
     if (estado.escolhaManual && estado.mesDaEscolha !== hoje) estado.escolhaManual = false;
     const comDados = ciclos.map(c => c.ciclo);
     const lista = [...new Set([hoje, ...comDados])].sort().reverse();
@@ -271,7 +277,7 @@ export async function carregarPainelAmPro(supabase) {
   instalarHero();
   $('apCiclo').addEventListener('change', () => { estado.escolhaManual = true; estado.mesDaEscolha = mesAtual(); atualizar(); });
   await atualizar();
-  // Releitura de hora em hora e, na virada do mês, imediatamente.
+  // Releitura de hora em hora (desempenho atual) e, na virada do mês, troca a competência na hora.
   const devida = () => estado.mesLido !== mesAtual() || Date.now() - (estado.ultimaLeitura || 0) >= ATUALIZA_A_CADA_MS;
   setInterval(() => { if (devida()) atualizar(); }, CONFERE_A_CADA_MS);
   document.addEventListener('visibilitychange', () => { if (!document.hidden && devida()) atualizar(); });

@@ -7,6 +7,7 @@ Implementa o contrato **`CONTRATO-AMPRO.md`** (v1, escrito pelo lado do AM PRO).
 | `POST /mirror` | AM PRO | Snapshot de uma equipe e competência (empresas + obrigações/execução). Aplicado em **uma transação**, com recibo e idempotência. |
 | `GET /calendar?competence=AAAA-MM` | AM PRO | Calendário fiscal aprovado do mês, com versões substituídas. Lê o mês inteiro (sem truncar em 1000 linhas). |
 | `GET /validations?team=fiscal&competence=AAAA-MM` | AM PRO | Validações e achados de uma equipe e competência (abertas e já encerradas), ligadas à empresa do AM PRO pelo nome. Só da equipe pedida e só se a credencial a tiver no escopo. |
+| `GET /tasks?team=fiscal&competence=AAAA-MM` | AM PRO | Tarefas da equipe (pendentes até o fim do mês, mais as encerradas do mês). Delegado ligado ao ID de usuário do AM PRO (por perfil ou pelo nome em `ampro_obrigacoes`); nome ambíguo ou perfil desconhecido sai sem responsável. Código em `tasks.ts`; testes em `tasks.test.ts` e `tasks.schema.test.ts`. |
 
 ## Como a segurança funciona
 

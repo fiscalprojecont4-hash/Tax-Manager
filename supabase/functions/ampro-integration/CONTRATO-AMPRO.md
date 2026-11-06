@@ -368,3 +368,14 @@ Executar duas vezes e conferir no receptor que as contagens não duplicaram. Val
 - Documento inicial: `docs/integracao-tax-manager.md`.
 
 Próximas entregas: receptor Supabase com RLS e idempotência, vínculo dos usuários Auth, credencial de serviço, jobs separados e visualização do calendário no AM PRO.
+
+## 4.3 `GET /tasks` — tarefas do Tax Manager (v1)
+
+`GET /tasks?team=fiscal|omega|beta&competence=AAAA-MM` com `Authorization: Bearer <chave>`.
+
+- `team` precisa estar no escopo da credencial (`403` caso contrário); `team`/`competence` inválidos = `400`.
+- Resposta `200`: `{ schemaVersion: 1, team: { id }, competence, tasks: [...] }`, ordenada por `dueDate` e `id`.
+- Cada tarefa: `id, title, description, category, priority (low|normal|high|critical), status (pending|in_progress|impediment|done|cancelled), dueDate, createdAt, completedAt, updatedAt, assignee { amproUserId, email, name }`.
+- Período: tarefas abertas com prazo até o fim da competência (ou sem prazo e criadas até então) e tarefas concluídas/canceladas cujo prazo (ou conclusão) cai no mês.
+- Responsável: perfil do Tax Manager → e-mail → ID do AM PRO; sem perfil, o nome do delegado só vira ID se for único na equipe; ambíguo ou perfil desconhecido = `assignee` vazio.
+- Falha de leitura (inclusive em página posterior) = `500`, nunca lista parcial.

@@ -1,3 +1,4 @@
+import { instalarAtualizacaoAmpro } from './ampro-refresh.js';
 // Painel AM PRO no dashboard: lê o espelho gravado pela integração (ampro_obrigacoes) via RPC.
 // O isolamento por equipe vem do RLS: analista vê só a sua equipe; gestor/admin vê todas.
 // Cada pessoa escolhe a métrica de cada bloco (botão direito ou botão ⋯); a escolha fica salva neste navegador.
@@ -195,6 +196,7 @@ async function atualizar() {
   } catch (err) {
     console.error('AM PRO painel:', err);
     if (!estado.dados) vazio('Não foi possível ler os dados do AM PRO.', 'AM PRO · erro de leitura');
+    return false;
   }
 }
 
@@ -282,6 +284,8 @@ export async function carregarPainelAmPro(supabase) {
   instalarHero();
   $('apCiclo').addEventListener('change', () => { estado.escolhaManual = true; estado.mesDaEscolha = mesAtual(); atualizar(); });
   await atualizar();
+  const refreshControl = instalarAtualizacaoAmpro(supabase, { cycle: () => $('apCiclo').value || mesAtual(), currentCycle: mesAtual, onUpdated: atualizar });
+  $('apCiclo').addEventListener('change', () => { void refreshControl?.request($('apCiclo').value); });
   // Releitura de hora em hora (desempenho atual) e, na virada do mês, troca a competência na hora.
   const devida = () => estado.mesLido !== mesAtual() || Date.now() - (estado.ultimaLeitura || 0) >= ATUALIZA_A_CADA_MS;
   setInterval(() => { if (devida()) atualizar(); }, CONFERE_A_CADA_MS);

@@ -1513,3 +1513,106 @@ grant execute on function public.ampro_membros() to authenticated;
 
 -- Tarefas: o delegado pode ser alguém do AM PRO que não tem login no Tax Manager.
 alter table public.tarefas add column if not exists delegado_nome text;
+
+
+-- =============================================================================
+-- 16. Atualização por solicitação (fila AM PRO): ampro_sync_requests + funções
+--     Pacote do AM PRO (001-refresh-requests.sql); idempotente.
+-- =============================================================================
+-- Executar no Tax Manager antes de publicar refresh.ts e o painel atualizado.
+-- Credencial permanece no receptor. O navegador só solicita atualização com sua própria sessão.
+create table if not exists public.ampro_sync_requests (
+  id uuid primary key default gen_random_uuid(),
+  equipe_id uuid not null references public.equipes(id) on delete cascade,
+  ampro_team text not null references public.ampro_equipes(ampro_id) on delete cascade,
+  cycle_id text not null check (cycle_id ~ '^\d{4}-(0[1-9]|1[0-2])$'),
+  requested_by uuid not null references public.perfis(id) on delete cascade,
+  requested_at timestamptz not null default now(),
+  status text not null default 'pending' check (status in ('pending','processing','done','failed')),
+  attempts integer not null default 0,
+  lease_id uuid, leased_by uuid references public.ampro_chaves(id), lease_until timestamptz,
+  finished_at timestamptz, error_code text
+);
+create unique index if not exists ampro_sync_active_unique on public.ampro_sync_requests(ampro_team, cycle_id)
+  where status in ('pending','processing');
+create index if not exists ampro_sync_queue_idx on public.ampro_sync_requests(status, requested_at);
+alter table public.ampro_sync_requests enable row level security;
+revoke all on public.ampro_sync_requests from public, anon, authenticated;
+grant all on public.ampro_sync_requests to service_role;
+grant select(id,equipe_id,ampro_team,cycle_id,status,requested_at,finished_at,error_code) on public.ampro_sync_requests to authenticated;
+drop policy if exists ampro_sync_read on public.ampro_sync_requests;
+create policy ampro_sync_read on public.ampro_sync_requests for select to authenticated using (private.eh_membro(equipe_id));
+
+create or replace function public.ampro_request_refresh(p_cycle text)
+returns table(id uuid, ampro_team text, cycle_id text, status text)
+language plpgsql security definer set search_path = '' as $$
+declare actor uuid := auth.uid(); target record; item public.ampro_sync_requests; count_allowed integer := 0;
+begin
+  if actor is null or not exists(select 1 from public.perfis p where p.id = actor and p.ativo) then
+    raise exception 'Sessão inválida' using errcode = '42501';
+  end if;
+  if p_cycle is null or p_cycle !~ '^\d{4}-(0[1-9]|1[0-2])$' then raise exception 'Ciclo inválido' using errcode = '22023'; end if;
+  -- Serializa coalescência e limite; atualizar várias abas não multiplica a fila.
+  perform pg_catalog.pg_advisory_xact_lock(617362, 746179);
+  if (select count(*) from public.ampro_sync_requests q where q.requested_by = actor and q.requested_at > now() - interval '1 minute') >= 10 then
+    raise exception 'Aguarde antes de solicitar novamente' using errcode = '54000';
+  end if;
+  for target in select a.ampro_id, a.equipe_id from public.ampro_equipes a where private.eh_membro(a.equipe_id) order by a.ampro_id loop
+    count_allowed := count_allowed + 1;
+    select q.* into item from public.ampro_sync_requests q
+      where q.ampro_team = target.ampro_id and q.cycle_id = p_cycle
+        and q.status in ('pending','processing')
+      order by q.requested_at desc limit 1;
+    if not found then
+      insert into public.ampro_sync_requests(equipe_id, ampro_team, cycle_id, requested_by)
+        values(target.equipe_id, target.ampro_id, p_cycle, actor) returning * into item;
+    end if;
+    id := item.id; ampro_team := item.ampro_team; cycle_id := item.cycle_id; status := item.status;
+    return next;
+  end loop;
+  if count_allowed = 0 then raise exception 'Equipe não autorizada' using errcode = '42501'; end if;
+end $$;
+revoke all on function public.ampro_request_refresh(text) from public, anon;
+grant execute on function public.ampro_request_refresh(text) to authenticated;
+
+create or replace function public.ampro_claim_refresh(p_key uuid)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare allowed text[]; item public.ampro_sync_requests;
+begin
+  select k.equipes into allowed from public.ampro_chaves k where k.id = p_key and k.ativa;
+  if allowed is null then raise exception 'Chave inválida' using errcode = '42501'; end if;
+  update public.ampro_sync_requests q set status = 'failed', finished_at = now(), error_code = 'worker_unavailable', lease_id = null, leased_by = null, lease_until = null
+    where q.ampro_team = any(allowed) and q.status = 'processing' and q.lease_until <= now() and q.attempts >= 3;
+  select q.* into item from public.ampro_sync_requests q
+    where q.ampro_team = any(allowed) and q.attempts < 3
+      and (q.status = 'pending' or (q.status = 'processing' and q.lease_until <= now()))
+    order by q.requested_at, q.id for update skip locked limit 1;
+  if not found then return jsonb_build_object('schemaVersion',1,'requests','[]'::jsonb); end if;
+  update public.ampro_sync_requests q set status = 'processing', attempts = q.attempts + 1,
+    lease_id = gen_random_uuid(), leased_by = p_key, lease_until = now() + interval '5 minutes', error_code = null
+    where q.id = item.id returning * into item;
+  return jsonb_build_object('schemaVersion',1,'requests',jsonb_build_array(jsonb_build_object(
+    'id',item.id,'leaseId',item.lease_id,'teamId',item.ampro_team,'competence',item.cycle_id)));
+end $$;
+revoke all on function public.ampro_claim_refresh(uuid) from public, anon, authenticated;
+grant execute on function public.ampro_claim_refresh(uuid) to service_role;
+
+create or replace function public.ampro_finish_refresh(p_key uuid, p_id uuid, p_lease uuid, p_ok boolean, p_revision text default null, p_error text default null)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare item public.ampro_sync_requests;
+begin
+  select q.* into item from public.ampro_sync_requests q where q.id = p_id and q.status = 'processing'
+    and q.leased_by = p_key and q.lease_id = p_lease and q.lease_until > now()
+    and exists(select 1 from public.ampro_chaves k where k.id = p_key and k.ativa and q.ampro_team = any(k.equipes)) for update;
+  if not found then raise exception 'Reserva inválida ou expirada' using errcode = '42501'; end if;
+  if p_ok is null then raise exception 'Resultado inválido' using errcode = '22023'; end if;
+  if p_ok and (p_revision is null or p_revision !~ '^[a-f0-9]{64}$' or not exists(
+    select 1 from public.ampro_recibos r where r.equipe_id = item.equipe_id and r.competencia = item.cycle_id and r.revisao = p_revision
+  )) then raise exception 'Espelho ainda não confirmado no banco' using errcode = '22023'; end if;
+  if not p_ok and (p_error is null or p_error not in ('source_unavailable','sync_failed')) then raise exception 'Erro inválido' using errcode = '22023'; end if;
+  update public.ampro_sync_requests q set status = case when p_ok then 'done' else 'failed' end,
+    finished_at = now(), error_code = case when p_ok then null else p_error end, lease_id = null, leased_by = null, lease_until = null where q.id = item.id;
+  return jsonb_build_object('accepted',true,'id',item.id,'status',case when p_ok then 'done' else 'failed' end);
+end $$;
+revoke all on function public.ampro_finish_refresh(uuid,uuid,uuid,boolean,text,text) from public, anon, authenticated;
+grant execute on function public.ampro_finish_refresh(uuid,uuid,uuid,boolean,text,text) to service_role;

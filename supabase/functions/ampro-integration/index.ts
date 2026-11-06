@@ -1,3 +1,4 @@
+import { tratarRefresh } from './refresh.ts';
 import { tratarTarefas } from './tasks.ts';
 
 // Edge Function "ampro-integration" — receptor do contrato HTTP v1 do AM PRO (CONTRATO-AMPRO.md).
@@ -207,7 +208,7 @@ export async function tratar(req: Request, criarCliente: () => Promise<Cliente> 
 
   const url = new URL(req.url);
   const rota = url.pathname.replace(/\/+$/, '').split('/').pop() ?? '';
-  const metodos: Record<string, string> = { mirror: 'POST', calendar: 'GET', validations: 'GET', tasks: 'GET' };
+  const metodos: Record<string, string> = { mirror: 'POST', calendar: 'GET', validations: 'GET', tasks: 'GET', 'refresh-requests': 'GET', 'refresh-result': 'POST' };
   if (!(rota in metodos)) return erro(404, 'not_found', 'Rota inexistente. Use /mirror, /calendar, /validations ou /tasks.');
   if (req.method !== metodos[rota]) return erro(405, 'method_not_allowed', `Use ${metodos[rota]} em /${rota}.`);
 
@@ -229,6 +230,8 @@ export async function tratar(req: Request, criarCliente: () => Promise<Cliente> 
   if (erroContagem) return erro(500, 'internal_error', 'Não foi possível verificar o limite de chamadas.');
   if ((count ?? 0) >= LIMITE_POR_MINUTO) { await registrar(429); return erro(429, 'rate_limited', 'Limite temporário de chamadas. Tente de novo em instantes.'); }
   await sb.from('ampro_chaves').update({ ultimo_uso: new Date().toISOString() }).eq('id', chave.id);
+
+  if (rota === 'refresh-requests' || rota === 'refresh-result') return tratarRefresh(req, sb, chave, registrar, resp, erro);
 
   if (rota === 'tasks') return tratarTarefas(req, sb, chave, registrar, resp, erro);
 

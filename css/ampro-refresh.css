@@ -1,0 +1,4 @@
+.ap-refresh-toolbar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 0 0 12px; }
+.ap-refresh-toolbar button { border: 1px solid var(--border, #ced9ee); border-radius: 8px; padding: 9px 13px; background: var(--surface, #fff); color: var(--text, #17345f); font: inherit; cursor: pointer; }
+.ap-refresh-toolbar button:disabled { cursor: wait; opacity: .7; }
+.ap-refresh-toolbar span { flex: 1 1 220px; font-size: 12px; color: var(--muted, #55647c); }

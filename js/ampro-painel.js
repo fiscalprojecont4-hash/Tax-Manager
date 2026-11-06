@@ -88,15 +88,19 @@ function lerEscolhas() {
 function salvarEscolhas() { try { localStorage.setItem(estado.chave, JSON.stringify({ ...estado.escolhas, top: estado.top })); } catch { /* ignora */ } }
 
 /**
- * Competência que o painel acompanha: a do MÊS ANTERIOR ao de hoje (fuso de Manaus). O desempenho é do mês
- * corrente (o que está sendo entregue agora), sobre a competência fechada no mês anterior: em novembro,
- * 10/2026; no dia 1º de dezembro, passa para 11/2026.
+ * Competência OPERACIONAL do painel: o mês de hoje (fuso de Manaus), que é o ciclo em que as obrigações estão sendo
+ * entregues. A competência FISCAL a que elas se referem é a do mês anterior (em novembro, operacional 11/2026 e
+ * fiscal 10/2026). No dia 1º o painel passa sozinho para o mês novo.
  */
 function mesAtual() {
   const p = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Manaus', year: 'numeric', month: '2-digit' }).formatToParts(new Date());
-  let a = Number(p.find(x => x.type === 'year').value), m = Number(p.find(x => x.type === 'month').value) - 1;
-  if (m === 0) { m = 12; a -= 1; }
-  return `${a}-${String(m).padStart(2, '0')}`;
+  return `${p.find(x => x.type === 'year').value}-${p.find(x => x.type === 'month').value}`;
+}
+
+/** Competência fiscal (mês anterior) de um ciclo operacional AAAA-MM. */
+function cicloFiscal(c) {
+  let [a, m] = c.split('-').map(Number); m -= 1; if (m === 0) { m = 12; a -= 1; }
+  return `${String(m).padStart(2, '0')}/${a}`;
 }
 
 function cicloRotulo(c) { const [a, m] = c.split('-'); return `${m}/${a}`; }
@@ -172,6 +176,7 @@ async function atualizar() {
     if (estado.escolhaManual && lista.includes(sel.value)) ciclo = sel.value;
     else ciclo = comDados.includes(hoje) ? hoje : comDados[0]; // mês ainda sem envio do AM PRO: mostra o último que chegou
     sel.value = ciclo;
+    sel.title = `Competência operacional ${cicloRotulo(ciclo)} · competência fiscal ${cicloFiscal(ciclo)}`;
     estado.ultimaLeitura = Date.now();
     estado.mesLido = hoje;
     const aguardando = !estado.escolhaManual && ciclo !== hoje ? ` · aguardando ${cicloRotulo(hoje)}` : '';

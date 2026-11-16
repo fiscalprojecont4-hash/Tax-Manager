@@ -8,7 +8,7 @@ import { gravar, isoDe } from './dados-teste.js';
 import { unirMembros, acharMembro } from './membros.js';
 
 export const SEM_DELEGADO = 'Sem delegado';
-const COLUNAS = 'id,titulo,tipo,prioridade,status,requerente,responsavel_id,delegado_nome,prazo,observacoes,notificar_email,concluida_em,criado_em';
+const COLUNAS = 'id,titulo,tipo,prioridade,status,empresa,requerente,responsavel_id,delegado_nome,prazo,observacoes,notificar_email,concluida_em,criado_em';
 const TAM = 1000;
 
 let memo = null; // { usuarioId, ctx } — a equipe não muda durante a sessão
@@ -63,7 +63,7 @@ function paraTela(r, ctx) {
   const nome = (r.delegado_nome || '').trim() || (resp ? resp.nome : '');
   return {
     id: r.id, tarefa: r.titulo, tipo: r.tipo, prioridade: r.prioridade, status: r.status,
-    requerente: r.requerente || 'Interno', delegadoPara: nome ? (acharMembro(ctx.membros, nome)?.nome || nome) : SEM_DELEGADO,
+    empresa: r.empresa || 'Interno', requerente: r.requerente || '', delegadoPara: nome ? (acharMembro(ctx.membros, nome)?.nome || nome) : SEM_DELEGADO,
     prazo: r.prazo || '', observacoes: r.observacoes || '', notificar: r.notificar_email || '',
     criadoEm: dia(r.criado_em), concluidaEm: dia(r.concluida_em),
   };
@@ -73,7 +73,7 @@ function paraBanco(t, ctx) {
   const m = t.delegadoPara && t.delegadoPara !== SEM_DELEGADO ? ctx.membros.find(x => x.nome === t.delegadoPara) : null;
   return {
     id: t.id, equipe_id: ctx.equipeId, titulo: t.tarefa, tipo: t.tipo, prioridade: t.prioridade, status: t.status,
-    requerente: t.requerente || 'Interno', responsavel_id: m?.id ?? null, delegado_nome: m ? m.nome : null, prazo: t.prazo || null,
+    empresa: t.empresa || 'Interno', requerente: (t.requerente || '').trim(), responsavel_id: m?.id ?? null, delegado_nome: m ? m.nome : null, prazo: t.prazo || null,
     observacoes: t.observacoes || null, notificar_email: t.notificar || null,
   };
 }

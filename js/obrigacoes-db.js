@@ -54,6 +54,9 @@ export async function contarPorStatus(ym = '') {
  * Muda a situação de várias obrigações. Retorna quantas foram realmente alteradas
  * (a RLS não dá erro quando o usuário não tem permissão: simplesmente não altera nada).
  * Aprovar uma nova versão marca a anterior como 'substituido'.
+ * Depois de alterar, grava a decisão como regra da obrigação (órgão + título): os rascunhos dos meses seguintes
+ * e os que a rotina diária criar depois já nascem com a mesma decisão. 'rascunho' (Desfazer) apaga a regra.
+ * Retorna { alteradas, replicadas } (replicadas = rascunhos futuros que a regra já decidiu agora).
  */
 export async function mudarStatus(lista, status) {
   const { data: { session } } = await supabase.auth.getSession();
@@ -76,8 +79,14 @@ export async function mudarStatus(lista, status) {
       if (error) throw error;
     }
   }
+  let replicadas = 0, regraErro = '';
+  if (alteradas) {
+    // a regra só vale para o que realmente mudou (a RLS não avisa quando nega); falha aqui não desfaz a decisão já gravada
+    const { data, error } = await supabase.rpc('obrigacoes_gravar_regras', { p_ids: ids, p_decisao: status });
+    if (error) regraErro = error.message || 'falha ao gravar a regra'; else replicadas = Number(data) || 0;
+  }
   await atualizarOficiais().catch(() => {});
-  return alteradas;
+  return { alteradas, replicadas, regraErro };
 }
 
 /** Busca as aprovadas (ano anterior em diante) e guarda no cache local usado pelo Calendário e pelos relatórios. */

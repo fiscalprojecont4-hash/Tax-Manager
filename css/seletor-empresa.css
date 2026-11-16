@@ -1,0 +1,31 @@
+/* Seletor de empresa (js/seletor-empresa.js): cartão + lista pesquisável. */
+.se { position: relative; }
+.se-card {
+  display: flex; align-items: center; gap: 0.7rem; width: 100%; text-align: left; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  padding: 0.55rem 0.7rem; font: inherit; color: var(--text); transition: border-color .15s, box-shadow .15s;
+}
+.se-card:hover { border-color: var(--accent); }
+.se-card:focus-visible, .se-card[aria-expanded="true"] { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+.se-avatar {
+  flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--accent); color: #fff; font-size: 0.72rem; font-weight: 700; letter-spacing: .02em;
+}
+.se-avatar-vazio { background: color-mix(in srgb, var(--muted) 22%, transparent); color: var(--muted); }
+.se-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.se-nome { font-size: 0.86rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.se-sub { font-size: 0.73rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.se-acao { flex: none; font-size: 0.78rem; font-weight: 600; color: var(--accent); }
+.se-pop {
+  position: absolute; z-index: 40; left: 0; right: 0; top: calc(100% + 6px);
+  background: var(--panel, #fff); border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(22, 35, 58, 0.16); overflow: hidden;
+}
+.se-pop[hidden] { display: none; }
+.se-busca { display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); color: var(--muted); }
+.se-busca .se-input { flex: 1; border: 0; outline: 0; background: transparent; font: inherit; font-size: 0.86rem; color: var(--text); }
+.se-lista { list-style: none; margin: 0; padding: 0.35rem; max-height: 280px; overflow-y: auto; }
+.se-item { display: flex; align-items: center; gap: 0.7rem; padding: 0.5rem 0.55rem; border-radius: 9px; cursor: pointer; }
+.se-item.ativo { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.se-item.atual .se-nome { color: var(--accent); }
+.se-aviso { padding: 0.6rem 0.7rem; font-size: 0.78rem; color: var(--muted); }

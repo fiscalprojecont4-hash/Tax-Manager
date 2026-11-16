@@ -423,3 +423,18 @@ html, body {
 }
 
 .day-panel-footer-actions .btn-fill { flex: 1; }
+
+/* ---------- Editar / cancelar / vincular tarefa ---------- */
+.cal-pill.cancelado, .day-event-chip.cancelado, .cal-schedule-event.cancelado .title {
+  text-decoration: line-through; opacity: .55;
+}
+.day-event-chip.editavel { cursor: pointer; transition: box-shadow .12s, transform .12s; }
+.day-event-chip.editavel:hover, .day-event-chip.editavel:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--accent-line); }
+.form-link { display: inline-block; margin-top: 0.4rem; font-size: 0.76rem; font-weight: 600; color: var(--accent); text-decoration: none; }
+.form-link:hover { text-decoration: underline; }
+.form-edit-aviso { margin: -0.4rem 0 0.8rem; font-size: 0.76rem; color: var(--warning); background: var(--warning-soft); border-radius: 8px; padding: 0.4rem 0.6rem; }
+.day-panel-edit-actions { margin-top: 0.6rem; flex-wrap: wrap; }
+.day-panel-edit-actions[hidden], .form-edit-aviso[hidden], .form-link[hidden] { display: none; }
+.day-panel-edit-actions .btn-outline, .day-panel-edit-actions .btn-ghost { flex: 1; white-space: nowrap; }
+.day-panel-edit-actions .btn-ghost.armed { background: var(--danger); border-color: var(--danger); color: #fff; }
+.day-panel-footer .form-row select, .day-panel-footer .form-row input[type="date"] { width: 100%; }

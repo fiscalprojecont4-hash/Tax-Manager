@@ -69,10 +69,6 @@
   </nav>
 
   <main class="wrap-fluid">
-    <div class="data-note">
-      As categorias ficam no banco, na sua equipe. As empresas vêm do AM PRO e o Calendário oficial é compartilhado entre as equipes.
-    </div>
-
     <div class="tab-bar" role="tablist" aria-label="Cadastros">
       <button type="button" role="tab" id="tabCat" aria-selected="true" aria-controls="paneCat">Categorias</button>
       <button type="button" role="tab" id="tabEmp" aria-selected="false" aria-controls="paneEmp">Empresas</button>
@@ -126,6 +122,7 @@
       <div class="form-card">
         <h3>Calendário oficial — revisão</h3>
         <p>Todo dia o sistema lê a Agenda Tributária da Receita Federal e cria <strong>rascunhos</strong>. Só o que for aprovado aqui aparece no Calendário de todos como obrigação oficial.
+           O que você aprova ou rejeita fica gravado e vale para os meses seguintes: a mesma obrigação já chega decidida. Use <em>Desfazer</em> para voltar a revisar.
            Se um prazo mudar na fonte, chega uma nova versão para você revisar.</p>
         <div class="inline-form">
           <div class="form-row"><label for="obrMes">Mês do vencimento</label><input type="month" id="obrMes" /></div>
@@ -336,10 +333,14 @@
       if (!lista.length) return;
       msgObr('Salvando…');
       try {
-        const n = await mudarStatus(lista, status);
-        msgObr(n === lista.length
+        const { alteradas: n, replicadas, regraErro } = await mudarStatus(lista, status);
+        let texto = n === lista.length
           ? `${n} ${n === 1 ? 'obrigação' : 'obrigações'}: ${SIT[status].toLowerCase()}.`
-          : `Só ${n} de ${lista.length} foram alteradas. Seu usuário precisa ser gestor fiscal de uma equipe para aprovar ou rejeitar.`);
+          : `Só ${n} de ${lista.length} foram alteradas. Seu usuário precisa ser gestor fiscal de uma equipe para aprovar ou rejeitar.`;
+        if (n && status === 'rascunho') texto += ' A regra automática dessas obrigações foi removida: os próximos meses voltam a pedir revisão.';
+        else if (n && regraErro) texto += ' Atenção: a decisão não ficou gravada para os próximos meses (' + regraErro + ').';
+        else if (n) texto += replicadas ? ` Decisão gravada: ${replicadas} ${replicadas === 1 ? 'vencimento' : 'vencimentos'} dos próximos meses já ${status === 'aprovado' ? 'ficaram aprovados' : 'ficaram rejeitados'}, e os novos seguem a mesma regra.` : ' Decisão gravada: os próximos meses seguem a mesma regra.';
+        msgObr(texto);
       } catch (e) { msgObr(`Não foi possível salvar: ${e.message || e}`); }
       recarregar();
     }

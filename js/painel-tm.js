@@ -101,7 +101,6 @@ function pintarCard(el, chave) {
 }
 function pintarNota() {
   // o aviso só aparece quando o usuário não pertence a nenhuma equipe e os números vêm do navegador
-  const nota = $('dataNote'); if (nota) nota.hidden = !estado.semBanco;
 }
 function pintarTudo() {
   if (!estado.dados) return;

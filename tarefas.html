@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/tarefas.css?v=20261013b" />
+  <link rel="stylesheet" href="css/seletor-empresa.css" />
 </head>
 <body>
   <nav class="topnav">
@@ -66,10 +67,6 @@
   </nav>
 
   <main class="wrap-fluid">
-    <div class="data-note">
-      As tarefas ficam no banco, na sua equipe. Quem é da equipe vê e altera as mesmas tarefas.
-    </div>
-
     <div class="tf-toolbar">
       <button type="button" class="btn-outline" id="btnTotais" aria-pressed="false" aria-controls="kpiWrap">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
@@ -124,7 +121,7 @@
       <div id="msTipo"></div>
       <div id="msPrioridade"></div>
       <div id="msStatus"></div>
-      <div id="msRequerente"></div>
+      <div id="msEmpresa"></div>
       <div id="msDelegado"></div>
       <div id="msPrazo"></div>
       <button type="button" class="btn-outline" id="btnLimpar" hidden>Limpar filtros</button>
@@ -140,6 +137,7 @@
             <th>Tipo</th>
             <th>Prioridade</th>
             <th>Status</th>
+            <th>Empresa</th>
             <th>Requerente</th>
             <th>Delegado</th>
             <th>Prazo</th>
@@ -199,20 +197,23 @@
           </select>
         </div>
         <div>
-          <label for="fRequerente">Requerente</label>
-          <input type="text" id="fRequerente" list="empresasReq" autocomplete="off" placeholder="Cliente, empresa ou 'Interno'" />
-          <datalist id="empresasReq"></datalist>
-          <datalist id="membrosEquipe"></datalist>
+          <label for="fPrazo">Prazo</label>
+          <input type="date" id="fPrazo" />
         </div>
+      </div>
+      <div class="form-row">
+        <label id="lblEmpresa">Empresa</label>
+        <div id="fEmpresa" role="group" aria-labelledby="lblEmpresa"></div>
       </div>
       <div class="form-row form-row-split">
         <div>
-          <label for="fPrazo">Prazo</label>
-          <input type="date" id="fPrazo" />
+          <label for="fRequerente">Requerente</label>
+          <input type="text" id="fRequerente" autocomplete="off" maxlength="120" placeholder="Quem pediu (opcional)" />
         </div>
         <div>
           <label for="fDelegado">Delegado para</label>
           <input type="text" id="fDelegado" placeholder="Nome de quem vai executar (opcional)" />
+          <datalist id="membrosEquipe"></datalist>
         </div>
       </div>
       <div class="form-row">
@@ -234,6 +235,8 @@
   <script type="module">
     import { createSupabaseClient } from './js/supabase-client.js';
     import { sincronizarEmpresasAmPro } from './js/empresas-ampro.js';
+    import { criarSeletorEmpresa } from './js/seletor-empresa.js';
+    import { empresas as empresasCadastradas } from './js/dados-teste.js';
     import { iniciarMenusAcoes } from './js/acoes-menu.js';
     import { STATUS_ORDER, STATUS_LABEL, STATUS_OCULTOS, statusVisivel, esc, norm, fmtBR, downloadFile, csvCell,
              createMultiSelect, abrirStatusMenu, statusPillHtml } from './js/lista-ui.js';
@@ -252,8 +255,7 @@
       window.location.href = 'index.html';
     } else {
       emailEl.textContent = session.user.email;
-      const cad = await sincronizarEmpresasAmPro(supabase);
-      if (cad) document.getElementById('empresasReq').innerHTML = cad.map(e => `<option value="${e.nome.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}"></option>`).join('');
+      await sincronizarEmpresasAmPro(supabase);
     }
 
     logoutBtn.addEventListener('click', async () => {
@@ -430,7 +432,7 @@
     }
 
     let editingId = null;
-    const filters = { q: '', tipo: [], prioridade: [], status: [], requerente: [], delegado: [], prazo: [] };
+    const filters = { q: '', tipo: [], prioridade: [], status: [], empresa: [], delegado: [], prazo: [] };
     const selected = new Set();
 
     const PRIORIDADE_LABEL = { critica: 'Crítica', alta: 'Alta', normal: 'Normal', baixa: 'Melhoria' };
@@ -460,11 +462,11 @@
     }
 
     function matches(t) {
-      if (filters.q && !norm(`${t.tarefa} ${t.requerente} ${t.delegadoPara}`).includes(norm(filters.q))) return false;
+      if (filters.q && !norm(`${t.tarefa} ${t.empresa} ${t.requerente} ${t.delegadoPara}`).includes(norm(filters.q))) return false;
       if (!statusVisivel(t.status, filters.status)) return false;
       if (filters.tipo.length && !filters.tipo.includes(t.tipo)) return false;
       if (filters.prioridade.length && !filters.prioridade.includes(t.prioridade)) return false;
-      if (filters.requerente.length && !filters.requerente.includes(t.requerente)) return false;
+      if (filters.empresa.length && !filters.empresa.includes(t.empresa)) return false;
       if (filters.delegado.length && !filters.delegado.includes(t.delegadoPara || SEM_DELEGADO)) return false;
       if (filters.prazo.length) {
         // "vencido" só vale para tarefas em aberto; as demais categorias olham apenas a data
@@ -500,7 +502,7 @@
       return {
         assunto: 'Tarefa: ' + t.tarefa,
         texto: [`Tarefa: ${t.tarefa}`, `Prazo: ${fmtBR(t.prazo)}`, `Prioridade: ${PRIORIDADE_LABEL[t.prioridade]}`,
-                `Status: ${STATUS_LABEL[t.status]}`, `Requerente: ${t.requerente}`, `Delegado: ${t.delegadoPara}`].join('\n'),
+                `Status: ${STATUS_LABEL[t.status]}`, `Empresa: ${t.empresa}`, ...(t.requerente ? [`Requerente: ${t.requerente}`] : []), `Delegado: ${t.delegadoPara}`].join('\n'),
       };
     }
     // Plano B: se o envio automático ainda não estiver configurado no servidor, abre o programa de e-mail do usuário.
@@ -542,8 +544,8 @@
         options: Object.entries(PRIORIDADE_LABEL).map(([value, label]) => ({ value, label })), onChange: v => setFilter('prioridade', v) }),
       status: createMultiSelect(document.getElementById('msStatus'), { rotuloTodos: 'Todo status', rotuloCurto: 'Status',
         options: STATUS_ORDER.map(value => ({ value, label: STATUS_LABEL[value] })), onChange: v => setFilter('status', v) }),
-      requerente: createMultiSelect(document.getElementById('msRequerente'), { rotuloTodos: 'Todo requerente', rotuloCurto: 'Requerente',
-        options: [], onChange: v => setFilter('requerente', v) }),
+      empresa: createMultiSelect(document.getElementById('msEmpresa'), { rotuloTodos: 'Toda empresa', rotuloCurto: 'Empresa',
+        options: [], onChange: v => setFilter('empresa', v) }),
       delegado: createMultiSelect(document.getElementById('msDelegado'), { rotuloTodos: 'Todo delegado', rotuloCurto: 'Delegado',
         options: [], onChange: v => setFilter('delegado', v) }),
       prazo: createMultiSelect(document.getElementById('msPrazo'), { rotuloTodos: 'Todo prazo', rotuloCurto: 'Prazo',
@@ -558,20 +560,20 @@
 
     function refreshDynamicOptions() {
       const unicos = (fn) => [...new Set(tasks.map(fn).filter(Boolean))].sort((a, b) => a.localeCompare(b));
-      ms.requerente.setOptions(unicos(t => t.requerente).map(v => ({ value: v, label: v })));
+      ms.empresa.setOptions(unicos(t => t.empresa).map(v => ({ value: v, label: v })));
       ms.delegado.setOptions(unicos(t => t.delegadoPara || SEM_DELEGADO).map(v => ({ value: v, label: v })));
-      filters.requerente = ms.requerente.values();
+      filters.empresa = ms.empresa.values();
       filters.delegado = ms.delegado.values();
     }
 
     document.getElementById('fltSearch').addEventListener('input', (e) => { filters.q = e.target.value; render(); });
 
     function filtrosAtivos() {
-      return !!filters.q || ['tipo', 'prioridade', 'status', 'requerente', 'delegado', 'prazo'].some(k => filters[k].length);
+      return !!filters.q || ['tipo', 'prioridade', 'status', 'empresa', 'delegado', 'prazo'].some(k => filters[k].length);
     }
     function descricaoFiltros() {
       const nomes = { tipo: ['Tipo', v => TIPO_LABEL[v]], prioridade: ['Prioridade', v => PRIORIDADE_LABEL[v]], status: ['Status', v => STATUS_LABEL[v]],
-                      requerente: ['Requerente', v => v], delegado: ['Delegado', v => v], prazo: ['Prazo', v => PRAZO_LABEL[v]] };
+                      empresa: ['Empresa', v => v], delegado: ['Delegado', v => v], prazo: ['Prazo', v => PRAZO_LABEL[v]] };
       const partes = [];
       if (filters.q) partes.push(`Busca: "${filters.q}"`);
       Object.entries(nomes).forEach(([k, [rotulo, fn]]) => { if (filters[k].length) partes.push(`${rotulo}: ${filters[k].map(fn).join(', ')}`); });
@@ -641,7 +643,8 @@
           <td data-label="Tipo"><span class="dot-label" style="--dot:${TIPO_COR[t.tipo]}">${TIPO_LABEL[t.tipo]}</span></td>
           <td data-label="Prioridade"><span class="badge ${PRIORIDADE_BADGE[t.prioridade]}">${PRIORIDADE_LABEL[t.prioridade]}</span></td>
           <td data-label="Status">${statusPillHtml(t.status)}</td>
-          <td data-label="Requerente">${esc(t.requerente)}</td>
+          <td data-label="Empresa">${esc(t.empresa)}</td>
+          <td data-label="Requerente">${t.requerente ? esc(t.requerente) : '<span class="muted">—</span>'}</td>
           <td data-label="Delegado">${delegado}</td>
           <td data-label="Prazo">${prazo}</td>
           <td data-label="Criada em" class="muted">${fmtBR(t.criadoEm)}</td>
@@ -769,13 +772,13 @@
       return sel.length ? sel : list;
     }
 
-    const CSV_COLUNAS = ['Tarefa', 'Tipo', 'Prioridade', 'Status', 'Requerente', 'Delegado', 'Prazo', 'Data de criação'];
+    const CSV_COLUNAS = ['Tarefa', 'Tipo', 'Prioridade', 'Status', 'Empresa', 'Requerente', 'Delegado', 'Prazo', 'Data de criação'];
 
     // Ponto e vírgula + BOM: abre direto no Excel em português.
     function toCsv(list) {
       const linhas = [CSV_COLUNAS.join(';')];
       list.forEach(t => linhas.push([t.tarefa, TIPO_LABEL[t.tipo], PRIORIDADE_LABEL[t.prioridade], STATUS_LABEL[t.status],
-        t.requerente, t.delegadoPara === SEM_DELEGADO ? '' : t.delegadoPara, fmtBR(t.prazo), fmtBR(t.criadoEm)].map(csvCell).join(';')));
+        t.empresa, t.requerente || '', t.delegadoPara === SEM_DELEGADO ? '' : t.delegadoPara, fmtBR(t.prazo), fmtBR(t.criadoEm)].map(csvCell).join(';')));
       return '\uFEFF' + linhas.join('\r\n');
     }
 
@@ -799,7 +802,7 @@
       const linhas = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Projecont Fiscal//Tarefas//PT-BR', 'CALSCALE:GREGORIAN'];
       list.forEach(t => {
         const desc = [`Tipo: ${TIPO_LABEL[t.tipo]}`, `Prioridade: ${PRIORIDADE_LABEL[t.prioridade]}`, `Status: ${STATUS_LABEL[t.status]}`,
-                      `Requerente: ${t.requerente}`, `Delegado: ${t.delegadoPara}`].join('\n');
+                      `Empresa: ${t.empresa}`, ...(t.requerente ? [`Requerente: ${t.requerente}`] : []), `Delegado: ${t.delegadoPara}`].join('\n');
         linhas.push('BEGIN:VEVENT', `UID:${t.id}-${dia(t.criadoEm)}@projecont-fiscal`, `DTSTAMP:${stamp}`,
           `DTSTART;VALUE=DATE:${dia(t.prazo)}`, `DTEND;VALUE=DATE:${dia(addDays(t.prazo, 1))}`,
           `SUMMARY:${icsEscape(t.tarefa)}`, `DESCRIPTION:${icsEscape(desc)}`, 'END:VEVENT');
@@ -839,10 +842,10 @@
                    { label: 'Críticas em aberto', valor: list.filter(t => ABERTA(t) && t.prioridade === 'critica').length },
                    { label: 'Vencidas', valor: list.filter(taskIsOverdue).length }],
           filtros,
-          colunas: ['Tarefa', 'Tipo', 'Prioridade', 'Status', 'Requerente', 'Delegado', 'Prazo', 'Criada em'],
-          linhas: list.map(t => [t.tarefa, TIPO_LABEL[t.tipo], PRIORIDADE_LABEL[t.prioridade], STATUS_LABEL[t.status], t.requerente,
+          colunas: ['Tarefa', 'Tipo', 'Prioridade', 'Status', 'Empresa', 'Requerente', 'Delegado', 'Prazo', 'Criada em'],
+          linhas: list.map(t => [t.tarefa, TIPO_LABEL[t.tipo], PRIORIDADE_LABEL[t.prioridade], STATUS_LABEL[t.status], t.empresa, t.requerente || '-',
                                  t.delegadoPara === SEM_DELEGADO ? '-' : t.delegadoPara, fmtBR(t.prazo) + (taskIsOverdue(t) ? ' (vencido)' : ''), fmtBR(t.criadoEm)]),
-          estilosColunas: { 0: { cellWidth: 82 }, 1: { cellWidth: 24 }, 2: { cellWidth: 22 }, 3: { cellWidth: 26 }, 6: { cellWidth: 30 }, 7: { cellWidth: 22 } },
+          estilosColunas: { 0: { cellWidth: 60 }, 1: { cellWidth: 22 }, 2: { cellWidth: 20 }, 3: { cellWidth: 24 }, 4: { cellWidth: 44 }, 7: { cellWidth: 28 }, 8: { cellWidth: 20 } },
         });
         flash('PDF gerado.');
       } catch (err) {
@@ -903,7 +906,7 @@
       const col = (nome) => cab.indexOf(nome);
       const iTarefa = col('tarefa');
       if (iTarefa < 0) return { ok: 0, ignoradas: 0, erro: 'Não achei a coluna "Tarefa" na primeira linha.' };
-      const iTipo = col('tipo'), iPri = col('prioridade'), iSta = col('status'), iReq = col('requerente'),
+      const iTipo = col('tipo'), iPri = col('prioridade'), iSta = col('status'), iEmp = col('empresa'), iReq = col('requerente'),
             iDel = col('delegado'), iPrazo = col('prazo'), iCri = col('data de criacao');
       const val = (l, i) => (i >= 0 ? String(l[i] ?? '').trim().replace(/^'(?=[=+\-@])/, '') : '');
       let ok = 0, ignoradas = 0;
@@ -915,7 +918,9 @@
           tipo: pelaLabel(TIPO_LABEL, val(l, iTipo), 'operacional'),
           prioridade: pelaLabel(PRIORIDADE_LABEL, val(l, iPri), 'normal'),
           status: pelaLabel(STATUS_LABEL, val(l, iSta), 'pendente'),
-          requerente: val(l, iReq) || 'Interno',
+          // planilhas antigas traziam a empresa na coluna "Requerente"
+          empresa: val(l, iEmp) || (iEmp < 0 ? val(l, iReq) : '') || 'Interno',
+          requerente: iEmp < 0 ? '' : val(l, iReq),
           delegadoPara: ctx ? resolverDelegado(ctx, val(l, iDel)) : SEM_DELEGADO,
           prazo: parseData(val(l, iPrazo)) || today,
           criadoEm: parseData(val(l, iCri)) || today,
@@ -952,6 +957,7 @@
     const fPrioridade = document.getElementById('fPrioridade');
     const fStatus = document.getElementById('fStatus');
     const fRequerente = document.getElementById('fRequerente');
+    const fEmpresa = criarSeletorEmpresa(document.getElementById('fEmpresa'), { empresas: () => empresasCadastradas(), semEmpresa: 'Interno', placeholder: 'Buscar por nome ou CNPJ' });
     const fPrazo = document.getElementById('fPrazo');
     const fDelegado = document.getElementById('fDelegado');
     const fObservacoes = document.getElementById('fObservacoes');
@@ -967,7 +973,8 @@
       fTipo.value = t.tipo;
       fPrioridade.value = t.prioridade;
       fStatus.value = t.status;
-      fRequerente.value = t.requerente;
+      fEmpresa.definir(t.empresa);
+      fRequerente.value = t.requerente || '';
       fPrazo.value = t.prazo;
       fDelegado.value = t.delegadoPara;
       fObservacoes.value = t.observacoes || '';
@@ -984,6 +991,7 @@
       fTipo.value = 'operacional';
       fPrioridade.value = 'normal';
       fStatus.value = 'pendente';
+      fEmpresa.definir('Interno');
       fRequerente.value = '';
       fPrazo.value = today;
       fDelegado.value = '';
@@ -999,6 +1007,7 @@
     }
 
     function closePanel() {
+      fEmpresa.fechar();
       taskPanel.classList.remove('open');
       panelBackdrop.classList.remove('open');
     }
@@ -1006,7 +1015,7 @@
     document.getElementById('newTaskBtn').addEventListener('click', openPanelNew);
     document.getElementById('panelClose').addEventListener('click', closePanel);
     panelBackdrop.addEventListener('click', closePanel);
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closePanel(); closeDropdown(); } });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !e.defaultPrevented) { closePanel(); closeDropdown(); } });
 
     document.getElementById('panelSave').addEventListener('click', () => {
       if (!fTarefa.value.trim()) { fTarefa.focus(); return; }
@@ -1017,7 +1026,8 @@
         tipo: fTipo.value,
         prioridade: fPrioridade.value,
         status: fStatus.value,
-        requerente: fRequerente.value.trim() || 'Interno',
+        empresa: fEmpresa.valor(),
+        requerente: fRequerente.value.trim(),
         prazo: fPrazo.value || today,
         delegadoPara: ctx ? resolverDelegado(ctx, fDelegado.value) : SEM_DELEGADO,
         observacoes: fObservacoes.value.trim(),
@@ -1045,6 +1055,10 @@
 
     render();
     if (erroInicial) flash(erroInicial);
+
+    // link vindo do Calendário (?tarefa=<id>): abre a tarefa para edição
+    const abrirId = new URLSearchParams(location.search).get('tarefa');
+    if (abrirId && tasks.some(t => t.id === abrirId)) openPanel(abrirId);
 
     // atualiza com o que os colegas da equipe alteraram (a cada minuto e ao voltar para a aba)
     async function atualizarDoBanco() {

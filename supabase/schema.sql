@@ -1616,3 +1616,114 @@ begin
 end $$;
 revoke all on function public.ampro_finish_refresh(uuid,uuid,uuid,boolean,text,text) from public, anon, authenticated;
 grant execute on function public.ampro_finish_refresh(uuid,uuid,uuid,boolean,text,text) to service_role;
+
+
+-- =============================================================================
+-- 17. Tarefas: "Empresa" (cliente) separada do "Requerente" (quem pediu, texto livre)
+--     Até aqui a coluna requerente guardava a empresa. Na primeira execução, copia
+--     esse valor para empresa e limpa requerente. Pode rodar de novo sem efeito.
+-- =============================================================================
+do $$
+begin
+  if not exists (select 1 from information_schema.columns
+                 where table_schema = 'public' and table_name = 'tarefas' and column_name = 'empresa') then
+    alter table public.tarefas add column empresa text not null default 'Interno';
+    update public.tarefas set empresa = coalesce(nullif(btrim(requerente), ''), 'Interno');
+    update public.tarefas set requerente = '';
+  end if;
+end $$;
+alter table public.tarefas alter column requerente drop not null;
+alter table public.tarefas alter column requerente set default '';
+
+
+-- =============================================================================
+-- 18. Calendário oficial: a decisão (aprovar/rejeitar) vira regra e vale para os meses seguintes
+--     Chave da regra = órgão + título da obrigação (ex.: 'RFB|irrf — darf'). Quando a rotina diária
+--     cria um rascunho novo dessa obrigação, ele já nasce aprovado (ou rejeitado), sem nova revisão.
+--     "Desfazer" no Administração remove a regra e o rascunho volta a precisar de revisão.
+-- =============================================================================
+create table if not exists public.obrigacoes_regras (
+  chave       text primary key,
+  orgao       text not null,
+  titulo      text not null,
+  decisao     text not null check (decisao in ('aprovado','rejeitado')),
+  decidido_por uuid references public.perfis (id) on delete set null,
+  decidido_em timestamptz not null default now()
+);
+alter table public.obrigacoes_regras enable row level security;
+drop policy if exists obrigacoes_regras_select on public.obrigacoes_regras;
+create policy obrigacoes_regras_select on public.obrigacoes_regras for select to authenticated
+  using (private.tem_papel_em_alguma_equipe(array['gestor_fiscal']));
+revoke all on public.obrigacoes_regras from public, anon, authenticated;
+grant select on public.obrigacoes_regras to authenticated;
+grant all on public.obrigacoes_regras to service_role;
+
+create or replace function private.obr_chave(p_orgao text, p_titulo text)
+returns text language sql immutable set search_path = '' as $$
+  select btrim(p_orgao) || '|' || lower(regexp_replace(btrim(p_titulo), '\s+', ' ', 'g'))
+$$;
+
+-- Rascunho novo que casa com uma regra já nasce decidido.
+create or replace function private.obr_aplicar_regra()
+returns trigger language plpgsql security definer set search_path = '' as $$
+declare r public.obrigacoes_regras;
+begin
+  if new.status <> 'rascunho' then return new; end if;
+  select * into r from public.obrigacoes_regras where chave = private.obr_chave(new.orgao, new.titulo);
+  if not found then return new; end if;
+  new.status := r.decisao;
+  if r.decisao = 'aprovado' then
+    new.aprovado_por := r.decidido_por; new.aprovado_em := now();
+    -- nova versão aprovada substitui a anterior
+    if new.substitui_id is not null then
+      update public.obrigacoes_oficiais set status = 'substituido' where id = new.substitui_id and status = 'aprovado';
+    end if;
+  end if;
+  return new;
+end $$;
+drop trigger if exists obrigacoes_aplicar_regra on public.obrigacoes_oficiais;
+create trigger obrigacoes_aplicar_regra before insert on public.obrigacoes_oficiais
+  for each row execute function private.obr_aplicar_regra();
+
+-- Chamada pela tela depois de aprovar/rejeitar/desfazer: grava a regra e replica nos rascunhos dos meses seguintes.
+-- p_decisao: 'aprovado' | 'rejeitado' | 'rascunho' (= desfazer: apaga a regra).
+create or replace function public.obrigacoes_gravar_regras(p_ids uuid[], p_decisao text)
+returns integer language plpgsql security definer set search_path = '' as $$
+declare k record; replicadas integer := 0; n integer; prox date := (date_trunc('month', current_date) + interval '1 month')::date;
+begin
+  if not private.tem_papel_em_alguma_equipe(array['gestor_fiscal']) then
+    raise exception 'Só o gestor fiscal altera o calendário oficial' using errcode = '42501';
+  end if;
+  if p_decisao not in ('aprovado','rejeitado','rascunho') then raise exception 'Decisão inválida' using errcode = '22023'; end if;
+  for k in select distinct o.orgao, o.titulo from public.obrigacoes_oficiais o where o.id = any(p_ids) loop
+    if p_decisao = 'rascunho' then
+      delete from public.obrigacoes_regras where chave = private.obr_chave(k.orgao, k.titulo);
+      continue;
+    end if;
+    insert into public.obrigacoes_regras (chave, orgao, titulo, decisao, decidido_por)
+      values (private.obr_chave(k.orgao, k.titulo), k.orgao, k.titulo, p_decisao, auth.uid())
+      on conflict (chave) do update set decisao = excluded.decisao, decidido_por = excluded.decidido_por, decidido_em = now();
+    update public.obrigacoes_oficiais o
+       set status = p_decisao,
+           aprovado_por = case when p_decisao = 'aprovado' then auth.uid() end,
+           aprovado_em = case when p_decisao = 'aprovado' then now() end
+     where o.status = 'rascunho' and o.vencimento >= prox
+       and private.obr_chave(o.orgao, o.titulo) = private.obr_chave(k.orgao, k.titulo);
+    get diagnostics n = row_count; replicadas := replicadas + n;
+  end loop;
+  return replicadas;
+end $$;
+revoke all on function public.obrigacoes_gravar_regras(uuid[], text) from public, anon;
+grant execute on function public.obrigacoes_gravar_regras(uuid[], text) to authenticated;
+
+-- Regras iniciais a partir do que já foi decidido (aprovadas; rejeitadas só se a obrigação nunca foi aprovada).
+insert into public.obrigacoes_regras (chave, orgao, titulo, decisao, decidido_por, decidido_em)
+select distinct on (private.obr_chave(o.orgao, o.titulo)) private.obr_chave(o.orgao, o.titulo), o.orgao, o.titulo, 'aprovado', o.aprovado_por, coalesce(o.aprovado_em, now())
+  from public.obrigacoes_oficiais o where o.status = 'aprovado'
+ order by private.obr_chave(o.orgao, o.titulo), o.aprovado_em desc nulls last
+on conflict (chave) do nothing;
+insert into public.obrigacoes_regras (chave, orgao, titulo, decisao)
+select distinct on (private.obr_chave(o.orgao, o.titulo)) private.obr_chave(o.orgao, o.titulo), o.orgao, o.titulo, 'rejeitado'
+  from public.obrigacoes_oficiais o where o.status = 'rejeitado'
+   and not exists (select 1 from public.obrigacoes_oficiais a where a.status = 'aprovado' and private.obr_chave(a.orgao, a.titulo) = private.obr_chave(o.orgao, o.titulo))
+on conflict (chave) do nothing;

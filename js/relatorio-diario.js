@@ -34,8 +34,8 @@ function fontes() {
   };
 }
 
-const linhaTarefa = (t) => [t.tarefa, t.requerente || '-', t.delegadoPara || '-', PRIORIDADE_LABEL[t.prioridade] || t.prioridade, STATUS_LABEL[t.status] || t.status, fmtBR(t.prazo)];
-const COLS_TAREFA = ['Tarefa', 'Requerente', 'Delegado', 'Prioridade', 'Status', 'Prazo'];
+const linhaTarefa = (t) => [t.tarefa, t.empresa || '-', t.requerente || '-', t.delegadoPara || '-', PRIORIDADE_LABEL[t.prioridade] || t.prioridade, STATUS_LABEL[t.status] || t.status, fmtBR(t.prazo)];
+const COLS_TAREFA = ['Tarefa', 'Empresa', 'Requerente', 'Delegado', 'Prioridade', 'Status', 'Prazo'];
 
 // Etapas de projetos que ainda não terminaram.
 function etapasAbertas(projetos) {
@@ -86,7 +86,7 @@ function montarFim(f, hoje) {
     ...f.problemas.filter(m => m.concluidoEm === hoje).map(m => ['Mapeamento fiscal', `${m.empresa} — ${m.problema}`, m.responsavel || '-']),
   ];
   const criados = [
-    ...f.tarefas.filter(t => t.criadoEm === hoje).map(t => ['Tarefas', t.tarefa, t.requerente || '-']),
+    ...f.tarefas.filter(t => t.criadoEm === hoje).map(t => ['Tarefas', t.tarefa, t.empresa || '-']),
     ...f.validacoes.filter(v => v.criadoEm === hoje).map(v => ['Validações', `${v.nome} — ${v.atividade}`, v.analista || '-']),
     ...f.problemas.filter(m => m.criadoEm === hoje).map(m => ['Mapeamento fiscal', `${m.empresa} — ${m.problema}`, m.responsavel || '-']),
   ];

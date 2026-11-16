@@ -48,18 +48,20 @@ assert.equal(resolverDelegado(ctx, 'Fulano'), SEM_DELEGADO);
 
 let lista = await sincronizarTarefas(supabase, ctx);
 const sync = criarSincronizador(supabase, ctx, lista);
-lista.push({ id: 'a-1', tarefa: 'Conferir DAS', tipo: 'operacional', prioridade: 'alta', status: 'pendente', requerente: 'Interno',
+lista.push({ id: 'a-1', tarefa: 'Conferir DAS', tipo: 'operacional', prioridade: 'alta', status: 'pendente', empresa: '07.001.225-3 - VG IMPORTACAO LTDA', requerente: ' Daniela (cliente) ',
   delegadoPara: 'Ana Souza', prazo: '2026-11-05', observacoes: '', notificar: '' });
 await sync.enviar(lista);
 assert.equal(tabelas.tarefas.length, 1);
 assert.equal(tabelas.tarefas[0].responsavel_id, U);
 assert.equal(tabelas.tarefas[0].equipe_id, EQ);
 assert.equal(tabelas.tarefas[0].observacoes, null);
+assert.equal(tabelas.tarefas[0].empresa, '07.001.225-3 - VG IMPORTACAO LTDA'); // empresa e requerente são campos separados
+assert.equal(tabelas.tarefas[0].requerente, 'Daniela (cliente)');
 
 await sync.enviar(lista); // sem mudança: não grava de novo
 assert.equal(chamadas.filter(c => c[0] === 'upsert').length, 1);
 
-lista.push({ id: 'a-2', tarefa: 'Outra', tipo: 'operacional', prioridade: 'normal', status: 'pendente', requerente: 'Interno',
+lista.push({ id: 'a-2', tarefa: 'Outra', tipo: 'operacional', prioridade: 'normal', status: 'pendente', empresa: 'Interno', requerente: '',
   delegadoPara: resolverDelegado(ctx, 'adriely MONTEIRO'), prazo: '2026-11-06', observacoes: '', notificar: '' });
 assert.equal(lista[1].delegadoPara, 'Adriely Monteiro');
 await sync.enviar(lista);
@@ -73,6 +75,8 @@ assert.equal(tabelas.tarefas[0].status, 'concluida');
 
 lista = await sync.recarregar();
 assert.equal(lista[0].delegadoPara, 'Ana Souza');
+assert.equal(lista[0].empresa, '07.001.225-3 - VG IMPORTACAO LTDA');
+assert.equal(lista[0].requerente, 'Daniela (cliente)');
 assert.equal(lista[0].criadoEm.length, 10);
 
 lista.length = 0;

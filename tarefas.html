@@ -2,6 +2,12 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
+  <link rel="icon" href="favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png" />
+  <link rel="apple-touch-icon" href="assets/icon-180.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#0a1a33" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://debwbmbhmtimozhkeyql.supabase.co wss://debwbmbhmtimozhkeyql.supabase.co https://cdn.jsdelivr.net; object-src 'none'; base-uri 'self'; form-action 'self'" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Tarefas — Tax Manager Projecont</title>
@@ -211,9 +217,8 @@
           <input type="text" id="fRequerente" autocomplete="off" maxlength="120" placeholder="Quem pediu (opcional)" />
         </div>
         <div>
-          <label for="fDelegado">Delegado para</label>
-          <input type="text" id="fDelegado" placeholder="Nome de quem vai executar (opcional)" />
-          <datalist id="membrosEquipe"></datalist>
+          <label>Delegado para</label>
+          <div id="fDelegado"></div>
         </div>
       </div>
       <div class="form-row">
@@ -225,6 +230,10 @@
         <input type="text" id="fNotificar" placeholder="Opcional — deixe em branco para usar todos os e-mails cadastrados" />
         <p class="form-row-hint">Nenhum e-mail cadastrado ainda. Adicione em Administração → Google Agenda.</p>
       </div>
+      <div class="form-row" id="histBloco">
+        <label>Histórico de alterações</label>
+        <ul class="th-lista" id="fHistorico"></ul>
+      </div>
     </div>
     <div class="side-panel-footer">
       <button type="button" class="btn-ghost" id="panelDelete" style="display:none">Excluir</button>
@@ -232,10 +241,23 @@
     </div>
   </aside>
 
+  <div class="motivo-fundo" id="motivoFundo" hidden>
+    <div class="motivo-caixa" role="dialog" aria-modal="true" aria-labelledby="motivoTitulo">
+      <h4 id="motivoTitulo">Justificativa</h4>
+      <p id="motivoSub"></p>
+      <textarea id="motivoTexto" maxlength="300" placeholder="Ex.: Aguardando informações do cliente"></textarea>
+      <p class="motivo-erro" id="motivoErro" role="alert"></p>
+      <div class="motivo-acoes">
+        <button type="button" class="btn-ghost" id="motivoCancelar">Voltar</button>
+        <button type="button" class="btn-fill" id="motivoOk">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
   <script type="module">
     import { createSupabaseClient } from './js/supabase-client.js';
     import { sincronizarEmpresasAmPro } from './js/empresas-ampro.js';
-    import { criarSeletorEmpresa } from './js/seletor-empresa.js';
+    import { criarSeletorEmpresa, criarSeletorPessoa } from './js/seletor-empresa.js';
     import { empresas as empresasCadastradas } from './js/dados-teste.js';
     import { iniciarMenusAcoes } from './js/acoes-menu.js';
     import { STATUS_ORDER, STATUS_LABEL, STATUS_OCULTOS, statusVisivel, esc, norm, fmtBR, downloadFile, csvCell,
@@ -416,9 +438,6 @@
       erroInicial = 'Não foi possível carregar as tarefas do banco. Recarregue a página.';
     }
     if (ctx) {
-      document.getElementById('fDelegado').setAttribute('list', 'membrosEquipe');
-      document.getElementById('fDelegado').placeholder = 'Escolha um membro da equipe (opcional)';
-      document.getElementById('membrosEquipe').innerHTML = ctx.membros.map(m => `<option value="${esc(m.nome)}"></option>`).join('');
     }
     let pendentes = 0;
     function enviarAoBanco() {
@@ -686,6 +705,46 @@
       if (e.target.id === 'clearSel') { selected.clear(); render(); }
     });
 
+    // ---------- histórico de alterações de status ----------
+    const EXIGE_MOTIVO = ['impedimento', 'cancelada'];
+    const pad2 = (n) => String(n).padStart(2, '0');
+    const dataHoraBR = (iso) => { const d = new Date(iso); return isNaN(d) ? '' : `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()} às ${pad2(d.getHours())}:${pad2(d.getMinutes())}`; };
+    const nomeUsuario = () => (ctx?.analistas || []).find(a => a.id === ctx.usuarioId)?.nome || '';
+    function registrarStatus(t, status, motivo) {
+      (t.historico = Array.isArray(t.historico) ? t.historico : []).push({ status, em: new Date().toISOString(), por: nomeUsuario(), ...(motivo ? { motivo } : {}) });
+    }
+    function textoHistorico(h) { return `${STATUS_LABEL[h.status] || h.status}, ${dataHoraBR(h.em)}${h.motivo ? `, Motivo: ${h.motivo}` : ''}`; }
+    function pintarHistorico(t) {
+      const ul = document.getElementById('fHistorico');
+      const lista = t && Array.isArray(t.historico) ? t.historico.slice().reverse() : [];
+      ul.innerHTML = lista.length
+        ? lista.map(h => `<li class="th-item">${esc(textoHistorico(h))}${h.por ? ` <span class="th-por">· ${esc(h.por)}</span>` : ''}</li>`).join('')
+        : '<li class="th-vazio">Nenhuma alteração registrada ainda.</li>';
+    }
+    // Pede a justificativa (Impedimento e Cancelada). Resolve com o texto, ou null se a pessoa desistir.
+    function pedirMotivo(status, titulo) {
+      const fundo = document.getElementById('motivoFundo'), txt = document.getElementById('motivoTexto'), erro = document.getElementById('motivoErro');
+      document.getElementById('motivoTitulo').textContent = `Justificativa para ${STATUS_LABEL[status].toLowerCase()}`;
+      document.getElementById('motivoSub').textContent = `Tarefa: ${titulo}. Explique o motivo; ele fica no histórico da tarefa.`;
+      txt.value = ''; erro.textContent = ''; fundo.hidden = false; txt.focus();
+      return new Promise((resolve) => {
+        const fim = (v) => { fundo.hidden = true; ok.onclick = cancelar.onclick = null; document.removeEventListener('keydown', tecla, true); resolve(v); };
+        const ok = document.getElementById('motivoOk'), cancelar = document.getElementById('motivoCancelar');
+        const confirmar = () => { const v = txt.value.trim(); if (!v) { erro.textContent = 'Informe o motivo para continuar.'; txt.focus(); return; } fim(v); };
+        const tecla = (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); fim(null); } };
+        ok.onclick = confirmar; cancelar.onclick = () => fim(null);
+        document.addEventListener('keydown', tecla, true);
+      });
+    }
+    /** Muda o status registrando no histórico; pede justificativa quando necessário. Devolve false se desistiu. */
+    async function aplicarStatus(t, novo) {
+      if (t.status === novo) return true;
+      let motivo = '';
+      if (EXIGE_MOTIVO.includes(novo)) { motivo = await pedirMotivo(novo, t.tarefa); if (motivo === null) return false; }
+      t.status = novo; registrarStatus(t, novo, motivo);
+      return true;
+    }
+
     function render() {
       // data de conclusão acompanha o status (usada no relatório de fim do dia)
       tasks.forEach(x => { x.concluidaEm = x.status === 'concluida' ? (x.concluidaEm || today) : ''; });
@@ -744,8 +803,8 @@
       if (!btn) { if (e.target.closest('.col-main')) openPanel(t.id); return; }
       const act = btn.dataset.act;
       if (act === 'status') {
-        abrirStatusMenu(btn, t.status, (novo) => {
-          t.status = novo;
+        abrirStatusMenu(btn, t.status, async (novo) => {
+          if (!(await aplicarStatus(t, novo))) return;
           render();
           if (STATUS_OCULTOS.includes(novo) && !filters.status.includes(novo)) {
             flash(`Tarefa marcada como ${STATUS_LABEL[novo].toLowerCase()} e ocultada da lista. Filtre por Status para vê-la.`);
@@ -924,8 +983,9 @@
           delegadoPara: ctx ? resolverDelegado(ctx, val(l, iDel)) : SEM_DELEGADO,
           prazo: parseData(val(l, iPrazo)) || today,
           criadoEm: parseData(val(l, iCri)) || today,
-          observacoes: '', notificar: '',
+          observacoes: '', notificar: '', historico: [],
         });
+        registrarStatus(tasks[tasks.length - 1], tasks[tasks.length - 1].status, EXIGE_MOTIVO.includes(tasks[tasks.length - 1].status) ? 'Importada de planilha' : '');
         ok++;
       });
       return { ok, ignoradas, erro: '' };
@@ -959,7 +1019,8 @@
     const fRequerente = document.getElementById('fRequerente');
     const fEmpresa = criarSeletorEmpresa(document.getElementById('fEmpresa'), { empresas: () => empresasCadastradas(), semEmpresa: 'Interno', placeholder: 'Buscar por nome ou CNPJ' });
     const fPrazo = document.getElementById('fPrazo');
-    const fDelegado = document.getElementById('fDelegado');
+    const seDelegado = criarSeletorPessoa(document.getElementById('fDelegado'), { pessoas: () => (ctx ? ctx.membros : []).map(m => m.nome), semPessoa: '', placeholder: 'Escolher quem vai executar (opcional)', vazioSub: 'Sem delegado' });
+    const fDelegado = { get value() { return seDelegado.valor(); }, set value(v) { seDelegado.definir(v === SEM_DELEGADO ? '' : v); } };
     const fObservacoes = document.getElementById('fObservacoes');
     const fNotificar = document.getElementById('fNotificar');
 
@@ -979,6 +1040,7 @@
       fDelegado.value = t.delegadoPara;
       fObservacoes.value = t.observacoes || '';
       fNotificar.value = t.notificar || '';
+      pintarHistorico(t);
       show();
     }
 
@@ -997,6 +1059,7 @@
       fDelegado.value = '';
       fObservacoes.value = '';
       fNotificar.value = '';
+      pintarHistorico(null);
       show();
     }
 
@@ -1007,7 +1070,7 @@
     }
 
     function closePanel() {
-      fEmpresa.fechar();
+      fEmpresa.fechar(); seDelegado.fechar();
       taskPanel.classList.remove('open');
       panelBackdrop.classList.remove('open');
     }
@@ -1017,7 +1080,7 @@
     panelBackdrop.addEventListener('click', closePanel);
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !e.defaultPrevented) { closePanel(); closeDropdown(); } });
 
-    document.getElementById('panelSave').addEventListener('click', () => {
+    document.getElementById('panelSave').addEventListener('click', async () => {
       if (!fTarefa.value.trim()) { fTarefa.focus(); return; }
       if (!ctx) { flash(erroInicial || 'Sem equipe: não é possível salvar.'); return; }
       const digitado = fDelegado.value.trim();
@@ -1033,11 +1096,20 @@
         observacoes: fObservacoes.value.trim(),
         notificar: fNotificar.value.trim(),
       };
-      if (editingId) {
-        const t = tasks.find(x => x.id === editingId);
-        Object.assign(t, data);
+      let motivo = '';
+      const anterior = editingId ? tasks.find(x => x.id === editingId) : null;
+      if (EXIGE_MOTIVO.includes(data.status) && (!anterior || anterior.status !== data.status)) {
+        motivo = await pedirMotivo(data.status, data.tarefa);
+        if (motivo === null) return;
+      }
+      if (anterior) {
+        const mudou = anterior.status !== data.status;
+        Object.assign(anterior, data);
+        if (mudou) registrarStatus(anterior, data.status, motivo);
       } else {
-        tasks.push({ id: nextId(), criadoEm: today, ...data });
+        const nova = { id: nextId(), criadoEm: today, historico: [], ...data };
+        registrarStatus(nova, data.status, motivo);
+        tasks.push(nova);
       }
       closePanel();
       render();

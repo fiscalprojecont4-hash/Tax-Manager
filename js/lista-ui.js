@@ -2,9 +2,12 @@
 // status, filtro com multisseleção, menu de troca rápida de status e utilitários.
 
 export const STATUS_ORDER = ['pendente', 'andamento', 'impedimento', 'concluida', 'cancelada'];
+// Validações têm um status a mais: "Retificando" (a validação voltou para correção/retificação).
+export const STATUS_ORDER_VALIDACAO = ['pendente', 'andamento', 'retificando', 'impedimento', 'concluida', 'cancelada'];
 export const STATUS_LABEL = {
   pendente: 'Pendente',
   andamento: 'Em andamento',
+  retificando: 'Retificando',
   impedimento: 'Impedimento',
   concluida: 'Concluída',
   cancelada: 'Cancelada',
@@ -12,6 +15,7 @@ export const STATUS_LABEL = {
 export const STATUS_BADGE = {
   pendente: 'badge-neutral',
   andamento: 'badge-accent',
+  retificando: 'badge-warning',
   impedimento: 'badge-danger',
   concluida: 'badge-success',
   cancelada: 'badge-muted',
@@ -19,6 +23,7 @@ export const STATUS_BADGE = {
 const STATUS_COR = {
   pendente: 'var(--muted)',
   andamento: 'var(--accent)',
+  retificando: 'var(--warning, #d98e04)',
   impedimento: 'var(--danger)',
   concluida: 'var(--success)',
   cancelada: 'var(--placeholder)',
@@ -208,12 +213,12 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape') fecharStat
 window.addEventListener('scroll', fecharStatusMenu, true);
 window.addEventListener('resize', fecharStatusMenu);
 
-export function abrirStatusMenu(ancora, atual, aoEscolher) {
+export function abrirStatusMenu(ancora, atual, aoEscolher, ordem = STATUS_ORDER) {
   fecharStatusMenu();
   const menu = document.createElement('div');
   menu.className = 'status-menu';
   menu.setAttribute('role', 'menu');
-  STATUS_ORDER.forEach(s => {
+  ordem.forEach(s => {
     const b = document.createElement('button');
     b.type = 'button';
     b.setAttribute('role', 'menuitemradio');

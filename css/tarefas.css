@@ -33,3 +33,18 @@ html, body {
 @media (max-width: 760px) {
   .tf-toolbar-right { margin-left: 0; }
 }
+
+/* Histórico de alterações e janela de justificativa */
+.th-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.35rem; }
+.th-item { font-size: 0.82rem; padding: 0.45rem 0.65rem; border-radius: 9px; background: color-mix(in srgb, var(--muted) 9%, transparent); line-height: 1.4; }
+.th-item b { font-weight: 600; }
+.th-item .th-por { color: var(--muted); font-size: 0.74rem; }
+.th-vazio { font-size: 0.8rem; color: var(--muted); }
+.motivo-fundo { position: fixed; inset: 0; z-index: 900; background: rgba(15, 23, 42, 0.45); display: grid; place-items: center; padding: 1rem; }
+.motivo-fundo[hidden] { display: none; }
+.motivo-caixa { width: min(440px, 100%); background: var(--panel, #fff); color: var(--text); border: 1px solid var(--border); border-radius: 14px; padding: 1.2rem; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3); }
+.motivo-caixa h4 { margin: 0 0 0.25rem; font-size: 1rem; }
+.motivo-caixa p { margin: 0 0 0.75rem; font-size: 0.82rem; color: var(--muted); }
+.motivo-caixa textarea { width: 100%; min-height: 84px; resize: vertical; font: inherit; }
+.motivo-erro { color: #c0392b; font-size: 0.78rem; min-height: 1.1em; margin: 0.3rem 0 0.6rem; }
+.motivo-acoes { display: flex; justify-content: flex-end; gap: 0.5rem; }

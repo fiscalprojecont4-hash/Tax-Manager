@@ -8,7 +8,7 @@ import { contextoEquipe } from './tarefas-db.js';
 import { gravarLocal, lerLocal, removerLocal, definirPonte } from './dados-teste.js';
 
 // lista = vários registros com id; doc = um documento por equipe
-const COLECOES = { validacoes: 'lista', arquivos: 'lista', mapeamento: 'lista', projetos: 'lista', categorias: 'doc', eventos: 'doc' };
+const COLECOES = { validacoes: 'lista', arquivos: 'lista', mapeamento: 'lista', projetos: 'lista', categorias: 'doc', eventos: 'doc', checklist: 'doc' };
 const UNICO = 'unico';
 const TAM = 1000;
 const DONO = '__dono_equipe';

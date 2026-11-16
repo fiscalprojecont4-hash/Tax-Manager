@@ -140,8 +140,15 @@ export const CHECKLIST_PADRAO = [
   'Obrigações acessórias enviadas (SPED, DCTF...)',
   'Pendências do mês anterior resolvidas',
 ];
+// Check List padrão das validações: editável em Administração (vale para as validações novas).
+export function checklistPadrao() {
+  const l = carregar('checklist', () => CHECKLIST_PADRAO.slice());
+  const limpa = Array.isArray(l) ? l.map(x => String(x ?? '').trim()).filter(Boolean) : [];
+  return limpa.length ? limpa : CHECKLIST_PADRAO.slice();
+}
+export function salvarChecklistPadrao(lista) { gravar('checklist', lista.map(x => String(x ?? '').trim()).filter(Boolean)); }
 export function novoChecklist(feitos = []) {
-  return CHECKLIST_PADRAO.map((label, i) => ({ id: `c${i}`, label, done: feitos.includes(i) }));
+  return checklistPadrao().map((label, i) => ({ id: `c${i}`, label, done: feitos.includes(i) }));
 }
 export function novoPonto(o = {}) {
   return { id: novoId('p'), categoria: 'Outros', titulo: '', identificado: '', motivo: '', orientacao: '', ...o };
@@ -158,7 +165,7 @@ export function salvarArquivos(lista) { gravar('arquivos', lista); }
 export function resumoArquivo(arq) {
   const n = (s) => arq.itens.filter(i => i.status === s).length;
   return {
-    total: arq.itens.length, concluida: n('concluida'), pendente: n('pendente'), andamento: n('andamento'),
+    total: arq.itens.length, concluida: n('concluida'), pendente: n('pendente'), andamento: n('andamento'), retificando: n('retificando'),
     impedimento: n('impedimento'), cancelada: n('cancelada'),
     pontos: arq.itens.reduce((t, i) => t + (i.pontos || []).length, 0),
   };

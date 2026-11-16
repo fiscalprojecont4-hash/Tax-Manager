@@ -14,6 +14,7 @@ import { carregar, gravar, hojeIso, somarDias, isoDe, novoId, tarefasExemplo, ev
 import { atualizarOficiais } from './obrigacoes-db.js';
 import { fmtBR, esc, STATUS_LABEL, PRIORIDADE_LABEL } from './lista-ui.js';
 import { gerarPdf } from './relatorio-pdf.js';
+import * as avisos from './avisos-sistema.js';
 
 export const HORARIOS = { inicio: { hora: 8, rotulo: 'Início do dia', titulo: 'Relatório do início do dia' },
                           fim: { hora: 17, rotulo: 'Fim do dia', titulo: 'Relatório do fim do dia' } };
@@ -163,6 +164,30 @@ export function instalarRelatoriosNoSino() {
   const sino = document.getElementById('notifBell');
   if (!painel || !lista || !sino || document.getElementById('notifReports')) return;
 
+  // Avisos do sistema (central de notificações do Windows)
+  const avisosEl = document.createElement('div');
+  avisosEl.className = 'notif-reports'; avisosEl.id = 'notifSistema';
+  painel.insertBefore(avisosEl, lista);
+  function desenharAvisos() {
+    const p = avisos.permissao();
+    let texto, botoes = '';
+    if (p === 'unsupported') texto = 'Este navegador não permite avisos do sistema.';
+    else if (p === 'denied') texto = 'Os avisos estão bloqueados no navegador. Clique no cadeado ao lado do endereço e permita "Notificações".';
+    else if (avisos.ativado()) { texto = 'Ativados: você recebe avisos na barra de notificações do Windows enquanto a plataforma estiver aberta no navegador.'; botoes = '<button type="button" class="nr-btn nr-btn-sec" data-av="teste">Enviar teste</button><button type="button" class="nr-btn nr-btn-sec" data-av="off">Desativar</button>'; }
+    else { texto = 'Receba relatórios do dia e tarefas do dia na barra de notificações do Windows.'; botoes = '<button type="button" class="nr-btn" data-av="on">Ativar avisos no Windows</button>'; }
+    avisosEl.innerHTML = `<h5>Avisos no Windows</h5><p class="nr-estado">${esc(texto)}</p>${botoes ? `<div class="nr-acoes">${botoes}</div>` : ''}`;
+  }
+  avisosEl.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const b = e.target.closest('[data-av]'); if (!b) return;
+    if (b.dataset.av === 'on') await avisos.ativar();
+    if (b.dataset.av === 'off') avisos.desativar();
+    if (b.dataset.av === 'teste') await avisos.avisar('Tax Manager', 'Tudo certo: os avisos do sistema estão funcionando.', { tag: 'teste' });
+    desenharAvisos();
+  });
+  desenharAvisos();
+  avisos.iniciarAvisos();
+
   const bloco = document.createElement('div');
   bloco.className = 'notif-reports';
   bloco.id = 'notifReports';
@@ -221,6 +246,6 @@ export function instalarRelatoriosNoSino() {
     }
   });
 
-  sino.addEventListener('click', () => { mensagem = ''; setTimeout(desenhar, 0); });
+  sino.addEventListener('click', () => { mensagem = ''; setTimeout(() => { desenhar(); desenharAvisos(); }, 0); });
   desenhar();
 }

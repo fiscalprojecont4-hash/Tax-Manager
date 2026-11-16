@@ -2,6 +2,12 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
+  <link rel="icon" href="favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png" />
+  <link rel="apple-touch-icon" href="assets/icon-180.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#0a1a33" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://debwbmbhmtimozhkeyql.supabase.co wss://debwbmbhmtimozhkeyql.supabase.co https://cdn.jsdelivr.net; object-src 'none'; base-uri 'self'; form-action 'self'" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Validações — Tax Manager Projecont</title>
@@ -9,6 +15,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/validacoes.css?v=20261013b" />
+  <link rel="stylesheet" href="css/seletor-empresa.css" />
 </head>
 <body>
   <nav class="topnav">
@@ -149,9 +156,8 @@
     <div class="side-panel-body">
       <div class="form-row form-row-split">
         <div>
-          <label for="fEmpresa">Empresa</label>
-          <input type="text" id="fEmpresa" list="empresasSugeridas" autocomplete="off" />
-          <datalist id="empresasSugeridas"></datalist>
+          <label>Empresa</label>
+          <div id="fEmpresa"></div>
         </div>
         <div>
           <label for="fAtividade">Atividade</label>
@@ -161,15 +167,15 @@
       </div>
       <div class="form-row form-row-split">
         <div>
-          <label for="fAnalista">Membro em validação</label>
-          <input type="text" id="fAnalista" list="analistasSugeridos" autocomplete="off" />
-          <datalist id="analistasSugeridos"></datalist>
+          <label>Membro em validação</label>
+          <div id="fAnalista"></div>
         </div>
         <div>
           <label for="fStatus">Status</label>
           <select id="fStatus">
             <option value="pendente" selected>Pendente</option>
             <option value="andamento">Em andamento</option>
+            <option value="retificando">Retificando</option>
             <option value="impedimento">Impedimento</option>
             <option value="concluida">Concluída</option>
             <option value="cancelada">Cancelada</option>
@@ -213,6 +219,7 @@
   </div>
 
   <script type="module">
+    import { criarSeletorEmpresa, criarSeletorPessoa, comoCampo } from './js/seletor-empresa.js';
     import { createSupabaseClient } from './js/supabase-client.js';
     import { sincronizarEmpresasAmPro } from './js/empresas-ampro.js';
     import { iniciarMenusAcoes } from './js/acoes-menu.js';
@@ -221,7 +228,7 @@
     import { carregar, gravar, hojeIso, somarDias, novoId, novoChecklist, novoPonto, categorias, adicionarCategoria,
              empresas as listarEmpresas, empresaPorNome, competenciaVigente, definirCompetencia, proximaCompetencia, competenciaExtenso,
              competenciaCurta, arquivos as listarArquivos, salvarArquivos, montarArquivos, validacoesExemplo } from './js/dados-teste.js';
-    import { STATUS_ORDER, STATUS_LABEL, STATUS_OCULTOS, statusVisivel, esc, norm, fmtBR, downloadFile, csvCell,
+    import { STATUS_ORDER_VALIDACAO as STATUS_ORDER, STATUS_LABEL, STATUS_OCULTOS, statusVisivel, esc, norm, fmtBR, downloadFile, csvCell,
              createMultiSelect, abrirStatusMenu, statusPillHtml } from './js/lista-ui.js';
     import { gerarPdf } from './js/relatorio-pdf.js';
     import { ligarDadosEquipe } from './js/dados-equipe.js';
@@ -435,6 +442,7 @@
 
     function unicos(fn) { return [...new Set(validacoes.map(fn).filter(Boolean))].sort((a, b) => a.localeCompare(b)); }
 
+    const sels = {};
     function refreshDynamicOptions() {
       ms.atividade.setOptions(unicos(v => v.atividade).map(x => ({ value: x, label: x })));
       ms.empresa.setOptions(unicos(v => v.nome).map(x => ({ value: x, label: x })));
@@ -443,10 +451,7 @@
       const dl = (id, itens) => { document.getElementById(id).innerHTML = itens.map(x => `<option value="${esc(x)}"></option>`).join(''); };
       dl('atividadesSugeridas', unicos(v => v.atividade));
       const cad = listarEmpresas();
-      dl('empresasSugeridas', [...new Set([...cad.map(e => e.nome), ...validacoes.map(v => v.nome)])].sort((a, b) => a.localeCompare(b)));
-      dl('analistasSugeridos', ctxEquipe
-        ? ctxEquipe.membros.map(m => m.nome)
-        : [...new Set([...cad.flatMap(e => [e.responsavel, e.executor]), ...validacoes.map(v => v.analista)].filter(Boolean))].sort((a, b) => a.localeCompare(b)));
+      sels.empresa?.recarregar(); sels.analista?.recarregar();
     }
 
     document.getElementById('fltSearch').addEventListener('input', (e) => { filters.q = e.target.value; render(); });
@@ -475,6 +480,7 @@
         ['total', validacoes.length, 'Empresas / atividades', ''],
         ['pendente', n('pendente'), 'Pendentes', 'warning'],
         ['andamento', n('andamento'), 'Em andamento', ''],
+        ['retificando', n('retificando'), 'Retificando', 'warning'],
         ['impedimento', n('impedimento'), 'Impedimentos', 'danger'],
         ['concluida', n('concluida'), 'Concluídas', 'success'],
         ['cancelada', n('cancelada'), 'Canceladas', 'neutral'],
@@ -706,9 +712,19 @@
     const panelBackdrop = document.getElementById('panelBackdrop');
     const panelTitle = document.getElementById('panelTitle');
     const panelSubtitle = document.getElementById('panelSubtitle');
-    const fEmpresa = document.getElementById('fEmpresa');
+    const seEmpresa = criarSeletorEmpresa(document.getElementById('fEmpresa'), {
+      empresas: () => {
+        const cad = listarEmpresas(), nomes = new Set(cad.map(e => e.nome));
+        return [...cad, ...validacoes.filter(v => v.nome && !nomes.has(v.nome)).map(v => ({ nome: v.nome }))].filter((e, i, a) => a.findIndex(x => x.nome === e.nome) === i).sort((a, b) => a.nome.localeCompare(b.nome));
+      },
+      semEmpresa: '', placeholder: 'Selecionar empresa…', vazioSub: 'Sem empresa', rotuloVazio: 'Nenhuma' });
+    const seAnalista = criarSeletorPessoa(document.getElementById('fAnalista'), {
+      pessoas: () => ctxEquipe ? ctxEquipe.membros.map(m => m.nome)
+        : [...new Set([...listarEmpresas().flatMap(e => [e.responsavel, e.executor]), ...validacoes.map(v => v.analista)].filter(Boolean))].sort((a, b) => a.localeCompare(b)),
+      semPessoa: '', placeholder: 'Selecionar membro…', vazioSub: 'Sem membro' });
+    sels.empresa = seEmpresa; sels.analista = seAnalista;
+    const fEmpresa = comoCampo(seEmpresa), fAnalista = comoCampo(seAnalista);
     const fAtividade = document.getElementById('fAtividade');
-    const fAnalista = document.getElementById('fAnalista');
     const fStatus = document.getElementById('fStatus');
     const fJust = document.getElementById('fJust');
     const retifInfo = document.getElementById('retifInfo');
@@ -848,6 +864,7 @@
     }
 
     function closePanel() {
+      seEmpresa.fechar(); seAnalista.fechar();
       vdPanel.classList.remove('open');
       panelBackdrop.classList.remove('open');
       atual = null; rascunho = null;

@@ -20,3 +20,10 @@ html, body { overflow-x: hidden; }
 
 .cad-table .form-row { margin: 0; }
 .cad-table td { vertical-align: middle; }
+
+/* Check List padrão */
+.chk-lista { list-style: none; margin: 0.5rem 0 1rem; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; max-width: 720px; }
+.chk-item { display: flex; align-items: center; gap: 0.5rem; }
+.chk-n { flex: none; width: 1.6rem; text-align: right; font-size: 0.78rem; color: var(--muted); }
+.chk-item input { flex: 1; min-width: 0; }
+.chk-item .icon-btn[disabled] { opacity: .35; cursor: default; }

@@ -2,6 +2,12 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
+  <link rel="icon" href="favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png" />
+  <link rel="apple-touch-icon" href="assets/icon-180.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#0a1a33" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://debwbmbhmtimozhkeyql.supabase.co wss://debwbmbhmtimozhkeyql.supabase.co https://cdn.jsdelivr.net; object-src 'none'; base-uri 'self'; form-action 'self'" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Conhecimento — Tax Manager Projecont</title>
@@ -9,6 +15,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/conhecimento.css?v=20261013b" />
+  <link rel="stylesheet" href="css/seletor-empresa.css" />
 </head>
 <body>
   <nav class="topnav">
@@ -203,9 +210,8 @@
     <div class="side-panel-body">
       <div class="form-row form-row-split">
         <div>
-          <label for="mEmpresa">Empresa</label>
-          <input type="text" id="mEmpresa" list="mEmpresas" autocomplete="off" />
-          <datalist id="mEmpresas"></datalist>
+          <label>Empresa</label>
+          <div id="mEmpresa"></div>
         </div>
         <div>
           <label for="mProblema">Problema</label>
@@ -228,13 +234,12 @@
       </div>
       <div class="form-row form-row-split">
         <div>
-          <label for="mResp">Responsável</label>
-          <input type="text" id="mResp" list="mPessoas" autocomplete="off" />
-          <datalist id="mPessoas"></datalist>
+          <label>Responsável</label>
+          <div id="mResp"></div>
         </div>
         <div>
-          <label for="mExec">Executor</label>
-          <input type="text" id="mExec" list="mPessoas" autocomplete="off" />
+          <label>Executor</label>
+          <div id="mExec"></div>
           <p class="field-hint" id="mExecHint"></p>
         </div>
       </div>
@@ -258,6 +263,7 @@
   </aside>
 
   <script type="module">
+    import { criarSeletorEmpresa, criarSeletorPessoa, comoCampo } from './js/seletor-empresa.js';
     import { iniciarShell } from './js/shell.js';
     import { createSupabaseClient } from './js/supabase-client.js';
     import { sincronizarEmpresasAmPro } from './js/empresas-ampro.js';
@@ -380,7 +386,7 @@
 
     function badgesArquivo(a) {
       const r = resumoArquivo(a);
-      return STATUS_ORDER.filter(s => r[s]).map(s => `<span class="badge ${STATUS_BADGE[s]}">${r[s]} ${esc(STATUS_LABEL[s].toLowerCase())}</span>`).join('');
+      return ['pendente', 'andamento', 'retificando', 'impedimento', 'concluida', 'cancelada'].filter(s => r[s]).map(s => `<span class="badge ${STATUS_BADGE[s]}">${r[s]} ${esc(STATUS_LABEL[s].toLowerCase())}</span>`).join('');
     }
 
     function itemHtml(a, i) {
@@ -432,7 +438,7 @@
       const naoConcl = itens.filter(i => i.status !== 'concluida');
       document.getElementById('padroes').innerHTML =
         cartao('Categorias mais frequentes', 'Pontos identificados nas validações arquivadas.', barrasHtml(contar(pontos, p => p.categoria).slice(0, 6))) +
-        cartao('Itens não concluídos por empresa', 'Pendentes, em andamento, em impedimento ou cancelados no encerramento.',
+        cartao('Itens não concluídos por empresa', 'Pendentes, em andamento, retificando, em impedimento ou cancelados no encerramento.',
           barrasHtml(contar(naoConcl, i => i.empresa).slice(0, 6), 'warning'));
     }
 
@@ -887,12 +893,18 @@
 
     const mPanel = document.getElementById('mPanel');
     const mBackdrop = document.getElementById('mBackdrop');
-    const fEmp = document.getElementById('mEmpresa');
+    const pessoasMapa = () => [...new Set([...listarEmpresas().flatMap(e => [e.responsavel, e.executor]), ...mapa.flatMap(m => [m.responsavel, m.executor])].filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    const seEmp = criarSeletorEmpresa(document.getElementById('mEmpresa'), {
+      empresas: () => { const cad = listarEmpresas(), n = new Set(cad.map(e => e.nome)); return [...cad, ...mapa.filter(m => m.empresa && !n.has(m.empresa)).map(m => ({ nome: m.empresa }))].filter((e, i, a) => a.findIndex(x => x.nome === e.nome) === i).sort((a, b) => a.nome.localeCompare(b.nome)); },
+      semEmpresa: '', placeholder: 'Selecionar empresa…', vazioSub: 'Sem empresa', rotuloVazio: 'Nenhuma' });
+    const seResp = criarSeletorPessoa(document.getElementById('mResp'), { pessoas: pessoasMapa, semPessoa: '', placeholder: 'Selecionar responsável…', vazioSub: 'Sem responsável' });
+    const seExec = criarSeletorPessoa(document.getElementById('mExec'), { pessoas: pessoasMapa, semPessoa: '', placeholder: 'Selecionar executor…', vazioSub: 'Sem executor' });
+    const fEmp = comoCampo(seEmp);
     const fProb = document.getElementById('mProblema');
     const fCompl = document.getElementById('mCompl');
     const fPrazo = document.getElementById('mPrazo');
-    const fResp = document.getElementById('mResp');
-    const fExec = document.getElementById('mExec');
+    const fResp = comoCampo(seResp);
+    const fExec = comoCampo(seExec);
     const fSta = document.getElementById('mStatus');
     const fCtx = document.getElementById('mContexto');
     const mSaved = document.getElementById('mSaved');
@@ -911,10 +923,7 @@
     }
     function opcoesPessoas() {
       const cad = listarEmpresas();
-      const pessoas = [...new Set([...cad.flatMap(e => [e.responsavel, e.executor]), ...mapa.flatMap(m => [m.responsavel, m.executor])].filter(Boolean))].sort((a, b) => a.localeCompare(b));
-      document.getElementById('mPessoas').innerHTML = pessoas.map(p => `<option value="${esc(p)}"></option>`).join('');
-      document.getElementById('mEmpresas').innerHTML = [...new Set([...cad.map(e => e.nome), ...mapa.map(m => m.empresa)])].sort((a, b) => a.localeCompare(b))
-        .map(n => `<option value="${esc(n)}"></option>`).join('');
+      seEmp.recarregar(); seResp.recarregar(); seExec.recarregar();
     }
 
     // O executor vem do cadastro da empresa; só é editável quando a empresa não está cadastrada.
@@ -976,7 +985,7 @@
       mPanel.classList.add('open'); mBackdrop.classList.add('open');
       if (!atual) (empresa ? fProb : fEmp).focus();
     }
-    function fecharPainel() { mPanel.classList.remove('open'); mBackdrop.classList.remove('open'); atual = null; }
+    function fecharPainel() { seEmp.fechar(); seResp.fechar(); seExec.fechar(); mPanel.classList.remove('open'); mBackdrop.classList.remove('open'); atual = null; }
 
     document.getElementById('mBtnNovo').addEventListener('click', () => abrirPainel(null));
     document.getElementById('mFechar').addEventListener('click', fecharPainel);

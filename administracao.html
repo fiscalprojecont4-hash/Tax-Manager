@@ -2,6 +2,12 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
+  <link rel="icon" href="favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png" />
+  <link rel="apple-touch-icon" href="assets/icon-180.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#0a1a33" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://debwbmbhmtimozhkeyql.supabase.co wss://debwbmbhmtimozhkeyql.supabase.co https://cdn.jsdelivr.net; object-src 'none'; base-uri 'self'; form-action 'self'" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Administração — Tax Manager Projecont</title>
@@ -9,6 +15,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/administracao.css?v=20261013b" />
+  <link rel="stylesheet" href="css/seletor-empresa.css" />
   <style>#paneObr .inline-form button.btn-primary { width: auto; padding: 0.6rem 1.1rem; font-size: 0.9rem; }
   #paneObr .inline-form > .form-row { flex: 1 1 200px; }
   #paneObr .field-hint { margin: 0.6rem 0 0; }</style>
@@ -72,6 +79,7 @@
     <div class="tab-bar" role="tablist" aria-label="Cadastros">
       <button type="button" role="tab" id="tabCat" aria-selected="true" aria-controls="paneCat">Categorias</button>
       <button type="button" role="tab" id="tabEmp" aria-selected="false" aria-controls="paneEmp">Empresas</button>
+      <button type="button" role="tab" id="tabChk" aria-selected="false" aria-controls="paneChk">Check List</button>
       <button type="button" role="tab" id="tabObr" aria-selected="false" aria-controls="paneObr">Calendário oficial</button>
     </div>
 
@@ -92,6 +100,24 @@
       </div>
     </section>
 
+    <section id="paneChk" role="tabpanel" aria-labelledby="tabChk" hidden>
+      <div class="form-card">
+        <h3>Check List padrão das validações</h3>
+        <p>Lista que aparece em Validações ao validar uma empresa. Alterações valem para as validações criadas a partir de agora; as que já estão
+        em andamento mantêm o check list que tinham, com o que já foi marcado.</p>
+        <form class="inline-form" id="formChk">
+          <div class="form-row">
+            <label for="novoChk">Novo item</label>
+            <input type="text" id="novoChk" placeholder="Ex: Conferir créditos de PIS/COFINS" autocomplete="off" maxlength="160" />
+          </div>
+          <button type="submit" class="btn-new">+ Adicionar item</button>
+        </form>
+        <p class="field-hint" id="chkMsg" aria-live="polite"></p>
+        <ol class="chk-lista" id="chkLista"></ol>
+        <button type="button" class="btn-ghost" id="chkPadrao">Restaurar lista original</button>
+      </div>
+    </section>
+
     <section id="paneEmp" role="tabpanel" aria-labelledby="tabEmp" hidden>
       <div class="form-card">
         <h3>Empresas, responsáveis e executores</h3>
@@ -103,12 +129,11 @@
         </div>
         <form class="inline-form" id="formEmp">
           <div class="form-row"><label for="nEmpresa">Empresa</label><input type="text" id="nEmpresa" autocomplete="off" /></div>
-          <div class="form-row"><label for="nResp">Responsável</label><input type="text" id="nResp" list="pessoas" autocomplete="off" /></div>
-          <div class="form-row"><label for="nExec">Executor</label><input type="text" id="nExec" list="pessoas" autocomplete="off" /></div>
+          <div class="form-row"><label>Responsável</label><div id="nResp"></div></div>
+          <div class="form-row"><label>Executor</label><div id="nExec"></div></div>
           <button type="submit" class="btn-new">+ Adicionar empresa</button>
         </form>
         <p class="field-hint" id="empMsg" aria-live="polite"></p>
-        <datalist id="pessoas"></datalist>
       </div>
       <div class="table-card">
         <table class="data-table cad-table">
@@ -148,15 +173,16 @@
     import { createSupabaseClient } from './js/supabase-client.js';
     import { sincronizarEmpresasAmPro } from './js/empresas-ampro.js';
     import { esc, norm } from './js/lista-ui.js';
+    import { criarSeletorPessoa } from './js/seletor-empresa.js';
     import { categorias, salvarCategorias, adicionarCategoria, empresas, salvarEmpresas,
-             carregar } from './js/dados-teste.js';
+             carregar, checklistPadrao, salvarChecklistPadrao, CHECKLIST_PADRAO } from './js/dados-teste.js';
     import { listarObrigacoes, contarPorStatus, mudarStatus } from './js/obrigacoes-db.js';
 
     await iniciarShell();
     await sincronizarEmpresasAmPro(createSupabaseClient(true));
 
     // ---------- abas ----------
-    const abas = { cat: ['tabCat', 'paneCat'], emp: ['tabEmp', 'paneEmp'], obr: ['tabObr', 'paneObr'] };
+    const abas = { cat: ['tabCat', 'paneCat'], emp: ['tabEmp', 'paneEmp'], chk: ['tabChk', 'paneChk'], obr: ['tabObr', 'paneObr'] };
     function mostrar(qual) {
       Object.entries(abas).forEach(([k, [t, p]]) => {
         document.getElementById(t).setAttribute('aria-selected', String(k === qual));
@@ -167,6 +193,7 @@
     Object.entries(abas).forEach(([k, [t]]) => document.getElementById(t).addEventListener('click', () => mostrar(k)));
     if (location.hash === '#emp') mostrar('emp');
     if (location.hash === '#obr') mostrar('obr');
+    if (location.hash === '#chk') mostrar('chk');
 
     const svg = (d) => `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
     const LIXEIRA = '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>';
@@ -213,6 +240,53 @@
       desenharCategorias();
     });
 
+    // ---------- check list padrão das validações ----------
+    const SETAS = { sobe: '<polyline points="18 15 12 9 6 15"/>', desce: '<polyline points="6 9 12 15 18 9"/>' };
+    function desenharChecklist() {
+      const l = checklistPadrao();
+      document.getElementById('chkLista').innerHTML = l.map((t, i) => `
+        <li class="chk-item" data-i="${i}">
+          <span class="chk-n">${i + 1}</span>
+          <input type="text" data-chk value="${esc(t)}" maxlength="160" aria-label="Item ${i + 1} do check list" />
+          <button type="button" class="icon-btn" data-mv="-1" ${i === 0 ? 'disabled' : ''} title="Subir" aria-label="Subir item ${i + 1}">${svg(SETAS.sobe)}</button>
+          <button type="button" class="icon-btn" data-mv="1" ${i === l.length - 1 ? 'disabled' : ''} title="Descer" aria-label="Descer item ${i + 1}">${svg(SETAS.desce)}</button>
+          <button type="button" class="icon-btn danger" data-rm title="Remover" aria-label="Remover item ${i + 1}">${svg(LIXEIRA)}</button>
+        </li>`).join('');
+    }
+    const msgChk = (t) => { document.getElementById('chkMsg').textContent = t; };
+    document.getElementById('formChk').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const campo = document.getElementById('novoChk'), t = campo.value.trim();
+      if (!t) { msgChk('Digite o item do check list.'); campo.focus(); return; }
+      const l = checklistPadrao();
+      if (l.some(x => norm(x) === norm(t))) { msgChk(`"${t}" já está na lista.`); return; }
+      l.push(t); salvarChecklistPadrao(l); campo.value = ''; msgChk(`Item "${t}" adicionado.`); desenharChecklist();
+    });
+    document.getElementById('chkLista').addEventListener('change', (e) => {
+      const inp = e.target.closest('[data-chk]'); if (!inp) return;
+      const i = Number(inp.closest('li').dataset.i), l = checklistPadrao();
+      if (!inp.value.trim()) { msgChk('O item não pode ficar vazio (use remover).'); inp.value = l[i]; return; }
+      l[i] = inp.value.trim(); salvarChecklistPadrao(l); msgChk('Alteração salva.');
+    });
+    document.getElementById('chkLista').addEventListener('click', (e) => {
+      const li = e.target.closest('li'); if (!li) return;
+      const i = Number(li.dataset.i), l = checklistPadrao();
+      const mv = e.target.closest('[data-mv]'), rm = e.target.closest('[data-rm]');
+      if (mv) { const j = i + Number(mv.dataset.mv); if (j < 0 || j >= l.length) return; [l[i], l[j]] = [l[j], l[i]]; salvarChecklistPadrao(l); msgChk('Ordem atualizada.'); desenharChecklist(); }
+      if (rm) {
+        if (l.length === 1) { msgChk('O check list precisa ter ao menos um item.'); return; }
+        if (!rm.classList.contains('armed')) { armar(rm, 'Remover'); return; }
+        const [x] = l.splice(i, 1); salvarChecklistPadrao(l); msgChk(`Item "${x}" removido.`); desenharChecklist();
+      }
+    });
+    document.getElementById('chkPadrao').addEventListener('click', (e) => {
+      const b = e.currentTarget;
+      if (!b.classList.contains('armed')) { b.classList.add('armed'); b.textContent = 'Clique de novo para restaurar'; setTimeout(() => { b.classList.remove('armed'); b.textContent = 'Restaurar lista original'; }, 3000); return; }
+      b.classList.remove('armed'); b.textContent = 'Restaurar lista original';
+      salvarChecklistPadrao(CHECKLIST_PADRAO.slice()); msgChk('Lista original restaurada.'); desenharChecklist();
+    });
+    desenharChecklist();
+
     // ---------- empresas ----------
     function desenharEmpresas() {
       const todas = empresas().slice().sort((a, b) => a.nome.localeCompare(b.nome));
@@ -222,15 +296,28 @@
       if (doAmPro) { desenharEmpresasAmPro(todas); return; }
       document.getElementById('empHead').innerHTML = '<tr><th>Empresa</th><th>Responsável</th><th>Executor</th><th class="col-actions">Ações</th></tr>';
       const lista = todas;
-      const pessoas = [...new Set(lista.flatMap(e => [e.responsavel, e.executor]).filter(Boolean))].sort((a, b) => a.localeCompare(b));
-      document.getElementById('pessoas').innerHTML = pessoas.map(p => `<option value="${esc(p)}"></option>`).join('');
       document.getElementById('empRows').innerHTML = lista.map(e => `
         <tr data-nome="${esc(e.nome)}">
           <td class="col-main">${esc(e.nome)}</td>
-          <td data-label="Responsável"><div class="form-row"><input type="text" data-f="responsavel" list="pessoas" value="${esc(e.responsavel)}" aria-label="Responsável de ${esc(e.nome)}" /></div></td>
-          <td data-label="Executor"><div class="form-row"><input type="text" data-f="executor" list="pessoas" value="${esc(e.executor)}" aria-label="Executor de ${esc(e.nome)}" /></div></td>
+          <td data-label="Responsável"><div data-sel="responsavel" data-valor="${esc(e.responsavel)}"></div></td>
+          <td data-label="Executor"><div data-sel="executor" data-valor="${esc(e.executor)}"></div></td>
           <td class="col-actions"><button type="button" class="icon-btn danger" data-del title="Remover" aria-label="Remover ${esc(e.nome)}">${svg(LIXEIRA)}</button></td>
         </tr>`).join('');
+      montarSeletoresLinhas();
+    }
+    const pessoasCadastro = () => [...new Set(empresas().flatMap(e => [e.responsavel, e.executor]).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    const selPessoa = (raiz, extra = {}) => criarSeletorPessoa(raiz, { pessoas: pessoasCadastro, semPessoa: '', permitirNovo: true, ...extra });
+    // Em cada linha da tabela, responsável e executor usam o seletor compacto (mesma interface dos demais módulos).
+    function montarSeletoresLinhas() {
+      document.querySelectorAll('#empRows [data-sel]').forEach(div => {
+        const campo = div.dataset.sel, nomeEmp = div.closest('tr').dataset.nome;
+        const sel = selPessoa(div, { compacto: true, placeholder: campo === 'responsavel' ? 'Definir responsável' : 'Definir executor',
+          onChange: (v) => {
+            const lista = empresas(), emp = lista.find(x => x.nome === nomeEmp);
+            if (emp) { emp[campo] = v.trim(); salvarEmpresas(lista); document.getElementById('empMsg').textContent = 'Alteração salva.'; }
+          } });
+        sel.definir(div.dataset.valor);
+      });
     }
     // Empresas vindas do AM PRO: só leitura (a origem é o AM PRO) e já filtradas pelo banco por equipe.
     function desenharEmpresasAmPro(todas) {
@@ -249,6 +336,8 @@
         '<tr><td colspan="6">Nenhuma empresa para esse filtro.</td></tr>';
       document.getElementById('empMsg').textContent = `${lista.length} de ${todas.length} empresas · cadastro mantido no AM PRO; cada analista vê as da sua equipe.`;
     }
+    const seNResp = selPessoa(document.getElementById('nResp'), { placeholder: 'Selecionar responsável…', compacto: true });
+    const seNExec = selPessoa(document.getElementById('nExec'), { placeholder: 'Selecionar executor…', compacto: true });
     document.getElementById('empBusca').addEventListener('input', desenharEmpresas);
     document.getElementById('empEquipe').addEventListener('change', desenharEmpresas);
     document.getElementById('formEmp').addEventListener('submit', (e) => {
@@ -258,18 +347,11 @@
       if (!nome) { msg.textContent = 'Informe o nome da empresa.'; document.getElementById('nEmpresa').focus(); return; }
       const lista = empresas();
       if (lista.some(x => norm(x.nome) === norm(nome))) { msg.textContent = `"${nome}" já está cadastrada.`; return; }
-      lista.push({ nome, responsavel: document.getElementById('nResp').value.trim(), executor: document.getElementById('nExec').value.trim() });
+      lista.push({ nome, responsavel: seNResp.valor().trim(), executor: seNExec.valor().trim() });
       salvarEmpresas(lista);
-      ['nEmpresa', 'nResp', 'nExec'].forEach(id => { document.getElementById(id).value = ''; });
+      document.getElementById('nEmpresa').value = ''; seNResp.definir(''); seNExec.definir('');
       msg.textContent = `Empresa "${nome}" adicionada.`;
       desenharEmpresas();
-    });
-    document.getElementById('empRows').addEventListener('change', (e) => {
-      const campo = e.target.closest('[data-f]');
-      if (!campo) return;
-      const lista = empresas();
-      const emp = lista.find(x => x.nome === campo.closest('tr').dataset.nome);
-      if (emp) { emp[campo.dataset.f] = campo.value.trim(); salvarEmpresas(lista); document.getElementById('empMsg').textContent = 'Alteração salva.'; desenharEmpresas(); }
     });
     document.getElementById('empRows').addEventListener('click', (e) => {
       const btn = e.target.closest('[data-del]');

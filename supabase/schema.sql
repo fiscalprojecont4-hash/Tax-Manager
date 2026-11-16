@@ -1809,3 +1809,18 @@ begin
 end $$;
 revoke all on function public.ampro_gravar_entregas(uuid, text, text, text, timestamptz, jsonb, jsonb) from public, anon, authenticated;
 grant execute on function public.ampro_gravar_entregas(uuid, text, text, text, timestamptz, jsonb, jsonb) to service_role;
+
+
+-- =============================================================================
+-- 20. Histórico de alterações de status nas tarefas + Check List padrão das validações
+--     * tarefas.historico: lista de {status, em, por, motivo} (do mais antigo ao mais recente)
+--     * dados_equipe aceita a coleção 'checklist' (um documento por equipe, id = 'unico')
+--     Pode rodar de novo sem efeito.
+-- =============================================================================
+alter table public.tarefas add column if not exists historico jsonb not null default '[]'::jsonb;
+alter table public.tarefas drop constraint if exists tarefas_historico_array;
+alter table public.tarefas add constraint tarefas_historico_array check (jsonb_typeof(historico) = 'array');
+
+alter table public.dados_equipe drop constraint if exists dados_equipe_colecao_check;
+alter table public.dados_equipe add constraint dados_equipe_colecao_check
+  check (colecao in ('validacoes','arquivos','mapeamento','projetos','categorias','eventos','checklist'));

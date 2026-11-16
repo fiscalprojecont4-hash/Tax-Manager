@@ -52,7 +52,7 @@ export function tarefaNoPeriodo(task: ReturnType<typeof tarefaParaAmPro>, compet
   const date = task.dueDate || task.completedAt;
   return Boolean(date && date >= start && date < end);
 }
-// `order` precisa ser uma chave única da tabela dentro da equipe, para a paginação não repetir nem pular linhas.
+// A ordenação usa a chave da tabela para manter a paginação estável.
 async function all(db: Database, table: string, columns: string, teamId: string, order: string[]) {
   const rows: Row[] = [];
   for (let offset = 0; ; offset += 1000) {
@@ -83,7 +83,7 @@ export async function tratarTarefas(request: Request, db: Database, key: { equip
     const teamId = text(mapped.data.equipe_id);
     const [rows, members] = await Promise.all([
       all(db, "tarefas", TAREFAS_COLUNAS, teamId, ["id"]),
-      // ampro_obrigacoes não tem coluna `id`: a chave é (equipe_id, ciclo, externo_id).
+      // ampro_obrigacoes não possui id; a chave é (equipe_id, ciclo, externo_id).
       all(db, "ampro_obrigacoes", MEMBROS_COLUNAS, teamId, ["ciclo", "externo_id"]),
     ]);
     const ids = [...new Set(rows.map(row => text(row.responsavel_id)).filter(Boolean))];

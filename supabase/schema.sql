@@ -1727,3 +1727,85 @@ select distinct on (private.obr_chave(o.orgao, o.titulo)) private.obr_chave(o.or
   from public.obrigacoes_oficiais o where o.status = 'rejeitado'
    and not exists (select 1 from public.obrigacoes_oficiais a where a.status = 'aprovado' and private.obr_chave(a.orgao, a.titulo) = private.obr_chave(o.orgao, o.titulo))
 on conflict (chave) do nothing;
+
+
+-- =============================================================================
+-- 19. Placar mensal de entregas por usuário (POST /deliveries do AM PRO)
+-- =============================================================================
+-- Executar no Tax Manager antes de publicar deliveries.ts (rota POST /deliveries).
+-- Placar mensal de entregas por usuário enviado pelo AM PRO: no prazo / atividades do mês.
+-- Gravação somente pelo receptor (service_role); leitura pelos membros da equipe.
+
+create table if not exists public.ampro_entregas_resumo (
+  equipe_id uuid not null references public.equipes(id) on delete cascade,
+  competencia text not null check (competencia ~ '^\d{4}-(0[1-9]|1[0-2])$'),
+  ampro_equipe text not null,
+  revisao text not null,
+  origem_em timestamptz not null,
+  atividades integer not null, entregues integer not null, no_prazo integer not null,
+  atrasadas integer not null, sem_data integer not null, abertas integer not null,
+  placar text not null,
+  recebido_em timestamptz not null default now(),
+  primary key (equipe_id, competencia)
+);
+
+create table if not exists public.ampro_entregas_usuarios (
+  equipe_id uuid not null,
+  competencia text not null,
+  usuario_chave text not null,
+  ampro_usuario text,
+  nome text not null,
+  atividades integer not null, entregues integer not null, no_prazo integer not null,
+  atrasadas integer not null, sem_data integer not null, abertas integer not null,
+  placar text not null,
+  primary key (equipe_id, competencia, usuario_chave),
+  foreign key (equipe_id, competencia) references public.ampro_entregas_resumo(equipe_id, competencia) on delete cascade
+);
+
+alter table public.ampro_entregas_resumo enable row level security;
+alter table public.ampro_entregas_usuarios enable row level security;
+revoke all on public.ampro_entregas_resumo, public.ampro_entregas_usuarios from public, anon, authenticated;
+grant all on public.ampro_entregas_resumo, public.ampro_entregas_usuarios to service_role;
+grant select on public.ampro_entregas_resumo, public.ampro_entregas_usuarios to authenticated;
+drop policy if exists ampro_entregas_resumo_read on public.ampro_entregas_resumo;
+create policy ampro_entregas_resumo_read on public.ampro_entregas_resumo for select to authenticated using (private.eh_membro(equipe_id));
+drop policy if exists ampro_entregas_usuarios_read on public.ampro_entregas_usuarios;
+create policy ampro_entregas_usuarios_read on public.ampro_entregas_usuarios for select to authenticated using (private.eh_membro(equipe_id));
+
+-- Substitui o placar da equipe/competência numa transação.
+-- Retorna 'accepted', 'duplicate' (mesma revisão repetida) ou 'stale' (origem mais antiga que a gravada).
+create or replace function public.ampro_gravar_entregas(
+  p_equipe_id uuid, p_ampro_equipe text, p_competencia text, p_revisao text,
+  p_origem_em timestamptz, p_totais jsonb, p_usuarios jsonb
+) returns text
+language plpgsql security definer set search_path = '' as $$
+declare atual public.ampro_entregas_resumo;
+begin
+  -- Serializa envios da mesma equipe/competência.
+  perform pg_advisory_xact_lock(hashtext('ampro_entregas:' || p_equipe_id::text || ':' || p_competencia));
+  select * into atual from public.ampro_entregas_resumo where equipe_id = p_equipe_id and competencia = p_competencia;
+  if found then
+    if atual.revisao = p_revisao then return 'duplicate'; end if;
+    if atual.origem_em > p_origem_em then return 'stale'; end if;
+    delete from public.ampro_entregas_usuarios where equipe_id = p_equipe_id and competencia = p_competencia;
+  end if;
+  insert into public.ampro_entregas_resumo as r
+    (equipe_id, competencia, ampro_equipe, revisao, origem_em, atividades, entregues, no_prazo, atrasadas, sem_data, abertas, placar, recebido_em)
+  values (p_equipe_id, p_competencia, p_ampro_equipe, p_revisao, p_origem_em,
+    (p_totais->>'activities')::int, (p_totais->>'delivered')::int, (p_totais->>'onTime')::int,
+    (p_totais->>'late')::int, (p_totais->>'undated')::int, (p_totais->>'open')::int, p_totais->>'score', now())
+  on conflict (equipe_id, competencia) do update set
+    ampro_equipe = excluded.ampro_equipe, revisao = excluded.revisao, origem_em = excluded.origem_em,
+    atividades = excluded.atividades, entregues = excluded.entregues, no_prazo = excluded.no_prazo,
+    atrasadas = excluded.atrasadas, sem_data = excluded.sem_data, abertas = excluded.abertas,
+    placar = excluded.placar, recebido_em = now();
+  insert into public.ampro_entregas_usuarios
+    (equipe_id, competencia, usuario_chave, ampro_usuario, nome, atividades, entregues, no_prazo, atrasadas, sem_data, abertas, placar)
+  select p_equipe_id, p_competencia, u->>'key', nullif(u->>'userId', ''), u->>'name',
+    (u->>'activities')::int, (u->>'delivered')::int, (u->>'onTime')::int,
+    (u->>'late')::int, (u->>'undated')::int, (u->>'open')::int, u->>'score'
+  from jsonb_array_elements(p_usuarios) as u;
+  return 'accepted';
+end $$;
+revoke all on function public.ampro_gravar_entregas(uuid, text, text, text, timestamptz, jsonb, jsonb) from public, anon, authenticated;
+grant execute on function public.ampro_gravar_entregas(uuid, text, text, text, timestamptz, jsonb, jsonb) to service_role;

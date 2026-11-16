@@ -1,5 +1,6 @@
 import { tratarRefresh } from './refresh.ts';
 import { tratarTarefas } from './tasks.ts';
+import { tratarEntregas } from './deliveries.ts';
 
 // Edge Function "ampro-integration" — receptor do contrato HTTP v1 do AM PRO (CONTRATO-AMPRO.md).
 //
@@ -208,8 +209,8 @@ export async function tratar(req: Request, criarCliente: () => Promise<Cliente> 
 
   const url = new URL(req.url);
   const rota = url.pathname.replace(/\/+$/, '').split('/').pop() ?? '';
-  const metodos: Record<string, string> = { mirror: 'POST', calendar: 'GET', validations: 'GET', tasks: 'GET', 'refresh-requests': 'GET', 'refresh-result': 'POST' };
-  if (!(rota in metodos)) return erro(404, 'not_found', 'Rota inexistente. Use /mirror, /calendar, /validations ou /tasks.');
+  const metodos: Record<string, string> = { mirror: 'POST', calendar: 'GET', validations: 'GET', tasks: 'GET', deliveries: 'POST', 'refresh-requests': 'GET', 'refresh-result': 'POST' };
+  if (!(rota in metodos)) return erro(404, 'not_found', 'Rota inexistente. Use /mirror, /calendar, /validations, /tasks ou /deliveries.');
   if (req.method !== metodos[rota]) return erro(405, 'method_not_allowed', `Use ${metodos[rota]} em /${rota}.`);
 
   const cab = req.headers.get('authorization') ?? '';
@@ -234,6 +235,7 @@ export async function tratar(req: Request, criarCliente: () => Promise<Cliente> 
   if (rota === 'refresh-requests' || rota === 'refresh-result') return tratarRefresh(req, sb, chave, registrar, resp, erro);
 
   if (rota === 'tasks') return tratarTarefas(req, sb, chave, registrar, resp, erro);
+  if (rota === 'deliveries') return tratarEntregas(req, sb, chave, registrar, resp, erro);
 
   if (rota === 'mirror') {
     const tamanho = Number(req.headers.get('content-length') ?? 0);

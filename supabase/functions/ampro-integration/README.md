@@ -8,6 +8,7 @@ Implementa o contrato **`CONTRATO-AMPRO.md`** (v1, escrito pelo lado do AM PRO).
 | `GET /calendar?competence=AAAA-MM` | AM PRO | Calendário fiscal aprovado do mês, com versões substituídas. Lê o mês inteiro (sem truncar em 1000 linhas). |
 | `GET /validations?team=fiscal&competence=AAAA-MM` | AM PRO | Validações e achados de uma equipe e competência (abertas e já encerradas), ligadas à empresa do AM PRO pelo nome. Só da equipe pedida e só se a credencial a tiver no escopo. |
 | `GET /tasks?team=fiscal&competence=AAAA-MM` | AM PRO | Tarefas da equipe (pendentes até o fim do mês, mais as encerradas do mês). Delegado ligado ao ID de usuário do AM PRO (por perfil ou pelo nome em `ampro_obrigacoes`); nome ambíguo ou perfil desconhecido sai sem responsável. Código em `tasks.ts`; testes em `tasks.test.ts` e `tasks.schema.test.ts`. |
+| `POST /deliveries` | AM PRO | Placar mensal de entregas por usuário (no prazo / atividades do mês). Idempotente por `revision` (`Idempotency-Key` igual à revisão); 409 se já há placar mais recente. Grava em `ampro_entregas_resumo` e `ampro_entregas_usuarios` pela função SQL `ampro_gravar_entregas` (seção 19 do `schema.sql`). Código em `deliveries.ts`; testes em `deliveries.test.ts`. |
 
 ## Como a segurança funciona
 
